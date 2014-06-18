@@ -1,4 +1,3 @@
- 
 #include "Controller.h"
 
 #include "Global.h"

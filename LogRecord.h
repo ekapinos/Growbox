@@ -1,7 +1,6 @@
 #ifndef GB_LogRecord_h
 #define GB_LogRecord_h
 
-
 #include "Global.h"
 
 #include <Time.h>
