@@ -69,9 +69,8 @@ extern double g_temperatureSumm;
 extern int g_temperatureSummCount;
 
 extern byte g_isDayInGrowbox;
-extern volatile boolean g_UseSerial;
-extern volatile boolean g_UseSerialMonitor;
-extern volatile boolean g_UseSerialWifi;
+extern /*volatile*/ boolean g_UseSerialMonitor;
+extern /*volatile*/ boolean g_UseSerialWifi;
 
 #endif
 

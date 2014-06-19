@@ -92,7 +92,7 @@ void checkSerial(boolean checkSerialMonitor, boolean checkWifi){
 
   }
 
-  if (g_UseSerialMonitor || checkWifi){
+  if (!serialInUse && (g_UseSerialMonitor || checkWifi)){
     Serial.begin(115200);
     while (!Serial) {
       ; // wait for serial port to connect. Needed for Leonardo only
@@ -102,7 +102,7 @@ void checkSerial(boolean checkSerialMonitor, boolean checkWifi){
 
   if (checkWifi){
 
-    for (int i = 0; i<2; i++){ // Sometimes first command returns ERROR, 
+    for (int i = 0; i<2; i++){ // Sometimes first command returns ERROR, two attempts
 
       delay(WIFI_RESPONSE_DELAY);
 
@@ -143,6 +143,7 @@ void checkSerial(boolean checkSerialMonitor, boolean checkWifi){
     else {
       Serial.println(F("Serial monitor: disabled"));
     }
+    GB_Print::printEnd();
   }
   if (g_UseSerialWifi != oldUseSerialWifi){
     if(g_UseSerialWifi){
@@ -151,15 +152,14 @@ void checkSerial(boolean checkSerialMonitor, boolean checkWifi){
     else {
       Serial.println(F("Serial Wi-Fi: disabled"));
     }
+    GB_Print::printEnd();
   }
-  GB_Print::printEnd();
 
   // Close Serial connection if nessesary
   serialInUse = (g_UseSerialMonitor || g_UseSerialWifi);
   if (!serialInUse){
     Serial.end();
   }
-
 }
 
 
@@ -186,6 +186,9 @@ void setup() {
   digitalWrite(LIGHT_PIN, RELAY_OFF);
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
+  
+  // Configure inputs
+  //attachInterrupt(0, interrapton0handler, CHANGE); // PIN 2
 
   // We need to check Wi-Fi before use print to SerialMonitor
   checkSerial(true, true);
@@ -323,9 +326,8 @@ void loop() {
   digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
 
   checkFreeMemory();
-
-  checkSerial(true, false); // TODO switch to interaption
-  //checkSerialCommands();
+  
+  checkSerial(true, false);
 
   Alarm.delay(MAIN_LOOP_DELAY * 1000); // wait one second between clock display
 }
@@ -354,6 +356,7 @@ void serialEvent(){
 
 
 }
+
 
 /////////////////////////////////////////////////////////////////////
 //                  TIMER/CLOCK EVENT HANDLERS                     //
