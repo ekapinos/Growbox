@@ -27,7 +27,8 @@
 //                        GLOBAL VARIABLES                         //
 /////////////////////////////////////////////////////////////////////
 // Wi-Fi
-const String WIFI_WELLCOME = "Welcome to RAK410\r\n";
+const String WIFI_MESSAGE_WELLCOME = "Welcome to RAK410\r\n";
+const String WIFI_MESSAGE_ERROR = "ERROR\xFF\r\n";
 const int WIFI_RESPONSE_DELAY = 250; // 250 ms, delay after "at+" commands 
 
 
@@ -119,7 +120,7 @@ void checkSerial(boolean checkSerialMonitor, boolean checkWifi){
       while (Serial.available()){
         input += (char) Serial.read();
       }
-      g_UseSerialWifi = WIFI_WELLCOME.equals(input);
+      g_UseSerialWifi = WIFI_MESSAGE_WELLCOME.equals(input);
       if (g_UseSerialWifi) {
         break;
       }
@@ -186,7 +187,7 @@ void setup() {
   digitalWrite(LIGHT_PIN, RELAY_OFF);
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
-  
+
   // Configure inputs
   //attachInterrupt(0, interrapton0handler, CHANGE); // PIN 2
 
@@ -196,7 +197,7 @@ void setup() {
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
   if(g_UseSerialMonitor){ 
     GB_Print::printFreeMemory();
-    Serial.println(F("Checking software configuration"));
+    Serial.println(F("Checking software configuration..."));
     GB_Print::printEnd();
   }
 
@@ -244,7 +245,7 @@ void setup() {
   checkFreeMemory();
 
   if(g_UseSerialMonitor){ 
-    Serial.println(F("Checking clock"));
+    Serial.println(F("Checking clock..."));
     GB_Print::printEnd();
   }
 
@@ -259,7 +260,7 @@ void setup() {
   checkFreeMemory();
 
   if(g_UseSerialMonitor){ 
-    Serial.println(F("Checking termometer"));
+    Serial.println(F("Checking termometer..."));
     GB_Print::printEnd();
   }
 
@@ -279,7 +280,7 @@ void setup() {
   checkFreeMemory();
 
   if(g_UseSerialMonitor){ 
-    Serial.println(F("Checking storage"));
+    Serial.println(F("Checking storage..."));
     GB_Print::printEnd();
   }
 
@@ -326,7 +327,7 @@ void loop() {
   digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
 
   checkFreeMemory();
-  
+
   checkSerial(true, false);
 
   Alarm.delay(MAIN_LOOP_DELAY * 1000); // wait one second between clock display
@@ -338,23 +339,33 @@ void serialEvent(){
     return; //Do not handle events during startup
   }
 
+
   String input = ""; 
   while (Serial.available()){
     input += (char) Serial.read();
+  }
+
+  // somthing wrong with Wi-Fi, we need to reboot it
+  if (input.indexOf(WIFI_MESSAGE_WELLCOME) >= 0 || input.indexOf(WIFI_MESSAGE_ERROR) >= 0){
+    g_UseSerialWifi = false; 
+    checkSerial(false, true);
+    return;
+  }
+
+  input.trim();
+  if (input.length() == 0){
+    return;
   }
   Serial.print(F("Serial.read: "));
   Serial.println(input);
   GB_Print::printEnd();
 
-
-  if (g_UseSerialWifi) {
-
-  } 
-  else if (g_UseSerialMonitor) {
-    //checkSerialCommands();
+  //  if (g_UseSerialWifi) {
+  //
+  //  } else
+  if (g_UseSerialMonitor) {
+    executeCommand(input);
   }
-
-
 }
 
 
@@ -537,24 +548,15 @@ void turnOffFan(){
 }
 
 
-static void checkSerialCommands(){
-
-  if (!g_UseSerialMonitor){
-    return;
-  } 
+static void executeCommand(String &input){
 
   // send data only when you receive data:
-  if (Serial.available() > 0) {
 
     // read the incoming byte:
-    char firstChar = Serial.read();
-
-    char secondChar;
-    if (Serial.available() > 0) {
-      secondChar = Serial.read();
-    } 
-    else {
-      secondChar = 0;
+    char firstChar = 0, secondChar = 0; 
+    firstChar = input[0];
+    if (input.length() > 1){
+      secondChar = input[1];
     }
 
     Serial.print(F("GB>"));
@@ -659,8 +661,10 @@ static void checkSerialCommands(){
       GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
     }
     delay(1000);               // wait for a second
-  }
+    GB_Print::printEnd();
 }
+
+
 
 
 

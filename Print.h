@@ -245,6 +245,9 @@ public:
       case ONE_WIRE_PIN: 
         Serial.print(F("1-Wire: termometer"));
         break;
+      case USE_SERIAL_MONOTOR_PIN: 
+        Serial.print(F("Use serial monitor on(1)/off(0)"));
+        break;
       case ERROR_PIN: 
         Serial.print(F("Error status"));
         break;
