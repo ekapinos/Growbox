@@ -16,28 +16,28 @@ void printEnd(){
 
 void printLogRecord(word address, word index, boolean events, boolean errors, boolean temperature){
   LogRecord logRecord(0);
-  STORAGE.read(address, &logRecord, sizeof(LogRecord));
+  GB_Storage::read(address, &logRecord, sizeof(LogRecord));
 
-  if (LOGGER.isEvent(logRecord) && !events){
+  if (GB_Logger::isEvent(logRecord) && !events){
     return;
   }
-  if (LOGGER.isError(logRecord) && !errors){
+  if (GB_Logger::isError(logRecord) && !errors){
     return;
   }
-  if (LOGGER.isTemperature(logRecord) && !temperature){
+  if (GB_Logger::isTemperature(logRecord) && !temperature){
     return;
   }
 
   Serial.print('#');
   Serial.print(index);
   Serial.print(' ');
-  LOGGER.printLogRecord(logRecord);
+  GB_Logger::printLogRecord(logRecord);
 }
 
 void printFullLog(boolean events, boolean errors, boolean temperature){
   word index = 1;
   if (BOOT_RECORD.boolPreferencies.isLogOverflow) {
-    for (word i = BOOT_RECORD.nextLogRecordAddress; i < (STORAGE.capacity-sizeof(LogRecord)) ; i+=sizeof(LogRecord)){
+    for (word i = BOOT_RECORD.nextLogRecordAddress; i < (GB_Storage::CAPACITY-sizeof(LogRecord)) ; i+=sizeof(LogRecord)){
       printLogRecord(i, index++, events,  errors,  temperature);
     }
   }
@@ -79,7 +79,7 @@ void printBootStatus(){
     Serial.print(F("disabled"));
   }
   Serial.print(F(", records: "));
-  word slotsCount = (STORAGE.capacity - sizeof(BootRecord))/sizeof(LogRecord) ;
+  word slotsCount = (GB_Storage::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord) ;
   if (BOOT_RECORD.boolPreferencies.isLogOverflow){
     Serial.print(slotsCount);
     Serial.print('/');
@@ -89,7 +89,7 @@ void printBootStatus(){
   else {
     Serial.print((BOOT_RECORD.nextLogRecordAddress - sizeof(BootRecord))/sizeof(LogRecord));
     Serial.print('/');
-    Serial.print((STORAGE.capacity - sizeof(BootRecord))/sizeof(LogRecord));
+    Serial.print((GB_Storage::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord));
   }
   Serial.println();
 }
@@ -258,7 +258,7 @@ void printRAM(void *ptr, byte sizeOf){
 
 void printStorage(word address, byte sizeOf){
   byte buffer[sizeOf];
-  STORAGE.read(address, buffer, sizeOf);
+  GB_Storage::read(address, buffer, sizeOf);
   printRAM(buffer, sizeOf);
 }
 
@@ -272,8 +272,8 @@ void printStorage(){
   }
 
   //long errors = 0;
-  for (word i = 0; i < STORAGE.capacity ; i++){
-    byte value = STORAGE.read(i);
+  for (word i = 0; i < GB_Storage::CAPACITY ; i++){
+    byte value = GB_Storage::read(i);
 
     if (i% 16 ==0){
       Serial.println();
@@ -303,15 +303,15 @@ void fillStorage(byte value){
     Serial.println(F("Filling STORAGE with value: "));
     print2digitsHEX(value);
     Serial.println();
-    for (word i = 0; i < STORAGE.capacity ; i++){
-      STORAGE.write(i, value);
+    for (word i = 0; i < GB_Storage::CAPACITY ; i++){
+      GB_Storage::write(i, value);
     }
 
   } 
   else {
     Serial.println(F("Filling STORAGE with incremental values "));
-    for (word i = 0; i < STORAGE.capacity ; i++){
-      STORAGE.write(i, (byte)i);
+    for (word i = 0; i < GB_Storage::CAPACITY ; i++){
+      GB_Storage::write(i, (byte)i);
     }  
   }
 }
@@ -387,7 +387,7 @@ void checkSerialCommands(){
         Serial.println(F("Cleaning boot record"));
 
         BOOT_RECORD.first_magic = 0;
-        STORAGE.write(0, &BOOT_RECORD, sizeof(BootRecord));
+        GB_Storage::write(0, &BOOT_RECORD, sizeof(BootRecord));
         Serial.println(F("Magic number corrupted, reseting"));
 
         Serial.println('5');
@@ -400,7 +400,7 @@ void checkSerialCommands(){
         delay(1000);
         Serial.println('1');
         delay(1000);
-        rebootController();
+        GB_Controller::rebootController();
         break;
       } 
 
@@ -430,10 +430,10 @@ void checkSerialCommands(){
       printStorage();
       break; 
     case 'r':        
-      rebootController();
+      GB_Controller::rebootController();
       break; 
     default: 
-      LOGGER.logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
+      GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
     }
     delay(1000);               // wait for a second
   }

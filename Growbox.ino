@@ -44,10 +44,10 @@ DeviceAddress g_thermometerOneWireAddress;
 
 boolean isDayInGrowbox(){
   if(timeStatus() == timeNeedsSync){
-    LOGGER.logError(ERROR_TIMER_NEEDS_SYNC);
+    GB_Logger::logError(ERROR_TIMER_NEEDS_SYNC);
   } 
   else {
-    LOGGER.stopLogError(ERROR_TIMER_NEEDS_SYNC);
+    GB_Logger::stopLogError(ERROR_TIMER_NEEDS_SYNC);
   }
 
   int currentHour = hour();
@@ -69,10 +69,10 @@ boolean isDayInGrowbox(){
 // http://electronics.stackexchange.com/questions/66983/how-to-discover-memory-overflow-errors-in-the-arduino-c-code
 void checkFreeMemory(){
   if(freeMemory() < 200){ 
-    LOGGER.logError(ERROR_MEMORY_LOW);   
+    GB_Logger::logError(ERROR_MEMORY_LOW);   
   } 
   else {
-    LOGGER.stopLogError(ERROR_MEMORY_LOW); 
+    GB_Logger::stopLogError(ERROR_MEMORY_LOW); 
   }
 }
 
@@ -239,10 +239,10 @@ void setup() {
   // Configure clock
   setSyncProvider(RTC.get);   // the function to get the time from the RTC
   while(timeStatus() == timeNotSet || 2014<year() || year()>2020) { // ... and check it
-    LOGGER.logError(ERROR_TIMER_NOT_SET);
+    GB_Logger::logError(ERROR_TIMER_NOT_SET);
     setSyncProvider(RTC.get); // try to refresh clock
   }
-  LOGGER.stopLogError(ERROR_TIMER_NOT_SET); 
+  GB_Logger::stopLogError(ERROR_TIMER_NOT_SET); 
 
   checkFreeMemory();
 
@@ -254,10 +254,10 @@ void setup() {
   // Configure termometer
   g_dallasTemperature.begin();
   while(g_dallasTemperature.getDeviceCount() == 0){
-    LOGGER.logError(ERROR_TERMOMETER_DISCONNECTED);
+    GB_Logger::logError(ERROR_TERMOMETER_DISCONNECTED);
     g_dallasTemperature.begin();
   }  
-  LOGGER.stopLogError(ERROR_TERMOMETER_DISCONNECTED);
+  GB_Logger::stopLogError(ERROR_TERMOMETER_DISCONNECTED);
 
   g_dallasTemperature.getAddress(g_thermometerOneWireAddress, 0); // search for devices on the bus and assign based on an index.
   while(!checkTemperature()) { // Load temperature on startup
@@ -281,10 +281,10 @@ void setup() {
 
   // Now we can use logger
   if (isRestart){
-    LOGGER.logEvent(EVENT_RESTART);
+    GB_Logger::logEvent(EVENT_RESTART);
   } 
   else {
-    LOGGER.logEvent(EVENT_FIRST_START_UP);
+    GB_Logger::logEvent(EVENT_FIRST_START_UP);
   }
 
   // Log current temeperature
@@ -358,7 +358,7 @@ void checkGrowboxState() {
   if (temperature >= TEMPERATURE_CRITICAL){
     turnOffLight();
     turnOnFan(FAN_SPEED_MAX);
-    LOGGER.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
+    GB_Logger::logError(ERROR_TERMOMETER_CRITICAL_VALUE);
   } 
   else if (g_isDayInGrowbox) {
     // Day mode
@@ -403,7 +403,7 @@ void switchToDayMode(){
     return;
   }
   g_isDayInGrowbox = true;
-  LOGGER.logEvent(EVENT_MODE_DAY);
+  GB_Logger::logEvent(EVENT_MODE_DAY);
 
   checkGrowboxState();
 }
@@ -413,7 +413,7 @@ void switchToNightMode(){
     return;
   }
   g_isDayInGrowbox = false;
-  LOGGER.logEvent(EVENT_MODE_NIGHT);
+  GB_Logger::logEvent(EVENT_MODE_NIGHT);
 
   checkGrowboxState();
 }
@@ -429,14 +429,14 @@ void checkTemperatureState(){ // should return void
 boolean checkTemperature(){
 
   if(!g_dallasTemperature.requestTemperaturesByAddress(g_thermometerOneWireAddress)){
-    LOGGER.logError(ERROR_TERMOMETER_DISCONNECTED);
+    GB_Logger::logError(ERROR_TERMOMETER_DISCONNECTED);
     return false;
   };
 
   float freshTemperature = g_dallasTemperature.getTempC(g_thermometerOneWireAddress);
 
   if ((int)freshTemperature == 0){
-    LOGGER.logError(ERROR_TERMOMETER_ZERO_VALUE);  
+    GB_Logger::logError(ERROR_TERMOMETER_ZERO_VALUE);  
     return false;
   }
 
@@ -444,8 +444,8 @@ boolean checkTemperature(){
   g_temperatureSummCount++;
 
   boolean forceLog = 
-    LOGGER.stopLogError(ERROR_TERMOMETER_ZERO_VALUE) |
-    LOGGER.stopLogError(ERROR_TERMOMETER_DISCONNECTED); 
+    GB_Logger::stopLogError(ERROR_TERMOMETER_ZERO_VALUE) |
+    GB_Logger::stopLogError(ERROR_TERMOMETER_DISCONNECTED); 
   if (forceLog) {
     getTemperature(true);
   }
@@ -469,7 +469,7 @@ float getTemperature(boolean forceLog){
   float freshTemperature = g_temperatureSumm/g_temperatureSummCount;
 
   if (((int)freshTemperature != (int)g_temperature) || forceLog) {          
-    LOGGER.logTemperature((byte)freshTemperature);
+    GB_Logger::logTemperature((byte)freshTemperature);
   }
 
   g_temperature = freshTemperature;
@@ -490,7 +490,7 @@ void turnOnLight(){
     return;
   }
   digitalWrite(LIGHT_PIN, RELAY_ON);
-  LOGGER.logEvent(EVENT_LIGHT_ON);
+  GB_Logger::logEvent(EVENT_LIGHT_ON);
 }
 
 void turnOffLight(){
@@ -498,7 +498,7 @@ void turnOffLight(){
     return;
   }
   digitalWrite(LIGHT_PIN, RELAY_OFF);  
-  LOGGER.logEvent(EVENT_LIGHT_OFF);
+  GB_Logger::logEvent(EVENT_LIGHT_OFF);
 }
 
 void turnOnFan(int speed){
@@ -509,10 +509,10 @@ void turnOnFan(int speed){
   digitalWrite(FAN_PIN, RELAY_ON);
 
   if (speed == FAN_SPEED_MIN){
-    LOGGER.logEvent(EVENT_FAN_ON_MIN);
+    GB_Logger::logEvent(EVENT_FAN_ON_MIN);
   } 
   else {
-    LOGGER.logEvent(EVENT_FAN_ON_MAX);
+    GB_Logger::logEvent(EVENT_FAN_ON_MAX);
   }
 }
 
@@ -522,7 +522,7 @@ void turnOffFan(){
   }
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
-  LOGGER.logEvent(EVENT_FAN_OFF);
+  GB_Logger::logEvent(EVENT_FAN_OFF);
 }
 
 

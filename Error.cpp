@@ -1,4 +1,4 @@
-#include "Error.h"
+ #include "Error.h"
 
 Error* Error::lastAddedItem = 0;
 

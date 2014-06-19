@@ -8,12 +8,12 @@
 #include "Storage.h"
 #include "SerialMonitor.h"
 
-class LoggerClass {
+class GB_Logger {
 public:
   // Normal event uses uses format [00DDDDDD]
   //   00 - prefix for normal events 
   //   DDDDDD - event identificator
-  void logEvent(Event &event){
+  static void logEvent(Event &event){
     LogRecord logRecord(event.index);
     logRawData(logRecord, event.description, true);
   }
@@ -22,14 +22,14 @@ public:
   //   01 - prefix for error events 
   //   SS - length of errir seqence 
   //   DDDD - sequence data
-  void logError(Error &error){
+  static void logError(Error &error){
     LogRecord logRecord(B01000000|(B00000011 | error.sequenceSize-1)<<4 | (B00001111 & error.sequence));
 
     logRawData(logRecord, error.description, !error.isStored);
     error.isStored = true;   
     error.notify();
   }
-  boolean stopLogError(Error &error){
+  static boolean stopLogError(Error &error){
     if (error.isStored){
       error.isStored = false;
       return true;
@@ -40,12 +40,12 @@ public:
   // Termometer events uses format [11TTTTTT].
   //   11 - prefix for termometer events
   //   TTTTTT - temperature [0..2^6] = [0..64]
-  void logTemperature(byte temperature){
+  static void logTemperature(byte temperature){
     LogRecord logRecord(B11000000|temperature);
     logRawData(logRecord, F("Temperature"), true, temperature);
   }
 
-  void printLogRecord(LogRecord &logRecord) {
+  static void printLogRecord(LogRecord &logRecord) {
 
     byte data = (logRecord.data & B00111111);
 
@@ -91,12 +91,12 @@ public:
 
 private:
 
-  void logRawData(const LogRecord &logRecord, const __FlashStringHelper* description, boolean storeLog, byte temperature = 0){
+  static void logRawData(const LogRecord &logRecord, const __FlashStringHelper* description, boolean storeLog, byte temperature = 0){
 
-    storeLog = storeLog && BOOT_RECORD.isCorrect() && BOOT_RECORD.boolPreferencies.isLoggerEnabled && STORAGE.isPresent();
+    storeLog = storeLog && BOOT_RECORD.isCorrect() && BOOT_RECORD.boolPreferencies.isLoggerEnabled && GB_Storage::isPresent();
 
     if (storeLog) {
-      STORAGE.write(BOOT_RECORD.nextLogRecordAddress, &logRecord, sizeof(LogRecord));
+      GB_Storage::write(BOOT_RECORD.nextLogRecordAddress, &logRecord, sizeof(LogRecord));
       BOOT_RECORD.increaseNextLogRecordAddress();
     }
 
@@ -119,7 +119,5 @@ private:
     }
   }
 };
-
-extern LoggerClass LOGGER;
 
 #endif
