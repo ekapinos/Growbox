@@ -1,15 +1,17 @@
 #ifndef GB_Loggger_h
 #define GB_Loggger_h
 
-#include "LogRecord.h"
-#include "BootRecord.h"
 #include "Error.h"
 #include "Event.h"
+#include "LogRecord.h"
+#include "BootRecord.h"
 #include "Storage.h"
-#include "SerialMonitor.h"
+#include "Print.h"
 
 class GB_Logger {
+  
 public:
+
   // Normal event uses uses format [00DDDDDD]
   //   00 - prefix for normal events 
   //   DDDDDD - event identificator
@@ -79,6 +81,26 @@ public:
     }
   }
 
+
+  static void printFullLog(boolean events, boolean errors, boolean temperature){
+    word index = 1;
+    if (BOOT_RECORD.boolPreferencies.isLogOverflow) {
+      for (word i = BOOT_RECORD.nextLogRecordAddress; i < (GB_Storage::CAPACITY-sizeof(LogRecord)) ; i+=sizeof(LogRecord)){
+       // printLogRecord(i, index++, events,  errors,  temperature);
+      }
+    }
+    for (word i = sizeof(BootRecord); i < BOOT_RECORD.nextLogRecordAddress ; i+=sizeof(LogRecord)){
+      //printLogRecord(i, index++,  events,  errors,  temperature);
+    }
+    if (index == 1){
+      Serial.println(F("- no records in log"));
+    }
+  }
+
+
+
+private:
+
   static boolean isEvent(LogRecord &logRecord){
     return (logRecord.data & B11000000) == B00000000;
   }
@@ -89,24 +111,22 @@ public:
     return (logRecord.data & B11000000) == B11000000;
   }
 
-private:
-
   static void logRawData(const LogRecord &logRecord, const __FlashStringHelper* description, boolean storeLog, byte temperature = 0){
 
     storeLog = storeLog && BOOT_RECORD.isCorrect() && BOOT_RECORD.boolPreferencies.isLoggerEnabled && GB_Storage::isPresent();
 
     if (storeLog) {
       GB_Storage::write(BOOT_RECORD.nextLogRecordAddress, &logRecord, sizeof(LogRecord));
-      BOOT_RECORD.increaseNextLogRecordAddress();
+      BOOT_RECORD.increaseLogPointer();
     }
 
     if (g_UseSerialMonitor) {
       if (storeLog == false) {
         Serial.print(F("NOT STORED "));
       }
-      printTime(logRecord.timeStamp); 
+      GB_Print::printTime(logRecord.timeStamp); 
       Serial.print(F(" 0x")); 
-      print2digitsHEX(logRecord.data);
+      GB_Print::print2digitsHEX(logRecord.data);
       Serial.print(' '); 
       Serial.print(description);
       if (temperature !=0) {
@@ -115,9 +135,31 @@ private:
         Serial.print(F("] C"));
       }
       Serial.println();
-      printEnd();
+      GB_Print::printEnd();
     }
   }
+  
+
+ static void printLogRecord(word address, word index, boolean events, boolean errors, boolean temperature){
+    LogRecord logRecord;
+    GB_Storage::read(address, &logRecord, sizeof(LogRecord));
+
+    if (isEvent(logRecord) && !events){
+      return;
+    }
+    if (isError(logRecord) && !errors){
+      return;
+    }
+    if (isTemperature(logRecord) && !temperature){
+      return;
+    }
+
+    Serial.print('#');
+    Serial.print(index);
+    Serial.print(' ');
+    printLogRecord(logRecord);
+  }
+
 };
 
 #endif

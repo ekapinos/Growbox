@@ -14,18 +14,23 @@
 // Growbox
 #include "Global.h"
 #include "Controller.h"
-#include "Print.h"
 #include "Storage.h"
 #include "LogRecord.h"
 #include "BootRecord.h"
 #include "Error.h"
 #include "Event.h"
+#include "Print.h"
 #include "Logger.h"
-#include "SerialMonitor.h"
+
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //
 /////////////////////////////////////////////////////////////////////
+// Wi-Fi
+const String WIFI_WELLCOME = "Welcome to RAK410\r\n";
+const int WIFI_RESPONSE_DELAY = 250; // 250 ms, delay after "at+" commands 
+
+
 String WIFI_SID = "Hell";
 String WIFI_PASS = "flat65router";
 
@@ -66,7 +71,7 @@ boolean isDayInGrowbox(){
   return isDayInGrowbox;
 }
 
-// http://electronics.stackexchange.com/questions/66983/how-to-discover-memory-overflow-errors-in-the-arduino-c-code
+// discover-memory-overflow-errors-in-the-arduino-c-code
 void checkFreeMemory(){
   if(freeMemory() < 200){ 
     GB_Logger::logError(ERROR_MEMORY_LOW);   
@@ -76,80 +81,87 @@ void checkFreeMemory(){
   }
 }
 
-void checkUseSerialWifi(){
+void checkSerial(boolean checkSerialMonitor, boolean checkWifi){
 
-  // Check is Wi-fi present
-  Serial.begin(115200);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for Leonardo only
-  } 
+  boolean oldUseSerialMonitor  = g_UseSerialMonitor;
+  boolean oldUseSerialWifi     = g_UseSerialWifi;
+  boolean serialInUse          = (g_UseSerialMonitor || g_UseSerialWifi);
 
-  String input="";
+  if (checkSerialMonitor){
+    g_UseSerialMonitor = (digitalRead(USE_SERIAL_MONOTOR_PIN) == SERIAL_ON);
 
-  // Clean Serial buffer
-  while (Serial.available()){
-    Serial.read();
   }
 
-  Serial.println(F("at+reset=0"));
-  delay(WIFI_DELAY);  
-  while (Serial.available()){
-    input += (char) Serial.read();
+  if (g_UseSerialMonitor || checkWifi){
+    Serial.begin(115200);
+    while (!Serial) {
+      ; // wait for serial port to connect. Needed for Leonardo only
+    } 
+    serialInUse = true;
   }
-  g_UseSerialWifi = WIFI_WELLCOME.equals(input);
-  if(g_UseSerialWifi){
-    Serial.println(F("Wi-Fi: enabled"));
-  } 
-  else {
-    Serial.println(F("Wi-Fi: disabled"));
+
+  if (checkWifi){
+
+    for (int i = 0; i<2; i++){ // Sometimes first command returns ERROR, 
+
+      delay(WIFI_RESPONSE_DELAY);
+
+      // Clean Serial buffer
+      while (Serial.available()){
+        Serial.read();
+      }
+
+      Serial.println(F("at+reset=0"));
+
+      delay(WIFI_RESPONSE_DELAY);  
+
+      String input="";
+      while (Serial.available()){
+        input += (char) Serial.read();
+      }
+      g_UseSerialWifi = WIFI_WELLCOME.equals(input);
+      if (g_UseSerialWifi) {
+        break;
+      }
+      if (g_UseSerialMonitor && input.length() != 0){
+        Serial.print(F("Not corrent Wi-Fi startup message: "));
+        Serial.println(input);
+        GB_Print::printEnd();
+      }
+    }
   }
-  printEnd();
 
-  g_UseSerial = true; // Serial not closed;
-  g_UseSerialMonitor = true; // Monitor working
-}
-
-void checkUseSerialMonitor(){
-
-  boolean useSerialMonitor = (digitalRead(USE_SERIAL_MONOTOR_PIN) == SERIAL_ON);
-  if (useSerialMonitor == g_UseSerialMonitor){
-    return;
+  // If needed Serial already started
+  if (!serialInUse){
+    return; 
   }
-  g_UseSerialMonitor = useSerialMonitor;
 
-  if (g_UseSerial){
+  if (g_UseSerialMonitor != oldUseSerialMonitor){
     if (g_UseSerialMonitor){
       Serial.println(F("Serial monitor: enabled"));
     } 
     else {
       Serial.println(F("Serial monitor: disabled"));
     }
-    printEnd();
   }
-
-  boolean useSerial = g_UseSerialWifi || g_UseSerialMonitor;
-  if (useSerial == g_UseSerial){
-    return;
+  if (g_UseSerialWifi != oldUseSerialWifi){
+    if(g_UseSerialWifi){
+      Serial.println(F("Serial Wi-Fi: enabled"));
+    } 
+    else {
+      Serial.println(F("Serial Wi-Fi: disabled"));
+    }
   }
-  g_UseSerial = useSerial;
+  GB_Print::printEnd();
 
-  if (g_UseSerial){
-    Serial.begin(115200);
-    while (!Serial) {
-      ; // wait for serial port to connect. Needed for Leonardo only
-    }
-    Serial.println(F("Serial: enabled"));
-    if (g_UseSerialMonitor){
-      Serial.println(F("Serial monitor: enabled"));
-    }
-    printEnd();
-  } 
-  else {
-    Serial.println(F("Serial: disabled"));
-    printEnd();
+  // Close Serial connection if nessesary
+  serialInUse = (g_UseSerialMonitor || g_UseSerialWifi);
+  if (!serialInUse){
     Serial.end();
-  }  
+  }
+
 }
+
 
 /////////////////////////////////////////////////////////////////////
 //                                MAIN                             //
@@ -175,24 +187,21 @@ void setup() {
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
 
-  // We need to check Wi-Fi before use Serial
-  checkUseSerialWifi();
-  checkUseSerialMonitor();
+  // We need to check Wi-Fi before use print to SerialMonitor
+  checkSerial(true, true);
 
-  // We should init Errors & Events before checkUseSerialWifi(), cause we may use them after
+  // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
   if(g_UseSerialMonitor){ 
-    //Serial.println();
-    //Serial.println(F("Checking boot status"));  
-    printFreeMemory();
+    GB_Print::printFreeMemory();
     Serial.println(F("Checking software configuration"));
-    printEnd();
+    GB_Print::printEnd();
   }
 
   initErrors();
   if (!Error::isInitialized()){
     if(g_UseSerialMonitor){ 
       Serial.print(F("Fatal error: not all Errors initialized"));
-      printEnd();
+      GB_Print::printEnd();
     }
     while(true) delay(5000);  
   }
@@ -200,7 +209,7 @@ void setup() {
   if (!Event::isInitialized()){
     if(g_UseSerialMonitor){ 
       Serial.print(F("Fatal error: not all Events initialized"));
-      printEnd();
+      GB_Print::printEnd();
     }
     while(true) delay(5000);  
   }
@@ -212,7 +221,7 @@ void setup() {
       Serial.print(BOOT_RECORD_SIZE);
       Serial.print(F(", current: "));
       Serial.print(sizeof(BootRecord));
-      printEnd();
+      GB_Print::printEnd();
     }
     while(true) delay(5000);
   }
@@ -224,7 +233,7 @@ void setup() {
       Serial.print(BOOT_RECORD_SIZE);
       Serial.print(F(", current: "));
       Serial.print(sizeof(BootRecord));
-      printEnd();
+      GB_Print::printEnd();
     }
     while(true) delay(5000);
   }
@@ -233,7 +242,7 @@ void setup() {
 
   if(g_UseSerialMonitor){ 
     Serial.println(F("Checking clock"));
-    printEnd();
+    GB_Print::printEnd();
   }
 
   // Configure clock
@@ -248,7 +257,7 @@ void setup() {
 
   if(g_UseSerialMonitor){ 
     Serial.println(F("Checking termometer"));
-    printEnd();
+    GB_Print::printEnd();
   }
 
   // Configure termometer
@@ -268,16 +277,11 @@ void setup() {
 
   if(g_UseSerialMonitor){ 
     Serial.println(F("Checking storage"));
-    printEnd();
+    GB_Print::printEnd();
   }
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
-  boolean isRestart = BOOT_RECORD.initOnStartup();
-
-  if(g_UseSerialMonitor){ 
-    Serial.println(F("Growbox successfully started"));
-    printEnd();
-  }
+  boolean isRestart = BOOT_RECORD.load();
 
   // Now we can use logger
   if (isRestart){
@@ -306,6 +310,11 @@ void setup() {
   Alarm.alarmRepeat(UP_HOUR, 00, 00, switchToDayMode);      // repeat once every day
   Alarm.alarmRepeat(DOWN_HOUR, 00, 00, switchToNightMode);  // repeat once every day
 
+  if(g_UseSerialMonitor){ 
+    Serial.println(F("Growbox successfully started"));
+    GB_Print::printEnd();
+  }
+
 }
 
 // the loop routine runs over and over again forever:
@@ -315,9 +324,8 @@ void loop() {
 
   checkFreeMemory();
 
-  checkUseSerialMonitor();
-
-  checkSerialCommands();
+  checkSerial(true, false); // TODO switch to interaption
+  //checkSerialCommands();
 
   Alarm.delay(MAIN_LOOP_DELAY * 1000); // wait one second between clock display
 }
@@ -334,7 +342,7 @@ void serialEvent(){
   }
   Serial.print(F("Serial.read: "));
   Serial.println(input);
-  printEnd();
+  GB_Print::printEnd();
 
 
   if (g_UseSerialWifi) {
@@ -524,5 +532,147 @@ void turnOffFan(){
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
   GB_Logger::logEvent(EVENT_FAN_OFF);
 }
+
+
+static void checkSerialCommands(){
+
+  if (!g_UseSerialMonitor){
+    return;
+  } 
+
+  // send data only when you receive data:
+  if (Serial.available() > 0) {
+
+    // read the incoming byte:
+    char firstChar = Serial.read();
+
+    char secondChar;
+    if (Serial.available() > 0) {
+      secondChar = Serial.read();
+    } 
+    else {
+      secondChar = 0;
+    }
+
+    Serial.print(F("GB>"));
+    Serial.print(firstChar);
+    if (secondChar != 0){
+      Serial.print(secondChar);
+    }
+    Serial.println();
+
+    boolean events = true; // can't put in switch, Arduino bug
+    boolean errors = true;
+    boolean temperature = true;
+
+    switch(firstChar){
+    case 's':
+      GB_Print::printStatus(); 
+      break;  
+
+    case 'l':
+      switch(secondChar){
+      case 'c': 
+        Serial.println(F("Reset log pointer"));
+        BOOT_RECORD.resetLogPointer();
+        break;
+      case 'e':
+        Serial.println(F("Logger enabled"));
+        BOOT_RECORD.setLoggerEnable(true);
+        break;
+      case 'd':
+        Serial.println(F("Logger disabled"));
+        BOOT_RECORD.setLoggerEnable(false);
+        break;
+      case 't': 
+        errors = events = false;
+        break;
+      case 'r': 
+        events = temperature = false;
+        break;
+      case 'v': 
+        errors = temperature = false;
+        break;
+      } 
+      if ((secondChar != 'c') && (secondChar != 'e') && (secondChar != 'd')){
+        GB_Logger::printFullLog(events ,  errors ,  temperature );
+      }
+      break; 
+
+    case 'b': 
+      switch(secondChar){
+      case 'c': 
+        Serial.println(F("Cleaning boot record"));
+
+        BOOT_RECORD.first_magic = 0;
+        GB_Storage::write(0, &BOOT_RECORD, sizeof(BootRecord));
+        Serial.println(F("Magic number corrupted, reseting"));
+
+        Serial.println('5');
+        delay(1000);
+        Serial.println('4');
+        delay(1000);
+        Serial.println('3');
+        delay(1000);
+        Serial.println('2');
+        delay(1000);
+        Serial.println('1');
+        delay(1000);
+        Serial.println(F("Rebooting..."));
+        GB_Controller::reboot();
+        break;
+      } 
+
+      Serial.println(F("Currnet boot record"));
+      Serial.print(F("-Memory : ")); 
+      GB_Print::printRAM(&BOOT_RECORD, sizeof(BootRecord));
+      Serial.print(F("-Storage: ")); 
+      GB_Print::printStorage(0, sizeof(BootRecord));
+
+      break;  
+
+    case 'm':    
+      switch(secondChar){
+      case '0': 
+        GB_Storage::fillStorage(0x00); 
+        break; 
+      case 'a': 
+        GB_Storage::fillStorage(0xAA); 
+        break; 
+      case 'f': 
+        GB_Storage::fillStorage(0xFF); 
+        break; 
+      case 'i': 
+        GB_Storage::fillStorageIncremental(); 
+        break; 
+      }
+      GB_Print::printStorage();
+      break; 
+    case 'r':        
+      Serial.println(F("Rebooting..."));
+      GB_Controller::reboot();
+      break; 
+    default: 
+      GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
+    }
+    delay(1000);               // wait for a second
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

@@ -1,6 +1,8 @@
 #ifndef GB_BootRecord_h
 #define GB_BootRecord_h
 
+#include <Time.h>
+
 #include "Storage.h"
 #include "LogRecord.h"
 
@@ -25,27 +27,42 @@ boolean isLoggerEnabled :
 
   word last_magic;                  //  2
 
-  boolean initOnStartup(){
-    GB_Storage::read(0, this, sizeof(BootRecord));
-    boolean isRestart = isCorrect();
-    if (isRestart){
-      lastStartupTimeStamp = now();
-      GB_Storage::write(OFFSETOF(BootRecord, lastStartupTimeStamp), &(lastStartupTimeStamp), sizeof(lastStartupTimeStamp));   
-    } 
-    else {
-      initAtFirstStartUp();
-    }
-    return isRestart;
+  BootRecord(){
   }
 
-  void cleanupLog(){
+  boolean load(){
+    GB_Storage::read(0, this, sizeof(BootRecord));
+    if (isCorrect()){
+      lastStartupTimeStamp = now();
+      GB_Storage::write(OFFSETOF(BootRecord, lastStartupTimeStamp), &(lastStartupTimeStamp), sizeof(lastStartupTimeStamp));
+      return true;   
+    } 
+    else {
+      init();
+      return false; 
+    }
+  }
+  
+  boolean isCorrect(){
+    return (first_magic == MAGIC_NUMBER) && (last_magic == MAGIC_NUMBER);
+  }
+
+  void setLoggerEnable(boolean flag){
+    boolPreferencies.isLoggerEnabled = flag;
+    GB_Storage::write(OFFSETOF(BootRecord, boolPreferencies), &(boolPreferencies), sizeof(boolPreferencies)); 
+
+  }
+
+  void resetLogPointer(){
+    
     nextLogRecordAddress = sizeof(BootRecord);
     GB_Storage::write(OFFSETOF(BootRecord, nextLogRecordAddress), &(nextLogRecordAddress), sizeof(nextLogRecordAddress)); 
+    
     boolPreferencies.isLogOverflow = false;
     GB_Storage::write(OFFSETOF(BootRecord, boolPreferencies), &(boolPreferencies), sizeof(boolPreferencies));
   }
 
-  void increaseNextLogRecordAddress(){
+  void increaseLogPointer(){
     nextLogRecordAddress += sizeof(LogRecord);  
     if (nextLogRecordAddress+sizeof(LogRecord) >= GB_Storage::CAPACITY){
       nextLogRecordAddress = sizeof(BootRecord);
@@ -57,17 +74,8 @@ boolean isLoggerEnabled :
     GB_Storage::write(OFFSETOF(BootRecord, nextLogRecordAddress), &(nextLogRecordAddress), sizeof(nextLogRecordAddress)); 
   }
 
-  void setLoggerEnable(boolean flag){
-    boolPreferencies.isLoggerEnabled = flag;
-    GB_Storage::write(OFFSETOF(BootRecord, boolPreferencies), &(boolPreferencies), sizeof(boolPreferencies)); 
-
-  }
-
-  boolean isCorrect(){
-    return (first_magic == MAGIC_NUMBER) && (last_magic == MAGIC_NUMBER);
-  }
 private:
-  void initAtFirstStartUp(){
+  void init(){
     first_magic = MAGIC_NUMBER;
     firstStartupTimeStamp = now();
     lastStartupTimeStamp = firstStartupTimeStamp;
@@ -85,3 +93,5 @@ private:
 extern BootRecord BOOT_RECORD;
 
 #endif
+
+

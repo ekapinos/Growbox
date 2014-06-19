@@ -38,7 +38,7 @@ const float TEMPERATURE_CRITICAL = 35.0; // 35 max, 40 die
 const float TEMPERATURE_DELTA = 3.0;   // +/-(3-4) Ok
 
 /////////////////////////////////////////////////////////////////////
-//                         DEVICE CONSTANTCS                       //
+//                          PIN CONSTANTCS                         //
 /////////////////////////////////////////////////////////////////////
 
 // Relay consts
@@ -52,18 +52,13 @@ const byte FAN_SPEED_MIN = RELAY_OFF;
 const byte FAN_SPEED_MAX = RELAY_ON;
 
 /////////////////////////////////////////////////////////////////////
-//                     CONTROLLER CONFIGURATION                    //
+//                             DELAY'S                             //
 /////////////////////////////////////////////////////////////////////
 
 // Minimum Growbox reaction time
 const int MAIN_LOOP_DELAY = 1; // 1 sec
 const int CHECK_TEMPERATURE_DELAY = 20; //20 sec 
 const int CHECK_GROWBOX_DELAY = 5*60; // 5 min 
-const int WIFI_DELAY = 250; // 250 ms, delay after "at+" commands 
-
-// Wi-Fi
-const String WIFI_WELLCOME = "Welcome to RAK410\r\n";
-
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //

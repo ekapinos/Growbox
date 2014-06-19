@@ -5,10 +5,7 @@
 
 class GB_Controller{
 public:
-  static void rebootController() {
-    if (g_UseSerialMonitor) {
-      Serial.println(F("Rebooting..."));
-    }
+  static void reboot() {
     void(* resetFunc) (void) = 0; // Reset MC function
     resetFunc(); //call
   }

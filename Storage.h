@@ -2,6 +2,7 @@
 #define GB_Storage_h
 
 #include <Wire.h> 
+
 #include "Global.h" 
 
 class GB_Storage {
@@ -57,6 +58,19 @@ public:
       ((byte*)data)[c] = value;
     }
   }
+  
+  static void fillStorage(byte value){
+      for (word i = 0; i < CAPACITY ; i++){
+        write(i, value);
+      }
+  }
+
+  static void fillStorageIncremental(){      
+      for (word i = 0; i < CAPACITY ; i++){
+        write(i, (byte)i);
+      }  
+  }
+
 }; 
 
 #endif
