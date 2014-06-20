@@ -1,4 +1,4 @@
- #include "Error.h"
+#include "LogModel.h"
 
 Event* Event::lastAddedEvent = 0;
 

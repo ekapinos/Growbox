@@ -1,5 +1,5 @@
-#ifndef GB_Error_h
-#define GB_Error_h
+#ifndef GB_LogModel_h
+#define GB_LogModel_h
 
 #include "Global.h"
 
@@ -106,7 +106,6 @@ void notify() {
 };
 
 extern Event
-
 EVENT_FIRST_START_UP, 
 EVENT_RESTART, 
 EVENT_MODE_DAY, 
@@ -118,10 +117,7 @@ EVENT_FAN_ON_MIN,
 EVENT_FAN_ON_MAX,
 EVENT_SERIAL_UNKNOWN_COMMAND;
 
-void initEvents();
-
 extern Error 
-
 ERROR_TIMER_NOT_SET,
 ERROR_TIMER_NEEDS_SYNC,
 ERROR_TERMOMETER_DISCONNECTED,
@@ -130,6 +126,7 @@ ERROR_TERMOMETER_CRITICAL_VALUE,
 ERROR_MEMORY_LOW;
 
 void initErrors();
+void initEvents();
 
 #endif
 

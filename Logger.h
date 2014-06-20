@@ -1,8 +1,7 @@
 #ifndef GB_Loggger_h
 #define GB_Loggger_h
 
-#include "Error.h"
-#include "Event.h"
+#include "LogModel.h"
 #include "LogRecord.h"
 #include "BootRecord.h"
 #include "Storage.h"
