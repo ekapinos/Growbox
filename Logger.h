@@ -135,7 +135,7 @@ private:
         Serial.print(F("] C"));
       }
       Serial.println();
-      GB_Print::printEnd();
+      GB_SerialHelper::printEnd();
     }
   }
   

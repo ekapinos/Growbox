@@ -60,17 +60,7 @@ const int MAIN_LOOP_DELAY = 1; // 1 sec
 const int CHECK_TEMPERATURE_DELAY = 20; //20 sec 
 const int CHECK_GROWBOX_DELAY = 5*60; // 5 min 
 
-/////////////////////////////////////////////////////////////////////
-//                        GLOBAL VARIABLES                         //
-/////////////////////////////////////////////////////////////////////
 
-extern float g_temperature;
-extern double g_temperatureSumm;
-extern int g_temperatureSummCount;
-
-extern byte g_isDayInGrowbox;
-extern /*volatile*/ boolean g_UseSerialMonitor;
-extern /*volatile*/ boolean g_UseSerialWifi;
 
 #endif
 
