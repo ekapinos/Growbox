@@ -60,7 +60,10 @@ const int MAIN_LOOP_DELAY = 1; // 1 sec
 const int CHECK_TEMPERATURE_DELAY = 20; //20 sec 
 const int CHECK_GROWBOX_DELAY = 5*60; // 5 min 
 
-
+// error blinks in milleseconds and blink sequences
+const word ERROR_SHORT_SIGNAL_MS = 100;  // -> 0
+const word ERROR_LONG_SIGNAL_MS = 400;   // -> 1
+const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
 
 #endif
 

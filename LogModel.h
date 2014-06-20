@@ -3,48 +3,6 @@
 
 #include "Global.h"
 
-// error blinks in milleseconds and blink sequences
-const word ERROR_SHORT_SIGNAL_MS = 100;  // -> 0
-const word ERROR_LONG_SIGNAL_MS = 400;   // -> 1
-const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
-
-
-class Event {
-private:
-  static Event* lastAddedEvent;
-  const Event* nextEvent;
-
-public:
-  byte index;
-  const __FlashStringHelper* description; // FLASH
-
-  Event() : 
-  nextEvent(lastAddedEvent), index(0xFF) {
-    lastAddedEvent = this;
-  }
-
-  void init(byte index, const __FlashStringHelper* description) {
-    this->index = index;
-    this->description = description;
-  }
-
-  static Event* findByIndex(byte index){
-    Event* currentItemPtr = lastAddedEvent;
-    while (currentItemPtr != 0){
-      if (currentItemPtr->index == index) {
-        break;
-      }
-      currentItemPtr = (Event*)currentItemPtr->nextEvent;
-    }
-    return 0;
-  }
-
-  static boolean isInitialized(){
-    return (findByIndex(0xFF) == 0);
-  }
-
-};
-
 class Error {
 private:
   static Error* lastAddedItem;
@@ -105,6 +63,50 @@ void notify() {
 
 };
 
+class Event {
+private:
+  static Event* lastAddedEvent;
+  const Event* nextEvent;
+
+public:
+  byte index;
+  const __FlashStringHelper* description; // FLASH
+
+  Event() : 
+  nextEvent(lastAddedEvent), index(0xFF) {
+    lastAddedEvent = this;
+  }
+
+  void init(byte index, const __FlashStringHelper* description) {
+    this->index = index;
+    this->description = description;
+  }
+
+  static Event* findByIndex(byte index){
+    Event* currentItemPtr = lastAddedEvent;
+    while (currentItemPtr != 0){
+      if (currentItemPtr->index == index) {
+        break;
+      }
+      currentItemPtr = (Event*)currentItemPtr->nextEvent;
+    }
+    return 0;
+  }
+
+  static boolean isInitialized(){
+    return (findByIndex(0xFF) == 0);
+  }
+
+};
+
+extern Error 
+ERROR_TIMER_NOT_SET,
+ERROR_TIMER_NEEDS_SYNC,
+ERROR_TERMOMETER_DISCONNECTED,
+ERROR_TERMOMETER_ZERO_VALUE,
+ERROR_TERMOMETER_CRITICAL_VALUE,
+ERROR_MEMORY_LOW;
+
 extern Event
 EVENT_FIRST_START_UP, 
 EVENT_RESTART, 
@@ -116,14 +118,6 @@ EVENT_FAN_OFF,
 EVENT_FAN_ON_MIN, 
 EVENT_FAN_ON_MAX,
 EVENT_SERIAL_UNKNOWN_COMMAND;
-
-extern Error 
-ERROR_TIMER_NOT_SET,
-ERROR_TIMER_NEEDS_SYNC,
-ERROR_TERMOMETER_DISCONNECTED,
-ERROR_TERMOMETER_ZERO_VALUE,
-ERROR_TERMOMETER_CRITICAL_VALUE,
-ERROR_MEMORY_LOW;
 
 void initErrors();
 void initEvents();
