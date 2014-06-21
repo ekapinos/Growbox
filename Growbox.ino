@@ -17,9 +17,8 @@
 #include "Storage.h"
 #include "LogModel.h"
 #include "Print.h"
-#include "Logger.h"
+#include "Logger.h";
 #include "SerialHelper.h"
-
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //
