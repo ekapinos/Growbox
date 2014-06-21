@@ -20,7 +20,7 @@ public:
   static void logEvent(Event &event){
     LogRecord logRecord(event.index);
     boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
-    processLogRecord(logRecord, event.description, isStored);
+    printLogRecord(logRecord, event.description, isStored);
   }
 
   // Error events uses format [01SSDDDD] 
@@ -32,7 +32,7 @@ public:
     if(!error.isStored){
       error.isStored = GB_StorageHelper::storeLogRecord(logRecord);
     }
-    processLogRecord(logRecord, error.description, error.isStored);
+    printLogRecord(logRecord, error.description, error.isStored);
     error.isStored = true;   
     error.notify();
   }
@@ -50,84 +50,40 @@ public:
   static void logTemperature(byte temperature){
     LogRecord logRecord(B11000000|temperature);
     boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
-    processLogRecord(logRecord, F("Temperature"), isStored, temperature);
-  }
-
-  static void printLogRecord(LogRecord &logRecord) {
-
-    byte data = (logRecord.data & B00111111);
-
-    if (isEvent(logRecord)){
-      Event* foundItemPtr = Event::findByIndex(data);
-      if (foundItemPtr == 0){
-        processLogRecord(logRecord, F("Unknown event"), false);
-      } 
-      else {
-        processLogRecord(logRecord, foundItemPtr->description, false);
-      }
-
-    } 
-    else if (isTemperature(logRecord)){
-      processLogRecord(logRecord, F("Temperature"), false, data); 
-
-    } 
-    else if (isError(logRecord)){    
-      byte sequence = (data & B00001111); 
-      byte sequenceSize = (data & B00110000)>>4; 
-      Error* foundItemPtr = Error::findByIndex(sequence, sequenceSize);
-      if (foundItemPtr == 0){
-        processLogRecord(logRecord, F("Unknown error"), false);
-      } 
-      else {
-        processLogRecord(logRecord, foundItemPtr->description, false);
-      }
-    } 
-    else {
-      processLogRecord(logRecord, F("Unknown"), false);
-    }
-  }
-
-
-
-  static boolean isEvent(LogRecord &logRecord){
-    return (logRecord.data & B11000000) == B00000000;
-  }
-  static boolean isError(LogRecord &logRecord){
-    return (logRecord.data & B11000000) == B01000000;
-  }
-  static boolean isTemperature(LogRecord &logRecord){
-    return (logRecord.data & B11000000) == B11000000;
+    printLogRecord(logRecord, F("Temperature"), isStored, temperature);
   }
 
   /////////////////////////////////////////////////////////////////////
   //                        GROWBOX COMMANDS                         //
   /////////////////////////////////////////////////////////////////////
 
-
   static void printFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
     LogRecord logRecord;
     boolean isEmpty = true;
-    ;
     for (int i = 0; i<GB_StorageHelper::getLogRecordsCount(); i++){
-      if (GB_StorageHelper::getLogRecord(i, logRecord)){
-
-
-        if (isEvent(logRecord) && !printEvents){
+      if (GB_StorageHelper::getLogRecordByIndex(i, logRecord)){
+        if (!printEvents && isEvent(logRecord)){
           continue;
         }
-        if (isError(logRecord) && !printErrors){
+        if (!printErrors && isError(logRecord)){
           continue;
         }
-        if (isTemperature(logRecord) && !printTemperature){
+        if (!printTemperature && isTemperature(logRecord)){
           continue;
         }
 
         Serial.print('#');
         Serial.print(i);
         Serial.print(' ');
-        printLogRecord(logRecord);
 
-
+        const __FlashStringHelper* description = getLogRecordDescription(logRecord);
+        if (isTemperature(logRecord)){
+          byte temperature = (logRecord.data & B00111111);
+          printLogRecord(logRecord, description, true, temperature);
+        } 
+        else {
+          printLogRecord(logRecord, description, true);
+        }
         isEmpty = false;
       } 
       else {
@@ -136,7 +92,7 @@ public:
     }
 
     if (isEmpty){
-      Serial.println(F("- no records in log"));
+      Serial.println(F("Log empty"));
     }
     // TODO check Serial
   }
@@ -150,7 +106,50 @@ public:
 
 private:
 
-  static void processLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, boolean isStored, byte temperature = 0){
+  static const __FlashStringHelper* getLogRecordDescription(LogRecord &logRecord) {
+
+    byte data = (logRecord.data & B00111111);
+
+    if (isEvent(logRecord)){
+      Event* foundItemPtr = Event::findByIndex(data);
+      if (foundItemPtr == 0){
+        return F("Unknown event");
+      } 
+      else {
+        return foundItemPtr->description;
+      }
+
+    } 
+    else if (isTemperature(logRecord)){
+      return F("Temperature");
+    } 
+    else if (isError(logRecord)){    
+      byte sequence = (data & B00001111); 
+      byte sequenceSize = (data & B00110000)>>4; 
+      Error* foundItemPtr = Error::findByIndex(sequence, sequenceSize);
+      if (foundItemPtr == 0){
+        return F("Unknown error");
+      } 
+      else {
+        return foundItemPtr->description;
+      }
+    } 
+    else {
+      return F("Unknown");
+    }
+  }
+
+  static boolean isEvent(LogRecord &logRecord){
+    return (logRecord.data & B11000000) == B00000000;
+  }
+  static boolean isError(LogRecord &logRecord){
+    return (logRecord.data & B11000000) == B01000000;
+  }
+  static boolean isTemperature(LogRecord &logRecord){
+    return (logRecord.data & B11000000) == B11000000;
+  }
+
+  static void printLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, boolean isStored, byte temperature = 0xFF){
 
     if (g_UseSerialMonitor) {
       if (!isStored) {
@@ -161,19 +160,25 @@ private:
       GB_Print::print2digitsHEX(logRecord.data);
       Serial.print(' '); 
       Serial.print(description);
-      if (temperature !=0) {
+      if (temperature != 0xFF) {
         Serial.print(F(" ["));
         Serial.print((unsigned byte)temperature);
         Serial.print(F("] C"));
       }
-      Serial.println();
-      GB_SerialHelper::printEnd();
+      Serial.print(F(" HEX: "));
+      GB_Print::printRAM(&((LogRecord)logRecord), sizeof(LogRecord));
+      Serial.println();   
+      GB_SerialHelper::printEnd();   
     }
+
   }
-
-
 };
 
 #endif
+
+
+
+
+
 
 

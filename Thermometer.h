@@ -10,43 +10,43 @@ class GB_Thermometer{
 
 private:
   // Pass our oneWire reference to Dallas Temperature. 
-  static DallasTemperature g_dallasTemperature;
-  static DeviceAddress g_oneWireAddress;
+  static DallasTemperature dallasTemperature;
+  static DeviceAddress oneWireAddress;
 
-  static float g_temperature;
-  static double g_temperatureSumm;
-  static int g_temperatureSummCount;
+  static float workingTemperature;
+  static double statisticsTemperatureSumm;
+  static int statisticsTemperatureCount;
 
 public:
 
   static void start(){
-    g_dallasTemperature.begin();
-    while(g_dallasTemperature.getDeviceCount() == 0){
+    dallasTemperature.begin();
+    while(dallasTemperature.getDeviceCount() == 0){
       GB_Logger::logError(ERROR_TERMOMETER_DISCONNECTED);
-      g_dallasTemperature.begin();
+      dallasTemperature.begin();
     }  
     GB_Logger::stopLogError(ERROR_TERMOMETER_DISCONNECTED);
 
-    g_dallasTemperature.getAddress(g_oneWireAddress, 0); // search for devices on the bus and assign based on an index.
+    dallasTemperature.getAddress(oneWireAddress, 0); // search for devices on the bus and assign based on an index.
   }
 
   // TODO rename
   static boolean checkTemperature(){
 
-    if(!g_dallasTemperature.requestTemperaturesByAddress(g_oneWireAddress)){
+    if(!dallasTemperature.requestTemperaturesByAddress(oneWireAddress)){
       GB_Logger::logError(ERROR_TERMOMETER_DISCONNECTED);
       return false;
     };
 
-    float freshTemperature = g_dallasTemperature.getTempC(g_oneWireAddress);
+    float freshTemperature = dallasTemperature.getTempC(oneWireAddress);
 
     if ((int)freshTemperature == 0){
       GB_Logger::logError(ERROR_TERMOMETER_ZERO_VALUE);  
       return false;
     }
 
-    g_temperatureSumm += freshTemperature;
-    g_temperatureSummCount++;
+    statisticsTemperatureSumm += freshTemperature;
+    statisticsTemperatureCount++;
 
     boolean forceLog = 
       GB_Logger::stopLogError(ERROR_TERMOMETER_ZERO_VALUE) |
@@ -54,7 +54,7 @@ public:
     if (forceLog) {
       getTemperature(true);
     }
-    else if (g_temperatureSummCount > 100){
+    else if (statisticsTemperatureCount > 100){
       getTemperature(); // prevents overflow 
     }
 
@@ -63,22 +63,22 @@ public:
 
   static float getTemperature(boolean forceLog = false){
 
-    if (g_temperatureSummCount == 0){
-      return g_temperature; 
+    if (statisticsTemperatureCount == 0){
+      return workingTemperature; 
     }
 
-    float freshTemperature = g_temperatureSumm/g_temperatureSummCount;
+    float freshTemperature = statisticsTemperatureSumm/statisticsTemperatureCount;
 
-    if (((int)freshTemperature != (int)g_temperature) || forceLog) {          
+    if (((int)freshTemperature != (int)workingTemperature) || forceLog) {          
       GB_Logger::logTemperature((byte)freshTemperature);
     }
 
-    g_temperature = freshTemperature;
+    workingTemperature = freshTemperature;
 
-    g_temperatureSumm = 0.0;
-    g_temperatureSummCount = 0;
+    statisticsTemperatureSumm = 0.0;
+    statisticsTemperatureCount = 0;
 
-    return g_temperature;
+    return workingTemperature;
   }
 
   /////////////////////////////////////////////////////////////////////
@@ -86,16 +86,16 @@ public:
   /////////////////////////////////////////////////////////////////////
 
 
-  static void getStatistics(float* workingTemperature, float* statisticsTemperature, int* statisticsCount){
-    (*workingTemperature) = g_temperature;
+  static void getStatistics(float* _workingTemperature, float* _statisticsTemperature, int* _statisticsTemperatureCount){
+    (*_workingTemperature) = workingTemperature;
 
-    if (g_temperatureSummCount != 0){
-      (*statisticsTemperature) = g_temperatureSumm/g_temperatureSummCount;
+    if (statisticsTemperatureCount != 0){
+      (*_statisticsTemperature) = statisticsTemperatureSumm/statisticsTemperatureCount;
     } 
     else {
-      (*statisticsTemperature) = g_temperature;
+      (*_statisticsTemperature) = workingTemperature;
     }
-    *statisticsCount = g_temperatureSummCount;
+    *_statisticsTemperatureCount = statisticsTemperatureCount;
   }
 
 

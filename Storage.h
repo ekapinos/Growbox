@@ -59,6 +59,10 @@ public:
     }
   }
   
+  /////////////////////////////////////////////////////////////////////
+  //                        GROWBOX COMMANDS                         //
+  /////////////////////////////////////////////////////////////////////
+
   static void fillStorage(byte value){
       for (word i = 0; i < CAPACITY ; i++){
         write(i, value);

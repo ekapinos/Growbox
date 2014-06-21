@@ -10,7 +10,6 @@ public:
   static void printTime(time_t time){
     tmElements_t tm;
     breakTime(time, tm);
-
     Serial.print('[');
     // digital clock display of the time
     print2digits(tm.Hour);
@@ -53,24 +52,22 @@ public:
       print2digitsHEX(buffer[i]);
       Serial.print(' ');
     }
-    Serial.println();
   }
 
   static void printStorage(word address, byte sizeOf){
     byte buffer[sizeOf];
     GB_Storage::read(address, buffer, sizeOf);
     printRAM(buffer, sizeOf);
+    Serial.println();
   }
 
   static void printStorage(){
-
     Serial.print(F("  "));
     for (word i = 0; i < 16 ; i++){
       Serial.print(F("  "));
       Serial.print(i, HEX); 
       Serial.print(' ');
     }
-
     for (word i = 0; i < GB_Storage::CAPACITY ; i++){
       byte value = GB_Storage::read(i);
 
@@ -82,9 +79,7 @@ public:
       print2digitsHEX(value);
       Serial.print(" ");
     }
-
     Serial.println();  
-
   }
 };
 #endif

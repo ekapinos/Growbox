@@ -31,7 +31,7 @@ public:
     Error* currentItemPtr = lastAddedItem;
     while (currentItemPtr != 0){
       if (currentItemPtr->sequence == sequence && currentItemPtr->sequenceSize == sequenceSize) {
-        break;
+        return currentItemPtr;
       }
       currentItemPtr = (Error*)currentItemPtr->nextError;
     }
@@ -83,10 +83,15 @@ public:
   }
 
   static Event* findByIndex(byte index){
+    //Serial.print("search ev: ");    
+    //Serial.println(index);
+    // Serial.print("lastAddedEvent ev: ");
+    //Serial.println(lastAddedEvent->description);
     Event* currentItemPtr = lastAddedEvent;
     while (currentItemPtr != 0){
+      //Serial.println(currentItemPtr->description);
       if (currentItemPtr->index == index) {
-        break;
+        return currentItemPtr;
       }
       currentItemPtr = (Event*)currentItemPtr->nextEvent;
     }

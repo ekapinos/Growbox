@@ -171,12 +171,20 @@ void setup() {
   }
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
-  boolean isRestart = GB_StorageHelper::load();
+  boolean itWasRestart = GB_StorageHelper::start();
 
   g_isGrowboxStarted = true;
 
+  Event* ev = Event::findByIndex(6);
+  if (ev==0){
+    Serial.println("No ev 6");
+  } 
+  else {
+    Serial.println(ev->description);
+  }
+
   // Now we can use logger
-  if (isRestart){
+  if (itWasRestart){
     GB_Logger::logEvent(EVENT_RESTART);
   } 
   else {
@@ -403,9 +411,9 @@ static void executeCommand(String &input){
   }
   Serial.println();
 
-  boolean events = true; // can't put in switch, Arduino bug
-  boolean errors = true;
-  boolean temperature = true;
+  boolean printEvents = true; // can't put in switch, Arduino bug
+  boolean printErrors = true;
+  boolean printTemperature = true;
 
   switch(firstChar){
   case 's':
@@ -427,17 +435,17 @@ static void executeCommand(String &input){
       GB_StorageHelper::setLoggerEnabled(false);
       break;
     case 't': 
-      errors = events = false;
+      printErrors = printEvents = false;
       break;
     case 'r': 
-      events = temperature = false;
+      printEvents = printTemperature = false;
       break;
     case 'v': 
-      errors = temperature = false;
+      printTemperature = printErrors = false;
       break;
     } 
     if ((secondChar != 'c') && (secondChar != 'e') && (secondChar != 'd')){
-      GB_Logger::printFullLog(events ,  errors ,  temperature );
+      GB_Logger::printFullLog(printEvents,  printErrors,  printTemperature );
     }
     break; 
 
@@ -469,6 +477,7 @@ static void executeCommand(String &input){
     {// TODO compilator madness
       BootRecord bootRecord = GB_StorageHelper::getBootRecord();
       GB_Print::printRAM(&bootRecord, sizeof(BootRecord));
+      Serial.println();
     }
     Serial.print(F("-Storage: ")); 
     GB_Print::printStorage(0, sizeof(BootRecord));
@@ -534,8 +543,8 @@ static void printBootStatus(){
   Serial.print(F(", records: "));
   Serial.print(GB_StorageHelper::getLogRecordsCount());
   Serial.print('/');
-  Serial.print(GB_StorageHelper::getLogRecordsCapacity());
-  if (GB_StorageHelper::isLogRecordsOverflow()){
+  Serial.print(GB_StorageHelper::getLogCapacity());
+  if (GB_StorageHelper::isLogOverflow()){
     Serial.print(F(", overflow"));
   } 
   Serial.println();
@@ -659,6 +668,7 @@ static void printPinsStatus(){
     Serial.println();
   }
 }
+
 
 
 
