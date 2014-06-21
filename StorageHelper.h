@@ -7,6 +7,8 @@
 
 #define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
 
+//extern BootRecord bootRecord; // avoid craetion "cpp" file 
+
 class GB_StorageHelper{
 
 private:
@@ -16,7 +18,7 @@ public:
 
   static boolean load(){
     GB_Storage::read(0, &bootRecord, sizeof(BootRecord));
-    if (isCorrect()){
+    if (isBootRecordCorrect()){
       bootRecord.lastStartupTimeStamp = now();
       GB_Storage::write(OFFSETOF(BootRecord, lastStartupTimeStamp), &(bootRecord.lastStartupTimeStamp), sizeof(bootRecord.lastStartupTimeStamp)
         );
@@ -26,10 +28,6 @@ public:
       init();
       return false; 
     }
-  }
-
-  static boolean isCorrect(){ // TODO rename it
-    return (bootRecord.first_magic == MAGIC_NUMBER) && (bootRecord.last_magic == MAGIC_NUMBER);
   }
 
   static boolean isLogRecordsOverflow(){
@@ -69,7 +67,7 @@ public:
 
   }
   static boolean storeLogRecord(LogRecord &logRecord){ 
-    boolean storeLog = isCorrect() && bootRecord.boolPreferencies.isLoggerEnabled && GB_Storage::isPresent(); // TODO check in another places
+    boolean storeLog = isBootRecordCorrect() && bootRecord.boolPreferencies.isLoggerEnabled && GB_Storage::isPresent(); // TODO check in another places
 
     if (!storeLog){
       return false;
@@ -99,7 +97,6 @@ public:
     return bootRecord.lastStartupTimeStamp; 
   }
 
-
   static void resetLog(){
 
     bootRecord.nextLogRecordAddress = sizeof(BootRecord);
@@ -109,11 +106,9 @@ public:
     GB_Storage::write(OFFSETOF(BootRecord, boolPreferencies), &(bootRecord.boolPreferencies), sizeof(bootRecord.boolPreferencies));
   }
 
-
-  static void corrupteBootRecod(){
+  static void resetFirmware(){
     bootRecord.first_magic = 0;
     GB_Storage::write(0, &bootRecord, sizeof(BootRecord));
-
   }
 
   static BootRecord getBootRecord(){
@@ -121,6 +116,10 @@ public:
   }
 
 private :
+
+  static boolean isBootRecordCorrect(){ // TODO rename it
+    return (bootRecord.first_magic == MAGIC_NUMBER) && (bootRecord.last_magic == MAGIC_NUMBER);
+  }
 
   static void increaseLogPointer(){
     bootRecord.nextLogRecordAddress += sizeof(LogRecord);  

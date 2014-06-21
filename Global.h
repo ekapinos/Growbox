@@ -7,6 +7,8 @@
 #include <WProgram.h> 
 #endif
 
+#include <OneWire.h>
+
 /////////////////////////////////////////////////////////////////////
 //                     HARDWARE CONFIGURATION                      //
 /////////////////////////////////////////////////////////////////////
@@ -64,6 +66,16 @@ const int CHECK_GROWBOX_DELAY = 5*60; // 5 min
 const word ERROR_SHORT_SIGNAL_MS = 100;  // -> 0
 const word ERROR_LONG_SIGNAL_MS = 400;   // -> 1
 const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
+
+/////////////////////////////////////////////////////////////////////
+//                        GLOBAL VARIABLES                         //
+/////////////////////////////////////////////////////////////////////
+
+
+// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+extern OneWire g_oneWirePin;
+
+extern boolean g_isGrowboxStarted;
 
 #endif
 

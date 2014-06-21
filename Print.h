@@ -1,8 +1,7 @@
 #ifndef GB_Print_h
 #define GB_Print_h
 
-//#include <MemoryFree.h>
-//#include <Time.h>
+#include <MemoryFree.h>
 
 class GB_Print {
 

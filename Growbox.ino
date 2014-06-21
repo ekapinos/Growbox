@@ -1,4 +1,7 @@
 
+// Warning! We need to include all used libraries, 
+// otherwise Arduino IDE doesn't set correct build 
+// params for gcc compilator
 #include <MemoryFree.h>
 
 #include <Time.h>
@@ -15,25 +18,14 @@
 // Growbox
 #include "Global.h"
 #include "Controller.h"
+#include "Termometer.h"
 #include "SerialHelper.h"
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //
 /////////////////////////////////////////////////////////////////////
 
-float g_temperature = 0.0;
-double g_temperatureSumm = 0.0;
-int g_temperatureSummCount = 0;
-
 byte g_isDayInGrowbox = -1;
-
-// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
-OneWire oneWirePin(ONE_WIRE_PIN);
-
-// Pass our oneWire reference to Dallas Temperature. 
-DallasTemperature g_dallasTemperature(&oneWirePin);
-DeviceAddress g_thermometerOneWireAddress;
-
 
 /////////////////////////////////////////////////////////////////////
 //                              STATUS                             //
@@ -92,7 +84,7 @@ void setup() {
   //attachInterrupt(0, interrapton0handler, CHANGE); // PIN 2
 
   // We need to check Wi-Fi before use print to SerialMonitor
-  GB_SerialHelper::autoStartWifiOnReset = false;
+  g_isGrowboxStarted = false;
 
   GB_SerialHelper::checkSerial(true, true);
 
@@ -166,15 +158,8 @@ void setup() {
   }
 
   // Configure termometer
-  g_dallasTemperature.begin();
-  while(g_dallasTemperature.getDeviceCount() == 0){
-    GB_Logger::logError(ERROR_TERMOMETER_DISCONNECTED);
-    g_dallasTemperature.begin();
-  }  
-  GB_Logger::stopLogError(ERROR_TERMOMETER_DISCONNECTED);
-
-  g_dallasTemperature.getAddress(g_thermometerOneWireAddress, 0); // search for devices on the bus and assign based on an index.
-  while(!checkTemperature()) { // Load temperature on startup
+  GB_Termometer::start();
+  while(!GB_Termometer::checkTemperature()) { // Load temperature on startup
     delay(1000);
   }
 
@@ -188,6 +173,8 @@ void setup() {
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean isRestart = GB_StorageHelper::load();
 
+  g_isGrowboxStarted = true;
+
   // Now we can use logger
   if (isRestart){
     GB_Logger::logEvent(EVENT_RESTART);
@@ -197,7 +184,7 @@ void setup() {
   }
 
   // Log current temeperature
-  getTemperature();
+  GB_Termometer::getTemperature(); // forceLog?
 
   // Init/Restore growbox state
   if (isDayInGrowbox()){
@@ -207,7 +194,6 @@ void setup() {
     switchToNightMode();
   }
 
-  GB_SerialHelper::autoStartWifiOnReset = true;
   if (g_UseSerialWifi){    
     GB_SerialHelper::startWifi();
   }
@@ -242,12 +228,11 @@ void loop() {
 
 
 void serialEvent(){
-  if(!GB_StorageHelper::isCorrect()){
+  if(!g_isGrowboxStarted){
     return; //Do not handle events during startup
   }
 
-
-  String input = ""; 
+  String input; 
   while (Serial.available()){
     input += (char) Serial.read();
   }
@@ -282,7 +267,7 @@ void serialEvent(){
 
 void checkGrowboxState() {
 
-  float temperature = getTemperature();
+  float temperature = GB_Termometer::getTemperature();
 
   if (temperature >= TEMPERATURE_CRITICAL){
     turnOffLight();
@@ -352,63 +337,8 @@ void switchToNightMode(){
 /////////////////////////////////////////////////////////////////////
 
 void checkTemperatureState(){ // should return void
-  checkTemperature(); 
+  GB_Termometer::checkTemperature(); 
 }
-
-boolean checkTemperature(){
-
-  if(!g_dallasTemperature.requestTemperaturesByAddress(g_thermometerOneWireAddress)){
-    GB_Logger::logError(ERROR_TERMOMETER_DISCONNECTED);
-    return false;
-  };
-
-  float freshTemperature = g_dallasTemperature.getTempC(g_thermometerOneWireAddress);
-
-  if ((int)freshTemperature == 0){
-    GB_Logger::logError(ERROR_TERMOMETER_ZERO_VALUE);  
-    return false;
-  }
-
-  g_temperatureSumm += freshTemperature;
-  g_temperatureSummCount++;
-
-  boolean forceLog = 
-    GB_Logger::stopLogError(ERROR_TERMOMETER_ZERO_VALUE) |
-    GB_Logger::stopLogError(ERROR_TERMOMETER_DISCONNECTED); 
-  if (forceLog) {
-    getTemperature(true);
-  }
-  else if (g_temperatureSummCount > 100){
-    getTemperature(); // prevents overflow 
-  }
-
-  return true;
-}
-
-float getTemperature(){
-  getTemperature(false);
-}
-
-float getTemperature(boolean forceLog){
-
-  if (g_temperatureSummCount == 0){
-    return g_temperature; 
-  }
-
-  float freshTemperature = g_temperatureSumm/g_temperatureSummCount;
-
-  if (((int)freshTemperature != (int)g_temperature) || forceLog) {          
-    GB_Logger::logTemperature((byte)freshTemperature);
-  }
-
-  g_temperature = freshTemperature;
-
-  g_temperatureSumm = 0.0;
-  g_temperatureSummCount = 0;
-
-  return g_temperature;
-}
-
 
 /////////////////////////////////////////////////////////////////////
 //                              DEVICES                            //
@@ -516,7 +446,7 @@ static void executeCommand(String &input){
     case 'c': 
       Serial.println(F("Cleaning boot record"));
 
-      GB_StorageHelper::corrupteBootRecod();
+      GB_StorageHelper::resetFirmware();
       Serial.println(F("Magic number corrupted, reseting"));
 
       Serial.println('5');
@@ -536,7 +466,7 @@ static void executeCommand(String &input){
 
     Serial.println(F("Currnet boot record"));
     Serial.print(F("-Memory : ")); 
-    { // TODO compilator madness
+    {// TODO compilator madness
       BootRecord bootRecord = GB_StorageHelper::getBootRecord();
       GB_Print::printRAM(&bootRecord, sizeof(BootRecord));
     }
@@ -630,20 +560,16 @@ static void printTimeStatus(){
 }
 
 static void printTemperatureStatus(){
-  Serial.print(F("Temperature: current:")); 
-  Serial.print(g_temperature);
+  float workingTemperature, statisticsTemperature;
+  int statisticsCount;
+  GB_Termometer::getStatistics(&workingTemperature, &statisticsTemperature, &statisticsCount);
 
-  float statisticsTemperature;
-  if (g_temperatureSummCount != 0){
-    statisticsTemperature = g_temperatureSumm/g_temperatureSummCount;
-  } 
-  else {
-    statisticsTemperature = g_temperature;
-  }
+  Serial.print(F("Temperature work:")); 
+  Serial.print(workingTemperature);
   Serial.print(F(", count:")); 
   Serial.print(statisticsTemperature);
   Serial.print(F("(el:")); 
-  Serial.print(g_temperatureSummCount);
+  Serial.print(statisticsCount);
 
   Serial.print(F("), day:"));
   Serial.print(TEMPERATURE_DAY);
@@ -733,14 +659,6 @@ static void printPinsStatus(){
     Serial.println();
   }
 }
-
-
-
-
-
-
-
-
 
 
 

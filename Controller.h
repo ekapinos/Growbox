@@ -1,13 +1,13 @@
 #ifndef GB_Controller_h
 #define GB_Controller_h
 
-#include <MemoryFree.h>
-
+#include "Global.h"
 #include "Logger.h"
 
 class GB_Controller{
 
 public:
+
   static void rebootController() {
     void(* resetFunc) (void) = 0; // Reset MC function
     resetFunc(); //call

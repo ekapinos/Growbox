@@ -4,6 +4,7 @@
 #include <Time.h>
 
 const word MAGIC_NUMBER = 0xAA55;
+
 const byte BOOT_RECORD_SIZE = 32;
 const byte LOG_RECORD_SIZE = 5;
 

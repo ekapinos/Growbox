@@ -1,7 +1,7 @@
 #ifndef GB_Storage_h
 #define GB_Storage_h
 
-#include <Wire.h> 
+#include <Wire.h>
 
 #include "Global.h" 
 

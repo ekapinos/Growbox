@@ -25,8 +25,6 @@ class GB_SerialHelper{
   
 public:
 
-  static boolean autoStartWifiOnReset;
-
   static void printEnd(){
     if (g_UseSerialWifi) {
       delay(250);
@@ -70,7 +68,7 @@ public:
 
         g_UseSerialWifi = WIFI_MESSAGE_WELLCOME.equals(input);
         if (g_UseSerialWifi) {
-          if(autoStartWifiOnReset){
+          if(g_isGrowboxStarted){
             startWifi();
           }
           break;
