@@ -10,10 +10,6 @@ class GB_Logger {
 
 public:
 
-  /////////////////////////////////////////////////////////////////////
-  //                             WRITE                               //
-  /////////////////////////////////////////////////////////////////////
-
   // Normal event uses uses format [00DDDDDD]
   //   00 - prefix for normal events 
   //   DDDDDD - event identificator
@@ -21,7 +17,7 @@ public:
     LogRecord logRecord(event.index);
     boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
     printDirtyLogRecord(logRecord, event.description, isStored);
-    GB_SerialHelper::printEnd();
+    GB_SerialHelper::printDirtyEnd();
   }
 
   // Error events uses format [01SSDDDD] 
@@ -34,7 +30,7 @@ public:
       error.isStored = GB_StorageHelper::storeLogRecord(logRecord);
     }
     printDirtyLogRecord(logRecord, error.description, error.isStored);
-    GB_SerialHelper::printEnd();
+    GB_SerialHelper::printDirtyEnd();
     error.isStored = true;   
     error.notify();
   }
@@ -53,7 +49,7 @@ public:
     LogRecord logRecord(B11000000|temperature);
     boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
     printDirtyLogRecord(logRecord, F("Temperature"), isStored, temperature);
-    GB_SerialHelper::printEnd();
+    GB_SerialHelper::printDirtyEnd();
   }
 
   /////////////////////////////////////////////////////////////////////
@@ -140,7 +136,7 @@ private:
   }
 
   static void printDirtyLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, boolean isStored, byte temperature = 0xFF){
-    if (!g_UseSerialMonitor) {
+    if (!GB_SerialHelper::useSerialMonitor) {
       return;
     }
     if (!isStored) {
@@ -156,8 +152,8 @@ private:
       Serial.print((unsigned byte)temperature);
       Serial.print(F("] C"));
     }
-    Serial.print(F(" HEX: "));
-    GB_PrintDirty::printRAM(&((LogRecord)logRecord), sizeof(LogRecord));
+    //Serial.print(F(" HEX: "));
+    //GB_PrintDirty::printRAM(&((LogRecord)logRecord), sizeof(LogRecord));
     Serial.println();      
   }
 

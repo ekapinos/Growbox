@@ -4,6 +4,6 @@
 //                        GLOBAL VARIABLES                         //
 /////////////////////////////////////////////////////////////////////
 
-/*volatile*/ boolean g_UseSerialMonitor = false;
-/*volatile*/ boolean g_UseSerialWifi = false;
+/*volatile*/ boolean GB_SerialHelper::useSerialMonitor = false;
+/*volatile*/ boolean GB_SerialHelper::useSerialWifi = false;
 

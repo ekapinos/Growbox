@@ -1,8 +1,6 @@
 #ifndef GB_PrintDirty_h
 #define GB_PrintDirty_h
 
-#include <MemoryFree.h>
-
 class GB_PrintDirty {
 
 public:
@@ -38,12 +36,6 @@ public:
     if(digits < 0x10 )
       Serial.print('0');
     Serial.print(digits, HEX);
-  }
-  
-  static void printFreeMemory(){
-    Serial.print(F("Free memory: "));     // print how much RAM is available.
-    Serial.print(freeMemory(), DEC);  // print how much RAM is available.
-    Serial.println(F(" bytes"));     // print how much RAM is available.
   }
 
   static void printRAM(void *ptr, byte sizeOf){

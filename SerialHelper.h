@@ -18,34 +18,34 @@ const String WIFI_PASS = "flat65router";
 //                        GLOBAL VARIABLES                         //
 /////////////////////////////////////////////////////////////////////
 
-extern /*volatile*/ boolean g_UseSerialMonitor;
-extern /*volatile*/ boolean g_UseSerialWifi;
+//extern /*volatile*/ boolean g_UseSerialMonitor;
+//extern /*volatile*/ boolean g_UseSerialWifi;
 
 class GB_SerialHelper{
-  
+
 public:
 
-  static void printEnd(){
-    if (g_UseSerialWifi) {
-      delay(250);
-      while (Serial.available()){
-        Serial.read();
-      }
+static /*volatile*/ boolean useSerialMonitor;
+static /*volatile*/ boolean useSerialWifi;
+
+
+  static void printDirtyEnd(){
+    if (GB_SerialHelper::useSerialWifi) {
+      cleanSerialBuffer();
     }
   }
-  
+
   static void checkSerial(boolean checkSerialMonitor, boolean checkWifi){
 
-    boolean oldUseSerialMonitor  = g_UseSerialMonitor;
-    boolean oldUseSerialWifi     = g_UseSerialWifi;
-    boolean serialInUse          = (g_UseSerialMonitor || g_UseSerialWifi);
+    boolean oldUseSerialMonitor  = useSerialMonitor;
+    boolean oldUseSerialWifi     = useSerialWifi;
+    boolean serialInUse          = (useSerialMonitor || useSerialWifi);
 
     if (checkSerialMonitor){
-      g_UseSerialMonitor = (digitalRead(USE_SERIAL_MONOTOR_PIN) == SERIAL_ON);
-
+      useSerialMonitor = (digitalRead(USE_SERIAL_MONOTOR_PIN) == SERIAL_ON);
     }
 
-    if (!serialInUse && (g_UseSerialMonitor || checkWifi)){
+    if (!serialInUse && (useSerialMonitor || checkWifi)){
       Serial.begin(115200);
       while (!Serial) {
         ; // wait for serial port to connect. Needed for Leonardo only
@@ -54,31 +54,21 @@ public:
     }
 
     if (checkWifi){
-
       for (int i = 0; i<2; i++){ // Sometimes first command returns ERROR, two attempts
-
-        delay(250);
-
-        // Clean Serial buffer
-        while (Serial.available()){
-          Serial.read();
-        }
-
         String input = wifiExecuteCommand(F("at+reset=0")); // spec boot time
-
-        g_UseSerialWifi = WIFI_MESSAGE_WELLCOME.equals(input);
-        if (g_UseSerialWifi) {
+        useSerialWifi = WIFI_MESSAGE_WELLCOME.equals(input);
+        if (useSerialWifi) {
           if(g_isGrowboxStarted){
             startWifi();
           }
           break;
         }
-        if (g_UseSerialMonitor && input.length() != 0){
+        if (useSerialMonitor && input.length() != 0){
           Serial.print(F("Not corrent Wi-Fi startup message. Expected: "));
           Serial.println(WIFI_MESSAGE_WELLCOME);
           Serial.print(F(" Received: "));
           Serial.println(input);
-          printEnd();
+          printDirtyEnd();
         }
       }
     }
@@ -88,27 +78,27 @@ public:
       return; 
     }
 
-    if (g_UseSerialMonitor != oldUseSerialMonitor){
-      if (g_UseSerialMonitor){
+    if (useSerialMonitor != oldUseSerialMonitor){
+      if (useSerialMonitor){
         Serial.println(F("Serial monitor: enabled"));
       } 
       else {
         Serial.println(F("Serial monitor: disabled"));
       }
-      printEnd();
+      printDirtyEnd();
     }
-    if (g_UseSerialWifi != oldUseSerialWifi){
-      if(g_UseSerialWifi){
+    if (useSerialWifi != oldUseSerialWifi){
+      if(useSerialWifi){
         Serial.println(F("Serial Wi-Fi: enabled"));
       } 
       else {
         Serial.println(F("Serial Wi-Fi: disabled"));
       }
-      printEnd();
+      printDirtyEnd();
     }
 
     // Close Serial connection if nessesary
-    serialInUse = (g_UseSerialMonitor || g_UseSerialWifi);
+    serialInUse = (useSerialMonitor || useSerialWifi);
     if (!serialInUse){
       Serial.end();
     }
@@ -118,24 +108,17 @@ public:
     String rez = wifiExecuteCommand(F("at+scan=0"));
 
     Serial.print(rez);
-    printEnd();
+    printDirtyEnd();
   }
 
 private:
 
   static  String wifiExecuteCommand(const __FlashStringHelper* command, int maxResponseDeleay = -1){
-
     if (maxResponseDeleay < 0){
       maxResponseDeleay = WIFI_RESPONSE_DELAY_MAX;
     }
-
-    // Clean Serial buffer
-    while (Serial.available()){
-      Serial.read();
-    }
-
+    cleanSerialBuffer();
     Serial.println(command);
-
     boolean connectionEstablished = false;
     for (int i=0; i <= maxResponseDeleay; i += WIFI_RESPONSE_DELAY_INTERVAL){
       delay(WIFI_RESPONSE_DELAY_INTERVAL);
@@ -145,7 +128,7 @@ private:
       }
     }
     if (!connectionEstablished){
-      g_UseSerialWifi = false; // TODO show err
+      useSerialWifi = false; // TODO show err
       return 0;
     }
     String input="";
@@ -154,7 +137,16 @@ private:
     }
     return input;
   }
+
+  static void cleanSerialBuffer(){
+    // Clean Serial buffer
+    delay(250);
+    while (Serial.available()){
+      Serial.read();
+    }
+  }
 };
 
 #endif
+
 

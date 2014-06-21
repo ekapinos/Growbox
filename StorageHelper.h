@@ -14,6 +14,8 @@ private:
 
 public:
 
+  static const word LOG_CAPACITY = ((GB_Storage::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord));
+
   /////////////////////////////////////////////////////////////////////
   //                            BOOT RECORD                          //
   /////////////////////////////////////////////////////////////////////
@@ -65,26 +67,21 @@ public:
 
   static boolean storeLogRecord(LogRecord &logRecord){ 
     boolean storeLog = g_isGrowboxStarted && isBootRecordCorrect() && bootRecord.boolPreferencies.isLoggerEnabled && GB_Storage::isPresent(); // TODO check in another places
-
     if (!storeLog){
       return false;
     }
     GB_Storage::write(bootRecord.nextLogRecordAddress, &logRecord, sizeof(LogRecord));
     increaseLogPointer();
-
     return true;
   }
 
-  static word getLogCapacity(){
-    return (GB_Storage::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord);
-  }
   static boolean isLogOverflow(){
     return bootRecord.boolPreferencies.isLogOverflow;
   }
   
   static word getLogRecordsCount(){
     if (bootRecord.boolPreferencies.isLogOverflow){
-      return getLogCapacity(); 
+      return LOG_CAPACITY; 
     } 
     else {
       return (bootRecord.nextLogRecordAddress - sizeof(BootRecord))/sizeof(LogRecord);
@@ -94,14 +91,14 @@ public:
     if (index >= getLogRecordsCount()){
       return false;
     }
-
+    
     word logRecordOffset = 0;
     if (bootRecord.boolPreferencies.isLogOverflow){
       logRecordOffset = bootRecord.nextLogRecordAddress;
     }
     logRecordOffset += index * sizeof(LogRecord);
 
-    word maxLogRecordOffset = getLogCapacity() * sizeof(LogRecord);
+    word maxLogRecordOffset = LOG_CAPACITY * sizeof(LogRecord);
 
     if (logRecordOffset > maxLogRecordOffset){
       logRecordOffset = logRecordOffset - maxLogRecordOffset;
@@ -121,7 +118,7 @@ public:
     GB_Storage::write(0, &bootRecord, sizeof(BootRecord));
   }
   
-  static void resetLog(){
+  static void resetStoredLog(){
     bootRecord.nextLogRecordAddress = sizeof(BootRecord);
     GB_Storage::write(OFFSETOF(BootRecord, nextLogRecordAddress), &(bootRecord.nextLogRecordAddress), sizeof(bootRecord.nextLogRecordAddress)); 
 

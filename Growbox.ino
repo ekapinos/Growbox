@@ -21,6 +21,8 @@
 #include "Thermometer.h"
 #include "SerialHelper.h"
 
+#define GB_EXTRA_STRINGS
+
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //
 /////////////////////////////////////////////////////////////////////
@@ -89,57 +91,57 @@ void setup() {
   GB_SerialHelper::checkSerial(true, true);
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
-  if(g_UseSerialMonitor){ 
-    GB_PrintDirty::printFreeMemory();
+  if(GB_SerialHelper::useSerialMonitor){ 
+    printFreeMemory();
     Serial.println(F("Checking software configuration..."));
-    GB_SerialHelper::printEnd();
+    GB_SerialHelper::printDirtyEnd();
   }
 
   initLoggerModel();
   if (!Error::isInitialized()){
-    if(g_UseSerialMonitor){ 
+    if(GB_SerialHelper::useSerialMonitor){ 
       Serial.print(F("Fatal error: not all Errors initialized"));
-      GB_SerialHelper::printEnd();
+      GB_SerialHelper::printDirtyEnd();
     }
     while(true) delay(5000);  
   }
   if (!Event::isInitialized()){
-    if(g_UseSerialMonitor){ 
+    if(GB_SerialHelper::GB_SerialHelper::useSerialMonitor){ 
       Serial.print(F("Fatal error: not all Events initialized"));
-      GB_SerialHelper::printEnd();
+      GB_SerialHelper::printDirtyEnd();
     }
     while(true) delay(5000);  
   }
 
   if (BOOT_RECORD_SIZE != sizeof(BootRecord)){
     digitalWrite(ERROR_PIN, HIGH);
-    if(g_UseSerialMonitor){ 
+    if(GB_SerialHelper::useSerialMonitor){ 
       Serial.print(F("Fatal error: wrong BootRecord size. Exepted:"));
       Serial.print(BOOT_RECORD_SIZE);
       Serial.print(F(", current: "));
       Serial.print(sizeof(BootRecord));
-      GB_SerialHelper::printEnd();
+      GB_SerialHelper::printDirtyEnd();
     }
     while(true) delay(5000);
   }
 
   if (LOG_RECORD_SIZE != sizeof(LogRecord)){
     digitalWrite(ERROR_PIN, HIGH);
-    if(g_UseSerialMonitor){ 
+    if(GB_SerialHelper::useSerialMonitor){ 
       Serial.print(F("Fatal error: wrong LogRecord size. Exepted:"));
       Serial.print(BOOT_RECORD_SIZE);
       Serial.print(F(", current: "));
       Serial.print(sizeof(BootRecord));
-      GB_SerialHelper::printEnd();
+      GB_SerialHelper::printDirtyEnd();
     }
     while(true) delay(5000);
   }
 
   GB_Controller::checkFreeMemory();
 
-  if(g_UseSerialMonitor){ 
+  if(GB_SerialHelper::useSerialMonitor){ 
     Serial.println(F("Checking clock..."));
-    GB_SerialHelper::printEnd();
+    GB_SerialHelper::printDirtyEnd();
   }
 
   // Configure clock
@@ -152,9 +154,9 @@ void setup() {
 
   GB_Controller::checkFreeMemory();
 
-  if(g_UseSerialMonitor){ 
+  if(GB_SerialHelper::useSerialMonitor){ 
     Serial.println(F("Checking termometer..."));
-    GB_SerialHelper::printEnd();
+    GB_SerialHelper::printDirtyEnd();
   }
 
   // Configure termometer
@@ -165,23 +167,15 @@ void setup() {
 
   GB_Controller::checkFreeMemory();
 
-  if(g_UseSerialMonitor){ 
+  if(GB_SerialHelper::useSerialMonitor){ 
     Serial.println(F("Checking storage..."));
-    GB_SerialHelper::printEnd();
+    GB_SerialHelper::printDirtyEnd();
   }
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean itWasRestart = GB_StorageHelper::start();
 
   g_isGrowboxStarted = true;
-
-  Event* ev = Event::findByIndex(6);
-  if (ev==0){
-    Serial.println("No ev 6");
-  } 
-  else {
-    Serial.println(ev->description);
-  }
 
   // Now we can use logger
   if (itWasRestart){
@@ -202,10 +196,9 @@ void setup() {
     switchToNightMode();
   }
 
-  if (g_UseSerialWifi){    
+  if (GB_SerialHelper::useSerialWifi){    
     GB_SerialHelper::startWifi();
   }
-
 
   // Create main life circle timer
   Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
@@ -215,22 +208,26 @@ void setup() {
   Alarm.alarmRepeat(UP_HOUR, 00, 00, switchToDayMode);      // repeat once every day
   Alarm.alarmRepeat(DOWN_HOUR, 00, 00, switchToNightMode);  // repeat once every day
 
-  if(g_UseSerialMonitor){ 
+  if(GB_SerialHelper::useSerialMonitor){ 
     Serial.println(F("Growbox successfully started"));
-    GB_SerialHelper::printEnd();
+    GB_SerialHelper::printDirtyEnd();
   }
 
+
+//  for (int i = 0; i<900; i++){  
+//    GB_Logger::logTemperature(i % 50);  
+//  }
+//  GB_Logger::printFullLog(true,  true,  true);
+  
 }
 
 // the loop routine runs over and over again forever:
 void loop() {
-
   digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
-
+  
   GB_Controller::checkFreeMemory();
-
   GB_SerialHelper::checkSerial(true, false); // not interraption cause Serial print problems
-
+  
   Alarm.delay(MAIN_LOOP_DELAY * 1000); // wait one second between clock display
 }
 
@@ -247,7 +244,7 @@ void serialEvent(){
 
   // somthing wrong with Wi-Fi, we need to reboot it
   if (input.indexOf(WIFI_MESSAGE_WELLCOME) >= 0 || input.indexOf(WIFI_MESSAGE_ERROR) >= 0){
-    g_UseSerialWifi = false; 
+    GB_SerialHelper::useSerialWifi = false; // TODO only for logging
     GB_SerialHelper::checkSerial(false, true);
     return;
   }
@@ -258,12 +255,12 @@ void serialEvent(){
   }
   Serial.print(F("Serial.read: "));
   Serial.println(input);
-  GB_SerialHelper::printEnd();
+  GB_SerialHelper::printDirtyEnd();
 
   //if (g_UseSerialWifi) {
   //
   //} else
-  if (g_UseSerialMonitor) {
+  if (GB_SerialHelper::useSerialMonitor) {
     executeCommand(input);
   }
 }
@@ -423,8 +420,8 @@ static void executeCommand(String &input){
   case 'l':
     switch(secondChar){
     case 'c': 
-      Serial.println(F("Reset log pointer"));
-      GB_StorageHelper::resetLog();
+      Serial.println(F("Reset stored log records"));
+      GB_StorageHelper::resetStoredLog();
       break;
     case 'e':
       Serial.println(F("Logger store enabled"));
@@ -509,9 +506,15 @@ static void executeCommand(String &input){
     GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
   }
   delay(1000);               // wait for a second
-  GB_SerialHelper::printEnd();
+  GB_SerialHelper::printDirtyEnd();
 }
 
+
+static void printFreeMemory(){
+  Serial.print(F("Free memory: "));     // print how much RAM is available.
+  Serial.print(freeMemory(), DEC);  // print how much RAM is available.
+  Serial.println(F(" bytes"));     // print how much RAM is available.
+}
 
 void printStorage(word address, byte sizeOf){
   byte buffer[sizeOf];
@@ -543,7 +546,7 @@ void printStorage(){
 
 
 static void printStatus(){
-  GB_PrintDirty::printFreeMemory();
+  printFreeMemory();
   printBootStatus();
   printTimeStatus();
   printTemperatureStatus();
@@ -571,7 +574,7 @@ static void printBootStatus(){
   Serial.print(F(", records: "));
   Serial.print(GB_StorageHelper::getLogRecordsCount());
   Serial.print('/');
-  Serial.print(GB_StorageHelper::getLogCapacity());
+  Serial.print(GB_StorageHelper::LOG_CAPACITY);
   if (GB_StorageHelper::isLogOverflow()){
     Serial.print(F(", overflow"));
   } 
@@ -662,6 +665,7 @@ static void printPinsStatus(){
       Serial.print(F("   "));
     }
 
+#ifdef GB_EXTRA_STRINGS
     switch(i){
     case 0: 
     case 1: 
@@ -693,9 +697,11 @@ static void printPinsStatus(){
       Serial.print(F("Reserved by I2C. Can be used, if SCL, SDA pins will be used"));
       break;
     }
+#endif
     Serial.println();
   }
 }
+
 
 
 
