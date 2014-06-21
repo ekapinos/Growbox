@@ -44,11 +44,11 @@ public:
     }
   }
 
-  static void setLoggerEnabled(boolean flag){
+  static void setStoreLogRecordsEnabled(boolean flag){
     bootRecord.boolPreferencies.isLoggerEnabled = flag;
     GB_Storage::write(OFFSETOF(BootRecord, boolPreferencies), &(bootRecord.boolPreferencies), sizeof(bootRecord.boolPreferencies)); 
   }
-  static boolean isLoggerEnabled(){
+  static boolean isStoreLogRecordsEnabled(){
     return bootRecord.boolPreferencies.isLoggerEnabled; 
   }
 
@@ -128,7 +128,6 @@ public:
     bootRecord.boolPreferencies.isLogOverflow = false;
     GB_Storage::write(OFFSETOF(BootRecord, boolPreferencies), &(bootRecord.boolPreferencies), sizeof(bootRecord.boolPreferencies));
   }
-
 
   static BootRecord getBootRecord(){
     return bootRecord; // Creates copy of boot record //TODO check it

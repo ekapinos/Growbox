@@ -59,7 +59,7 @@ const byte FAN_SPEED_MAX = RELAY_ON;
 
 // Minimum Growbox reaction time
 const int MAIN_LOOP_DELAY = 1; // 1 sec
-const int CHECK_TEMPERATURE_DELAY = 20; //20 sec 
+const int UPDATE_THEMPERATURE_STATISTICS_DELAY = 20; //20 sec 
 const int CHECK_GROWBOX_DELAY = 5*60; // 5 min 
 
 // error blinks in milleseconds and blink sequences
@@ -74,7 +74,6 @@ const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 extern OneWire g_oneWirePin;
-
 extern boolean g_isGrowboxStarted;
 
 #endif

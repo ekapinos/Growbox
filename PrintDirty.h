@@ -1,9 +1,9 @@
-#ifndef GB_Print_h
-#define GB_Print_h
+#ifndef GB_PrintDirty_h
+#define GB_PrintDirty_h
 
 #include <MemoryFree.h>
 
-class GB_Print {
+class GB_PrintDirty {
 
 public:
 
@@ -54,33 +54,6 @@ public:
     }
   }
 
-  static void printStorage(word address, byte sizeOf){
-    byte buffer[sizeOf];
-    GB_Storage::read(address, buffer, sizeOf);
-    printRAM(buffer, sizeOf);
-    Serial.println();
-  }
-
-  static void printStorage(){
-    Serial.print(F("  "));
-    for (word i = 0; i < 16 ; i++){
-      Serial.print(F("  "));
-      Serial.print(i, HEX); 
-      Serial.print(' ');
-    }
-    for (word i = 0; i < GB_Storage::CAPACITY ; i++){
-      byte value = GB_Storage::read(i);
-
-      if (i% 16 ==0){
-        Serial.println();
-        print2digitsHEX(i/16);
-      }
-      Serial.print(" ");
-      print2digitsHEX(value);
-      Serial.print(" ");
-    }
-    Serial.println();  
-  }
 };
 #endif
 

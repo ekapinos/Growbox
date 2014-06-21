@@ -4,7 +4,7 @@
 #include "LoggerModel.h"
 #include "StorageHelper.h"
 #include "SerialHelper.h"
-#include "Print.h"
+#include "PrintDirty.h"
 
 class GB_Logger {
 
@@ -20,7 +20,8 @@ public:
   static void logEvent(Event &event){
     LogRecord logRecord(event.index);
     boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
-    printLogRecord(logRecord, event.description, isStored);
+    printDirtyLogRecord(logRecord, event.description, isStored);
+    GB_SerialHelper::printEnd();
   }
 
   // Error events uses format [01SSDDDD] 
@@ -32,7 +33,8 @@ public:
     if(!error.isStored){
       error.isStored = GB_StorageHelper::storeLogRecord(logRecord);
     }
-    printLogRecord(logRecord, error.description, error.isStored);
+    printDirtyLogRecord(logRecord, error.description, error.isStored);
+    GB_SerialHelper::printEnd();
     error.isStored = true;   
     error.notify();
   }
@@ -50,7 +52,8 @@ public:
   static void logTemperature(byte temperature){
     LogRecord logRecord(B11000000|temperature);
     boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
-    printLogRecord(logRecord, F("Temperature"), isStored, temperature);
+    printDirtyLogRecord(logRecord, F("Temperature"), isStored, temperature);
+    GB_SerialHelper::printEnd();
   }
 
   /////////////////////////////////////////////////////////////////////
@@ -71,18 +74,16 @@ public:
         if (!printTemperature && isTemperature(logRecord)){
           continue;
         }
-
         Serial.print('#');
         Serial.print(i);
         Serial.print(' ');
-
         const __FlashStringHelper* description = getLogRecordDescription(logRecord);
         if (isTemperature(logRecord)){
           byte temperature = (logRecord.data & B00111111);
-          printLogRecord(logRecord, description, true, temperature);
+          printDirtyLogRecord(logRecord, description, true, temperature);
         } 
         else {
-          printLogRecord(logRecord, description, true);
+          printDirtyLogRecord(logRecord, description, true);
         }
         isEmpty = false;
       } 
@@ -90,26 +91,26 @@ public:
         // TODO check it
       }  
     }
-
     if (isEmpty){
       Serial.println(F("Log empty"));
     }
-    // TODO check Serial
-  }
-
-
-  // TODO improuve
-
-  void setLoggerEnable(boolean flag){
-    GB_StorageHelper::setLoggerEnabled(flag);
+    // GB_SerialHelper::printEnd();  - no need it is Growbox command
   }
 
 private:
 
+  static boolean isEvent(LogRecord &logRecord){
+    return (logRecord.data & B11000000) == B00000000;
+  }
+  static boolean isError(LogRecord &logRecord){
+    return (logRecord.data & B11000000) == B01000000;
+  }
+  static boolean isTemperature(LogRecord &logRecord){
+    return (logRecord.data & B11000000) == B11000000;
+  }
+
   static const __FlashStringHelper* getLogRecordDescription(LogRecord &logRecord) {
-
-    byte data = (logRecord.data & B00111111);
-
+    byte data = (logRecord.data & B00111111);   
     if (isEvent(logRecord)){
       Event* foundItemPtr = Event::findByIndex(data);
       if (foundItemPtr == 0){
@@ -118,7 +119,6 @@ private:
       else {
         return foundItemPtr->description;
       }
-
     } 
     else if (isTemperature(logRecord)){
       return F("Temperature");
@@ -139,42 +139,33 @@ private:
     }
   }
 
-  static boolean isEvent(LogRecord &logRecord){
-    return (logRecord.data & B11000000) == B00000000;
-  }
-  static boolean isError(LogRecord &logRecord){
-    return (logRecord.data & B11000000) == B01000000;
-  }
-  static boolean isTemperature(LogRecord &logRecord){
-    return (logRecord.data & B11000000) == B11000000;
-  }
-
-  static void printLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, boolean isStored, byte temperature = 0xFF){
-
-    if (g_UseSerialMonitor) {
-      if (!isStored) {
-        Serial.print(F("NOT STORED "));
-      }
-      GB_Print::printTime(logRecord.timeStamp); 
-      Serial.print(F(" 0x")); 
-      GB_Print::print2digitsHEX(logRecord.data);
-      Serial.print(' '); 
-      Serial.print(description);
-      if (temperature != 0xFF) {
-        Serial.print(F(" ["));
-        Serial.print((unsigned byte)temperature);
-        Serial.print(F("] C"));
-      }
-      Serial.print(F(" HEX: "));
-      GB_Print::printRAM(&((LogRecord)logRecord), sizeof(LogRecord));
-      Serial.println();   
-      GB_SerialHelper::printEnd();   
+  static void printDirtyLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, boolean isStored, byte temperature = 0xFF){
+    if (!g_UseSerialMonitor) {
+      return;
     }
-
+    if (!isStored) {
+      Serial.print(F("NOT STORED "));
+    }
+    GB_PrintDirty::printTime(logRecord.timeStamp); 
+    Serial.print(F(" 0x")); 
+    GB_PrintDirty::print2digitsHEX(logRecord.data);
+    Serial.print(' '); 
+    Serial.print(description);
+    if (temperature != 0xFF) {
+      Serial.print(F(" ["));
+      Serial.print((unsigned byte)temperature);
+      Serial.print(F("] C"));
+    }
+    Serial.print(F(" HEX: "));
+    GB_PrintDirty::printRAM(&((LogRecord)logRecord), sizeof(LogRecord));
+    Serial.println();      
   }
+
 };
 
 #endif
+
+
 
 
 

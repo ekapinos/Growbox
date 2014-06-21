@@ -90,7 +90,7 @@ void setup() {
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
   if(g_UseSerialMonitor){ 
-    GB_Print::printFreeMemory();
+    GB_PrintDirty::printFreeMemory();
     Serial.println(F("Checking software configuration..."));
     GB_SerialHelper::printEnd();
   }
@@ -159,7 +159,7 @@ void setup() {
 
   // Configure termometer
   GB_Thermometer::start();
-  while(!GB_Thermometer::checkTemperature()) { // Load temperature on startup
+  while(!GB_Thermometer::updateStatistics()) { // Load temperature on startup
     delay(1000);
   }
 
@@ -208,7 +208,7 @@ void setup() {
 
 
   // Create main life circle timer
-  Alarm.timerRepeat(CHECK_TEMPERATURE_DELAY, checkTemperatureState);  // repeat every N seconds
+  Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
   Alarm.timerRepeat(CHECK_GROWBOX_DELAY, checkGrowboxState);  // repeat every N seconds
 
   // Create suolemental rare switching
@@ -229,7 +229,7 @@ void loop() {
 
   GB_Controller::checkFreeMemory();
 
-  GB_SerialHelper::checkSerial(true, false);
+  GB_SerialHelper::checkSerial(true, false); // not interraption cause Serial print problems
 
   Alarm.delay(MAIN_LOOP_DELAY * 1000); // wait one second between clock display
 }
@@ -344,8 +344,8 @@ void switchToNightMode(){
 //                              SENSORS                            //
 /////////////////////////////////////////////////////////////////////
 
-void checkTemperatureState(){ // should return void
-  GB_Thermometer::checkTemperature(); 
+void updateThermometerStatistics(){ // should return void
+  GB_Thermometer::updateStatistics(); 
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -427,12 +427,12 @@ static void executeCommand(String &input){
       GB_StorageHelper::resetLog();
       break;
     case 'e':
-      Serial.println(F("Logger enabled"));
-      GB_StorageHelper::setLoggerEnabled(true);
+      Serial.println(F("Logger store enabled"));
+      GB_StorageHelper::setStoreLogRecordsEnabled(true);
       break;
     case 'd':
-      Serial.println(F("Logger disabled"));
-      GB_StorageHelper::setLoggerEnabled(false);
+      Serial.println(F("Logger store disabled"));
+      GB_StorageHelper::setStoreLogRecordsEnabled(false);
       break;
     case 't': 
       printErrors = printEvents = false;
@@ -476,11 +476,11 @@ static void executeCommand(String &input){
     Serial.print(F("-Memory : ")); 
     {// TODO compilator madness
       BootRecord bootRecord = GB_StorageHelper::getBootRecord();
-      GB_Print::printRAM(&bootRecord, sizeof(BootRecord));
+      GB_PrintDirty::printRAM(&bootRecord, sizeof(BootRecord));
       Serial.println();
     }
     Serial.print(F("-Storage: ")); 
-    GB_Print::printStorage(0, sizeof(BootRecord));
+    printStorage(0, sizeof(BootRecord));
 
     break;  
 
@@ -499,7 +499,7 @@ static void executeCommand(String &input){
       GB_Storage::fillStorageIncremental(); 
       break; 
     }
-    GB_Print::printStorage();
+    printStorage();
     break; 
   case 'r':        
     Serial.println(F("Rebooting..."));
@@ -513,9 +513,37 @@ static void executeCommand(String &input){
 }
 
 
+void printStorage(word address, byte sizeOf){
+  byte buffer[sizeOf];
+  GB_Storage::read(address, buffer, sizeOf);
+  GB_PrintDirty::printRAM(buffer, sizeOf);
+  Serial.println();
+}
+
+void printStorage(){
+  Serial.print(F("  "));
+  for (word i = 0; i < 16 ; i++){
+    Serial.print(F("  "));
+    Serial.print(i, HEX); 
+    Serial.print(' ');
+  }
+  for (word i = 0; i < GB_Storage::CAPACITY ; i++){
+    byte value = GB_Storage::read(i);
+
+    if (i% 16 ==0){
+      Serial.println();
+      GB_PrintDirty::print2digitsHEX(i/16);
+    }
+    Serial.print(" ");
+    GB_PrintDirty::print2digitsHEX(value);
+    Serial.print(" ");
+  }
+  Serial.println();  
+}
+
 
 static void printStatus(){
-  GB_Print::printFreeMemory();
+  GB_PrintDirty::printFreeMemory();
   printBootStatus();
   printTimeStatus();
   printTemperatureStatus();
@@ -529,12 +557,12 @@ static void printStatus(){
 
 static void printBootStatus(){
   Serial.print(F("Controller: frist startup time: ")); 
-  GB_Print::printTime(GB_StorageHelper::getFirstStartupTimeStamp());
+  GB_PrintDirty::printTime(GB_StorageHelper::getFirstStartupTimeStamp());
   Serial.print(F(", last startup time: ")); 
-  GB_Print::printTime(GB_StorageHelper::getLastStartupTimeStamp());
+  GB_PrintDirty::printTime(GB_StorageHelper::getLastStartupTimeStamp());
   Serial.println();
   Serial.print(F("Logger: "));
-  if (GB_StorageHelper::isLoggerEnabled()){
+  if (GB_StorageHelper::isStoreLogRecordsEnabled()){
     Serial.print(F("enabled"));
   } 
   else {
@@ -559,7 +587,7 @@ static void printTimeStatus(){
     Serial.print(F("NIGHT"));
   }
   Serial.print(F(", current time: ")); 
-  GB_Print::printTime(now());
+  GB_PrintDirty::printTime(now());
   Serial.print(F(", up time: [")); 
   Serial.print(UP_HOUR); 
   Serial.print(F(":00], down time: ["));
@@ -571,7 +599,7 @@ static void printTimeStatus(){
 static void printTemperatureStatus(){
   float workingTemperature, statisticsTemperature;
   int statisticsCount;
-  GB_Thermometer::getStatistics(&workingTemperature, &statisticsTemperature, &statisticsCount);
+  GB_Thermometer::getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
 
   Serial.print(F("Temperature work:")); 
   Serial.print(workingTemperature);
@@ -603,7 +631,7 @@ static void printPinsStatus(){
       Serial.print(i-14);
     } 
     else { 
-      GB_Print::print2digits(i);
+      GB_PrintDirty::print2digits(i);
     }
     Serial.print(F("  ")); 
 
@@ -668,6 +696,7 @@ static void printPinsStatus(){
     Serial.println();
   }
 }
+
 
 
 

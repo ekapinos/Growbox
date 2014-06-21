@@ -31,7 +31,7 @@ public:
   }
 
   // TODO rename
-  static boolean checkTemperature(){
+  static boolean updateStatistics(){
 
     if(!dallasTemperature.requestTemperaturesByAddress(oneWireAddress)){
       GB_Logger::logError(ERROR_TERMOMETER_DISCONNECTED);
@@ -85,19 +85,17 @@ public:
   //                        GROWBOX COMMANDS                         //
   /////////////////////////////////////////////////////////////////////
 
-
-  static void getStatistics(float* _workingTemperature, float* _statisticsTemperature, int* _statisticsTemperatureCount){
-    (*_workingTemperature) = workingTemperature;
+  static void getStatistics(float &_workingTemperature, float &_statisticsTemperature, int &_statisticsTemperatureCount){
+    _workingTemperature = workingTemperature;
 
     if (statisticsTemperatureCount != 0){
-      (*_statisticsTemperature) = statisticsTemperatureSumm/statisticsTemperatureCount;
+      _statisticsTemperature = statisticsTemperatureSumm/statisticsTemperatureCount;
     } 
     else {
-      (*_statisticsTemperature) = workingTemperature;
+      _statisticsTemperature = workingTemperature;
     }
-    *_statisticsTemperatureCount = statisticsTemperatureCount;
+    _statisticsTemperatureCount = statisticsTemperatureCount;
   }
-
 
 
 };
