@@ -10,9 +10,6 @@ const byte BOOT_RECORD_SIZE = 32;
 
 const word MAGIC_NUMBER = 0xAA55;
 
-#define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
-
-
 struct BootRecord { // 32 bytes
   word first_magic;                 //  2
   time_t firstStartupTimeStamp;     //  4

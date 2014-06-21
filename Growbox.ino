@@ -117,7 +117,7 @@ void setup() {
     GB_SerialHelper::printEnd();
   }
 
-  initErrors();
+  initLogModel();
   if (!Error::isInitialized()){
     if(g_UseSerialMonitor){ 
       Serial.print(F("Fatal error: not all Errors initialized"));
@@ -125,7 +125,6 @@ void setup() {
     }
     while(true) delay(5000);  
   }
-  initEvents();
   if (!Event::isInitialized()){
     if(g_UseSerialMonitor){ 
       Serial.print(F("Fatal error: not all Events initialized"));

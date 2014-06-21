@@ -119,8 +119,7 @@ EVENT_FAN_ON_MIN,
 EVENT_FAN_ON_MAX,
 EVENT_SERIAL_UNKNOWN_COMMAND;
 
-void initErrors();
-void initEvents();
+void initLogModel(); // TODO move ?
 
 #endif
 

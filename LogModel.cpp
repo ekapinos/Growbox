@@ -11,16 +11,6 @@ ERROR_TERMOMETER_ZERO_VALUE,
 ERROR_TERMOMETER_CRITICAL_VALUE,
 ERROR_MEMORY_LOW;
 
-void initErrors(){
-  // Use F macro to reduce requirements to memory. We can't use F macro in constructors.
-  ERROR_TIMER_NOT_SET.init(B00, 2, F("Error: Timer not set"));
-  ERROR_TIMER_NEEDS_SYNC.init(B001, 3, F("Error: Timer needs sync"));
-  ERROR_TERMOMETER_DISCONNECTED.init(B01, 2, F("Error: Termometer disconnected"));
-  ERROR_TERMOMETER_ZERO_VALUE.init(B010, 3, F("Error: Termometer returned ZERO value"));
-  ERROR_TERMOMETER_CRITICAL_VALUE.init(B000, 3, F("Error: Termometer returned CRITICAL value"));
-  ERROR_MEMORY_LOW.init(B111, 3, F("Error: Memory remained less 200 bytes"));
-}
-
 /*EVENT_DATA_CHECK_PERIOD_SEC,
  EVENT_DATA_TEMPERATURE_DAY,
  EVENT_DATA_TEMPERATURE_NIGHT,
@@ -40,8 +30,16 @@ EVENT_FAN_ON_MIN,
 EVENT_FAN_ON_MAX,
 EVENT_SERIAL_UNKNOWN_COMMAND;
 
-void initEvents(){
+void initLogModel(){
+  
   // Use F macro to reduce requirements to memory. We can't use F macro in constructors.
+  ERROR_TIMER_NOT_SET.init(B00, 2, F("Error: Timer not set"));
+  ERROR_TIMER_NEEDS_SYNC.init(B001, 3, F("Error: Timer needs sync"));
+  ERROR_TERMOMETER_DISCONNECTED.init(B01, 2, F("Error: Termometer disconnected"));
+  ERROR_TERMOMETER_ZERO_VALUE.init(B010, 3, F("Error: Termometer returned ZERO value"));
+  ERROR_TERMOMETER_CRITICAL_VALUE.init(B000, 3, F("Error: Termometer returned CRITICAL value"));
+  ERROR_MEMORY_LOW.init(B111, 3, F("Error: Memory remained less 200 bytes"));
+
   EVENT_FIRST_START_UP.init(1, F("FIRST STARTUP")), 
   EVENT_RESTART.init(2, F("RESTARTED")), 
   EVENT_MODE_DAY.init(3, F("Growbox switched to DAY mode")), 

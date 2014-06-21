@@ -6,6 +6,8 @@
 #include "LogRecord.h"
 #include "BootRecord.h"
 
+#define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
+
 class GB_StorageHelper{
 
 private:
