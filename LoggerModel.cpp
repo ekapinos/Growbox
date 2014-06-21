@@ -1,4 +1,4 @@
-#include "LogModel.h"
+#include "LoggerModel.h"
 
 Error* Error::lastAddedItem = 0;
 Event* Event::lastAddedEvent = 0;
@@ -30,7 +30,7 @@ EVENT_FAN_ON_MIN,
 EVENT_FAN_ON_MAX,
 EVENT_SERIAL_UNKNOWN_COMMAND;
 
-void initLogModel(){
+void initLoggerModel(){
   
   // Use F macro to reduce requirements to memory. We can't use F macro in constructors.
   ERROR_TIMER_NOT_SET.init(B00, 2, F("Error: Timer not set"));

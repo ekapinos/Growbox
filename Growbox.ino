@@ -1,4 +1,5 @@
-#include <MemoryFree.h>;
+
+#include <MemoryFree.h>
 
 #include <Time.h>
 #include <TimeAlarms.h>
@@ -14,10 +15,6 @@
 // Growbox
 #include "Global.h"
 #include "Controller.h"
-#include "Storage.h"
-#include "LogModel.h"
-#include "Print.h"
-#include "Logger.h";
 #include "SerialHelper.h"
 
 /////////////////////////////////////////////////////////////////////
@@ -66,16 +63,6 @@ boolean isDayInGrowbox(){
   return isDayInGrowbox;
 }
 
-// discover-memory-overflow-errors-in-the-arduino-c-code
-void checkFreeMemory(){
-  if(freeMemory() < 200){ 
-    GB_Logger::logError(ERROR_MEMORY_LOW);   
-  } 
-  else {
-    GB_Logger::stopLogError(ERROR_MEMORY_LOW); 
-  }
-}
-
 
 /////////////////////////////////////////////////////////////////////
 //                                MAIN                             //
@@ -116,7 +103,7 @@ void setup() {
     GB_SerialHelper::printEnd();
   }
 
-  initLogModel();
+  initLoggerModel();
   if (!Error::isInitialized()){
     if(g_UseSerialMonitor){ 
       Serial.print(F("Fatal error: not all Errors initialized"));
@@ -156,7 +143,7 @@ void setup() {
     while(true) delay(5000);
   }
 
-  checkFreeMemory();
+  GB_Controller::checkFreeMemory();
 
   if(g_UseSerialMonitor){ 
     Serial.println(F("Checking clock..."));
@@ -171,7 +158,7 @@ void setup() {
   }
   GB_Logger::stopLogError(ERROR_TIMER_NOT_SET); 
 
-  checkFreeMemory();
+  GB_Controller::checkFreeMemory();
 
   if(g_UseSerialMonitor){ 
     Serial.println(F("Checking termometer..."));
@@ -191,7 +178,7 @@ void setup() {
     delay(1000);
   }
 
-  checkFreeMemory();
+  GB_Controller::checkFreeMemory();
 
   if(g_UseSerialMonitor){ 
     Serial.println(F("Checking storage..."));
@@ -246,7 +233,7 @@ void loop() {
 
   digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
 
-  checkFreeMemory();
+  GB_Controller::checkFreeMemory();
 
   GB_SerialHelper::checkSerial(true, false);
 
@@ -543,16 +530,16 @@ static void executeCommand(String &input){
       Serial.println('1');
       delay(1000);
       Serial.println(F("Rebooting..."));
-      GB_Controller::reboot();
+      GB_Controller::rebootController();
       break;
     } 
 
     Serial.println(F("Currnet boot record"));
     Serial.print(F("-Memory : ")); 
     { // TODO compilator madness
-    BootRecord bootRecord = GB_StorageHelper::getBootRecord();
-    GB_Print::printRAM(&bootRecord, sizeof(BootRecord));
-  }
+      BootRecord bootRecord = GB_StorageHelper::getBootRecord();
+      GB_Print::printRAM(&bootRecord, sizeof(BootRecord));
+    }
     Serial.print(F("-Storage: ")); 
     GB_Print::printStorage(0, sizeof(BootRecord));
 
@@ -577,7 +564,7 @@ static void executeCommand(String &input){
     break; 
   case 'r':        
     Serial.println(F("Rebooting..."));
-    GB_Controller::reboot();
+    GB_Controller::rebootController();
     break; 
   default: 
     GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
@@ -746,6 +733,7 @@ static void printPinsStatus(){
     Serial.println();
   }
 }
+
 
 
 

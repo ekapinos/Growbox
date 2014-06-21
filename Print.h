@@ -1,11 +1,8 @@
 #ifndef GB_Print_h
 #define GB_Print_h
 
-#include <Time.h>
-#include <MemoryFree.h>;
-
-#include "BootRecord.h";
-#include "SerialHelper.h";
+//#include <MemoryFree.h>
+//#include <Time.h>
 
 class GB_Print {
 

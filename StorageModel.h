@@ -1,14 +1,11 @@
-#ifndef GB_BootRecord_h
-#define GB_BootRecord_h
+#ifndef GB_StorageModel_h
+#define GB_StorageModel_h
 
 #include <Time.h>
 
-#include "Storage.h"
-#include "LogRecord.h"
-
-const byte BOOT_RECORD_SIZE = 32;
-
 const word MAGIC_NUMBER = 0xAA55;
+const byte BOOT_RECORD_SIZE = 32;
+const byte LOG_RECORD_SIZE = 5;
 
 struct BootRecord { // 32 bytes
   word first_magic;                 //  2
@@ -24,8 +21,19 @@ boolean isLoggerEnabled :
   boolPreferencies;                 //  1 
   byte reserved[17];                //  
 
-  word last_magic;                  //  2
-  
+  word last_magic;                  //  2  
+};
+
+struct LogRecord {
+  time_t timeStamp;
+  byte data;  
+
+  LogRecord (byte data): 
+  timeStamp(now()), data(data) {
+  }
+
+  LogRecord (){
+  }
 };
 
 #endif

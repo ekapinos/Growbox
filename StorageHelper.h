@@ -3,8 +3,7 @@
 
 #include "Global.h"
 #include "Storage.h"
-#include "LogRecord.h"
-#include "BootRecord.h"
+#include "StorageModel.h"
 
 #define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
 

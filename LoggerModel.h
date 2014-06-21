@@ -1,5 +1,5 @@
-#ifndef GB_LogModel_h
-#define GB_LogModel_h
+#ifndef GB_LoggerModel_h
+#define GB_LoggerModel_h
 
 #include "Global.h"
 
@@ -119,7 +119,7 @@ EVENT_FAN_ON_MIN,
 EVENT_FAN_ON_MAX,
 EVENT_SERIAL_UNKNOWN_COMMAND;
 
-void initLogModel(); // TODO move ?
+void initLoggerModel(); // TODO move ?
 
 #endif
 

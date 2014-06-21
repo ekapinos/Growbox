@@ -1,9 +1,10 @@
 #ifndef GB_Loggger_h
 #define GB_Loggger_h
 
-#include "LogModel.h"
+#include "LoggerModel.h"
 #include "StorageHelper.h"
 #include "SerialHelper.h"
+#include "Print.h"
 
 class GB_Logger {
 
