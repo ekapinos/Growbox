@@ -1,17 +1,17 @@
-#ifndef GB_Termometer_h
-#define GB_Termometer_h
+#ifndef GB_Thermometer_h
+#define GB_Thermometer_h
 
 // Termometer
 #include <DallasTemperature.h>
 
 #include "Logger.h"
 
-class GB_Termometer{
+class GB_Thermometer{
 
 private:
   // Pass our oneWire reference to Dallas Temperature. 
   static DallasTemperature g_dallasTemperature;
-  static DeviceAddress g_thermometerOneWireAddress;
+  static DeviceAddress g_oneWireAddress;
 
   static float g_temperature;
   static double g_temperatureSumm;
@@ -27,18 +27,18 @@ public:
     }  
     GB_Logger::stopLogError(ERROR_TERMOMETER_DISCONNECTED);
 
-    g_dallasTemperature.getAddress(g_thermometerOneWireAddress, 0); // search for devices on the bus and assign based on an index.
+    g_dallasTemperature.getAddress(g_oneWireAddress, 0); // search for devices on the bus and assign based on an index.
   }
 
   // TODO rename
   static boolean checkTemperature(){
 
-    if(!g_dallasTemperature.requestTemperaturesByAddress(g_thermometerOneWireAddress)){
+    if(!g_dallasTemperature.requestTemperaturesByAddress(g_oneWireAddress)){
       GB_Logger::logError(ERROR_TERMOMETER_DISCONNECTED);
       return false;
     };
 
-    float freshTemperature = g_dallasTemperature.getTempC(g_thermometerOneWireAddress);
+    float freshTemperature = g_dallasTemperature.getTempC(g_oneWireAddress);
 
     if ((int)freshTemperature == 0){
       GB_Logger::logError(ERROR_TERMOMETER_ZERO_VALUE);  

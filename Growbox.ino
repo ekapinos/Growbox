@@ -18,7 +18,7 @@
 // Growbox
 #include "Global.h"
 #include "Controller.h"
-#include "Termometer.h"
+#include "Thermometer.h"
 #include "SerialHelper.h"
 
 /////////////////////////////////////////////////////////////////////
@@ -158,8 +158,8 @@ void setup() {
   }
 
   // Configure termometer
-  GB_Termometer::start();
-  while(!GB_Termometer::checkTemperature()) { // Load temperature on startup
+  GB_Thermometer::start();
+  while(!GB_Thermometer::checkTemperature()) { // Load temperature on startup
     delay(1000);
   }
 
@@ -184,7 +184,7 @@ void setup() {
   }
 
   // Log current temeperature
-  GB_Termometer::getTemperature(); // forceLog?
+  GB_Thermometer::getTemperature(); // forceLog?
 
   // Init/Restore growbox state
   if (isDayInGrowbox()){
@@ -267,7 +267,7 @@ void serialEvent(){
 
 void checkGrowboxState() {
 
-  float temperature = GB_Termometer::getTemperature();
+  float temperature = GB_Thermometer::getTemperature();
 
   if (temperature >= TEMPERATURE_CRITICAL){
     turnOffLight();
@@ -337,7 +337,7 @@ void switchToNightMode(){
 /////////////////////////////////////////////////////////////////////
 
 void checkTemperatureState(){ // should return void
-  GB_Termometer::checkTemperature(); 
+  GB_Thermometer::checkTemperature(); 
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -562,7 +562,7 @@ static void printTimeStatus(){
 static void printTemperatureStatus(){
   float workingTemperature, statisticsTemperature;
   int statisticsCount;
-  GB_Termometer::getStatistics(&workingTemperature, &statisticsTemperature, &statisticsCount);
+  GB_Thermometer::getStatistics(&workingTemperature, &statisticsTemperature, &statisticsCount);
 
   Serial.print(F("Temperature work:")); 
   Serial.print(workingTemperature);
