@@ -15,8 +15,6 @@
 #include "Global.h"
 #include "Controller.h"
 #include "Storage.h"
-#include "LogRecord.h"
-#include "BootRecord.h"
 #include "LogModel.h"
 #include "Print.h"
 #include "Logger.h"
@@ -108,6 +106,8 @@ void setup() {
   //attachInterrupt(0, interrapton0handler, CHANGE); // PIN 2
 
   // We need to check Wi-Fi before use print to SerialMonitor
+  GB_SerialHelper::autoStartWifiOnReset = false;
+
   GB_SerialHelper::checkSerial(true, true);
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
@@ -201,7 +201,7 @@ void setup() {
   }
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
-  boolean isRestart = BOOT_RECORD.load();
+  boolean isRestart = GB_StorageHelper::load();
 
   // Now we can use logger
   if (isRestart){
@@ -222,7 +222,8 @@ void setup() {
     switchToNightMode();
   }
 
-  if (g_UseSerialWifi){
+  GB_SerialHelper::autoStartWifiOnReset = true;
+  if (g_UseSerialWifi){    
     GB_SerialHelper::startWifi();
   }
 
@@ -256,7 +257,7 @@ void loop() {
 
 
 void serialEvent(){
-  if(!BOOT_RECORD.isCorrect()){
+  if(!GB_StorageHelper::isCorrect()){
     return; //Do not handle events during startup
   }
 
@@ -500,15 +501,15 @@ static void executeCommand(String &input){
     switch(secondChar){
     case 'c': 
       Serial.println(F("Reset log pointer"));
-      BOOT_RECORD.resetLogPointer();
+      GB_StorageHelper::resetLog();
       break;
     case 'e':
       Serial.println(F("Logger enabled"));
-      BOOT_RECORD.setLoggerEnable(true);
+      GB_StorageHelper::setLoggerEnabled(true);
       break;
     case 'd':
       Serial.println(F("Logger disabled"));
-      BOOT_RECORD.setLoggerEnable(false);
+      GB_StorageHelper::setLoggerEnabled(false);
       break;
     case 't': 
       errors = events = false;
@@ -530,8 +531,7 @@ static void executeCommand(String &input){
     case 'c': 
       Serial.println(F("Cleaning boot record"));
 
-      BOOT_RECORD.first_magic = 0;
-      GB_Storage::write(0, &BOOT_RECORD, sizeof(BootRecord));
+      GB_StorageHelper::corrupteBootRecod();
       Serial.println(F("Magic number corrupted, reseting"));
 
       Serial.println('5');
@@ -551,7 +551,10 @@ static void executeCommand(String &input){
 
     Serial.println(F("Currnet boot record"));
     Serial.print(F("-Memory : ")); 
-    GB_Print::printRAM(&BOOT_RECORD, sizeof(BootRecord));
+    { // TODO compilator madness
+    BootRecord bootRecord = GB_StorageHelper::getBootRecord();
+    GB_Print::printRAM(&bootRecord, sizeof(BootRecord));
+  }
     Serial.print(F("-Storage: ")); 
     GB_Print::printStorage(0, sizeof(BootRecord));
 
@@ -587,170 +590,167 @@ static void executeCommand(String &input){
 
 
 
-  static void printStatus(){
-    GB_Print::printFreeMemory();
-    printBootStatus();
-    printTimeStatus();
-    printTemperatureStatus();
-    printPinsStatus();
-    Serial.println();
-  }
-  
-  
-  
+static void printStatus(){
+  GB_Print::printFreeMemory();
+  printBootStatus();
+  printTimeStatus();
+  printTemperatureStatus();
+  printPinsStatus();
+  Serial.println();
+}
+
+
+
 // private:
- 
-  static void printBootStatus(){
-    Serial.print(F("Controller: frist startup time: ")); 
-    GB_Print::printTime(BOOT_RECORD.firstStartupTimeStamp);
-    Serial.print(F(", last startup time: ")); 
-    GB_Print::printTime(BOOT_RECORD.lastStartupTimeStamp);
-    Serial.println();
-    Serial.print(F("Logger: "));
-    if (BOOT_RECORD.boolPreferencies.isLoggerEnabled){
-      Serial.print(F("enabled"));
+
+static void printBootStatus(){
+  Serial.print(F("Controller: frist startup time: ")); 
+  GB_Print::printTime(GB_StorageHelper::getFirstStartupTimeStamp());
+  Serial.print(F(", last startup time: ")); 
+  GB_Print::printTime(GB_StorageHelper::getLastStartupTimeStamp());
+  Serial.println();
+  Serial.print(F("Logger: "));
+  if (GB_StorageHelper::isLoggerEnabled()){
+    Serial.print(F("enabled"));
+  } 
+  else {
+    Serial.print(F("disabled"));
+  }
+  Serial.print(F(", records: "));
+  Serial.print(GB_StorageHelper::getLogRecordsCount());
+  Serial.print('/');
+  Serial.print(GB_StorageHelper::getLogRecordsCapacity());
+  if (GB_StorageHelper::isLogRecordsOverflow()){
+    Serial.print(F(", overflow"));
+  } 
+  Serial.println();
+}
+
+static void printTimeStatus(){
+  Serial.print(F("Clock: mode:")); 
+  if (g_isDayInGrowbox) {
+    Serial.print(F("DAY"));
+  } 
+  else{
+    Serial.print(F("NIGHT"));
+  }
+  Serial.print(F(", current time: ")); 
+  GB_Print::printTime(now());
+  Serial.print(F(", up time: [")); 
+  Serial.print(UP_HOUR); 
+  Serial.print(F(":00], down time: ["));
+  Serial.print(DOWN_HOUR);
+  Serial.print(F(":00], "));
+  Serial.println();
+}
+
+static void printTemperatureStatus(){
+  Serial.print(F("Temperature: current:")); 
+  Serial.print(g_temperature);
+
+  float statisticsTemperature;
+  if (g_temperatureSummCount != 0){
+    statisticsTemperature = g_temperatureSumm/g_temperatureSummCount;
+  } 
+  else {
+    statisticsTemperature = g_temperature;
+  }
+  Serial.print(F(", count:")); 
+  Serial.print(statisticsTemperature);
+  Serial.print(F("(el:")); 
+  Serial.print(g_temperatureSummCount);
+
+  Serial.print(F("), day:"));
+  Serial.print(TEMPERATURE_DAY);
+  Serial.print(F("+/-"));
+  Serial.print(TEMPERATURE_DELTA);
+  Serial.print(F(", night:"));
+  Serial.print(TEMPERATURE_NIGHT);
+  Serial.print(F("+/-"));
+  Serial.print(2*TEMPERATURE_DELTA);
+  Serial.print(F(", critical:"));
+  Serial.print(TEMPERATURE_CRITICAL);
+  Serial.println();
+}
+
+static void printPinsStatus(){
+  Serial.println();
+  Serial.println(F("Pin OUTPUT INPUT")); 
+  for(int i=0; i<=19;i++){
+    Serial.print(' ');
+    if (i>=14){
+      Serial.print('A');
+      Serial.print(i-14);
+    } 
+    else { 
+      GB_Print::print2digits(i);
+    }
+    Serial.print(F("  ")); 
+
+    boolean io_status, dataStatus, inputStatus;
+    if (i<=7){ 
+      io_status = bitRead(DDRD, i);
+      dataStatus = bitRead(PORTD, i);
+      inputStatus = bitRead(PIND, i);
+    }    
+    else if (i <= 13){
+      io_status = bitRead(DDRB, i-8);
+      dataStatus = bitRead(PORTB, i-8);
+      inputStatus = bitRead(PINB, i-8);
+    }
+    else {
+      io_status = bitRead(DDRC, i-14);
+      dataStatus = bitRead(PORTC, i-14);
+      inputStatus = bitRead(PINC, i-14);
+    }
+    if (io_status == OUTPUT){
+      Serial.print(F("  "));
+      Serial.print(dataStatus);
+      Serial.print(F("     -   "));
     } 
     else {
-      Serial.print(F("disabled"));
+      Serial.print(F("  -     "));
+      Serial.print(inputStatus);
+      Serial.print(F("   "));
     }
-    Serial.print(F(", records: "));
-    word slotsCount = (GB_Storage::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord) ;
-    if (BOOT_RECORD.boolPreferencies.isLogOverflow){
-      Serial.print(slotsCount);
-      Serial.print('/');
-      Serial.print(slotsCount);
-      Serial.print(F(", overflow"));
-    } 
-    else {
-      Serial.print((BOOT_RECORD.nextLogRecordAddress - sizeof(BootRecord))/sizeof(LogRecord));
-      Serial.print('/');
-      Serial.print((GB_Storage::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord));
+
+    switch(i){
+    case 0: 
+    case 1: 
+      Serial.print(F("Reserved by Serial/USB. Can be used, if Serial/USB won't be connected"));
+      break;
+    case LIGHT_PIN: 
+      Serial.print(F("Relay: light on(0)/off(1)"));
+      break;
+    case FAN_PIN: 
+      Serial.print(F("Relay: fun on(0)/off(1)"));
+      break;
+    case FAN_SPEED_PIN: 
+      Serial.print(F("Relay: fun max(0)/min(1) speed switch"));
+      break;
+    case ONE_WIRE_PIN: 
+      Serial.print(F("1-Wire: termometer"));
+      break;
+    case USE_SERIAL_MONOTOR_PIN: 
+      Serial.print(F("Use serial monitor on(1)/off(0)"));
+      break;
+    case ERROR_PIN: 
+      Serial.print(F("Error status"));
+      break;
+    case BREEZE_PIN: 
+      Serial.print(F("Breeze"));
+      break;
+    case 18: 
+    case 19: 
+      Serial.print(F("Reserved by I2C. Can be used, if SCL, SDA pins will be used"));
+      break;
     }
     Serial.println();
   }
+}
 
-  static void printTimeStatus(){
-    Serial.print(F("Clock: mode:")); 
-    if (g_isDayInGrowbox) {
-      Serial.print(F("DAY"));
-    } 
-    else{
-      Serial.print(F("NIGHT"));
-    }
-    Serial.print(F(", current time: ")); 
-    GB_Print::printTime(now());
-    Serial.print(F(", up time: [")); 
-    Serial.print(UP_HOUR); 
-    Serial.print(F(":00], down time: ["));
-    Serial.print(DOWN_HOUR);
-    Serial.print(F(":00], "));
-    Serial.println();
-  }
 
-  static void printTemperatureStatus(){
-    Serial.print(F("Temperature: current:")); 
-    Serial.print(g_temperature);
 
-    float statisticsTemperature;
-    if (g_temperatureSummCount != 0){
-      statisticsTemperature = g_temperatureSumm/g_temperatureSummCount;
-    } 
-    else {
-      statisticsTemperature = g_temperature;
-    }
-    Serial.print(F(", count:")); 
-    Serial.print(statisticsTemperature);
-    Serial.print(F("(el:")); 
-    Serial.print(g_temperatureSummCount);
-
-    Serial.print(F("), day:"));
-    Serial.print(TEMPERATURE_DAY);
-    Serial.print(F("+/-"));
-    Serial.print(TEMPERATURE_DELTA);
-    Serial.print(F(", night:"));
-    Serial.print(TEMPERATURE_NIGHT);
-    Serial.print(F("+/-"));
-    Serial.print(2*TEMPERATURE_DELTA);
-    Serial.print(F(", critical:"));
-    Serial.print(TEMPERATURE_CRITICAL);
-    Serial.println();
-  }
-
-  static void printPinsStatus(){
-    Serial.println();
-    Serial.println(F("Pin OUTPUT INPUT")); 
-    for(int i=0; i<=19;i++){
-      Serial.print(' ');
-      if (i>=14){
-        Serial.print('A');
-        Serial.print(i-14);
-      } 
-      else { 
-        GB_Print::print2digits(i);
-      }
-      Serial.print(F("  ")); 
-
-      boolean io_status, dataStatus, inputStatus;
-      if (i<=7){ 
-        io_status = bitRead(DDRD, i);
-        dataStatus = bitRead(PORTD, i);
-        inputStatus = bitRead(PIND, i);
-      }    
-      else if (i <= 13){
-        io_status = bitRead(DDRB, i-8);
-        dataStatus = bitRead(PORTB, i-8);
-        inputStatus = bitRead(PINB, i-8);
-      }
-      else {
-        io_status = bitRead(DDRC, i-14);
-        dataStatus = bitRead(PORTC, i-14);
-        inputStatus = bitRead(PINC, i-14);
-      }
-      if (io_status == OUTPUT){
-        Serial.print(F("  "));
-        Serial.print(dataStatus);
-        Serial.print(F("     -   "));
-      } 
-      else {
-        Serial.print(F("  -     "));
-        Serial.print(inputStatus);
-        Serial.print(F("   "));
-      }
-
-      switch(i){
-      case 0: 
-      case 1: 
-        Serial.print(F("Reserved by Serial/USB. Can be used, if Serial/USB won't be connected"));
-        break;
-      case LIGHT_PIN: 
-        Serial.print(F("Relay: light on(0)/off(1)"));
-        break;
-      case FAN_PIN: 
-        Serial.print(F("Relay: fun on(0)/off(1)"));
-        break;
-      case FAN_SPEED_PIN: 
-        Serial.print(F("Relay: fun max(0)/min(1) speed switch"));
-        break;
-      case ONE_WIRE_PIN: 
-        Serial.print(F("1-Wire: termometer"));
-        break;
-      case USE_SERIAL_MONOTOR_PIN: 
-        Serial.print(F("Use serial monitor on(1)/off(0)"));
-        break;
-      case ERROR_PIN: 
-        Serial.print(F("Error status"));
-        break;
-      case BREEZE_PIN: 
-        Serial.print(F("Breeze"));
-        break;
-      case 18: 
-      case 19: 
-        Serial.print(F("Reserved by I2C. Can be used, if SCL, SDA pins will be used"));
-        break;
-      }
-      Serial.println();
-    }
-  }
 
 
 

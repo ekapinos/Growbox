@@ -1,6 +1,8 @@
 #ifndef GB_SerialHelper_h
 #define GB_SerialHelper_h
 
+#include "Global.h"
+
 // Wi-Fi
 const String WIFI_MESSAGE_WELLCOME = "Welcome to RAK410\r\n";
 const String WIFI_MESSAGE_ERROR = "ERROR\xFF\r\n";
@@ -9,8 +11,8 @@ const int WIFI_RESPONSE_DELAY_MAX = 5000; // max delay after "at+" commands 5000
 const int WIFI_RESPONSE_DELAY_INTERVAL = 100; // during 5s interval, we check for answer every 100 ms
 
 
-String WIFI_SID = "Hell";
-String WIFI_PASS = "flat65router";
+const String WIFI_SID = "Hell";
+const String WIFI_PASS = "flat65router";
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //
@@ -22,6 +24,8 @@ extern /*volatile*/ boolean g_UseSerialWifi;
 class GB_SerialHelper{
   
 public:
+
+  static boolean autoStartWifiOnReset;
 
   static void printEnd(){
     if (g_UseSerialWifi) {
@@ -66,7 +70,7 @@ public:
 
         g_UseSerialWifi = WIFI_MESSAGE_WELLCOME.equals(input);
         if (g_UseSerialWifi) {
-          if(BOOT_RECORD.isCorrect()){
+          if(autoStartWifiOnReset){
             startWifi();
           }
           break;

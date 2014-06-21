@@ -2,21 +2,24 @@
 #define GB_Loggger_h
 
 #include "LogModel.h"
-#include "LogRecord.h"
-#include "BootRecord.h"
-#include "Storage.h"
-#include "Print.h"
+#include "StorageHelper.h"
+#include "SerialHelper.h"
 
 class GB_Logger {
-  
+
 public:
+
+  /////////////////////////////////////////////////////////////////////
+  //                             WRITE                               //
+  /////////////////////////////////////////////////////////////////////
 
   // Normal event uses uses format [00DDDDDD]
   //   00 - prefix for normal events 
   //   DDDDDD - event identificator
   static void logEvent(Event &event){
     LogRecord logRecord(event.index);
-    logRawData(logRecord, event.description, true);
+    boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
+    processLogRecord(logRecord, event.description, isStored);
   }
 
   // Error events uses format [01SSDDDD] 
@@ -25,8 +28,10 @@ public:
   //   DDDD - sequence data
   static void logError(Error &error){
     LogRecord logRecord(B01000000|(B00000011 | error.sequenceSize-1)<<4 | (B00001111 & error.sequence));
-
-    logRawData(logRecord, error.description, !error.isStored);
+    if(!error.isStored){
+      error.isStored = GB_StorageHelper::storeLogRecord(logRecord);
+    }
+    processLogRecord(logRecord, error.description, error.isStored);
     error.isStored = true;   
     error.notify();
   }
@@ -43,7 +48,8 @@ public:
   //   TTTTTT - temperature [0..2^6] = [0..64]
   static void logTemperature(byte temperature){
     LogRecord logRecord(B11000000|temperature);
-    logRawData(logRecord, F("Temperature"), true, temperature);
+    boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
+    processLogRecord(logRecord, F("Temperature"), isStored, temperature);
   }
 
   static void printLogRecord(LogRecord &logRecord) {
@@ -53,15 +59,15 @@ public:
     if (isEvent(logRecord)){
       Event* foundItemPtr = Event::findByIndex(data);
       if (foundItemPtr == 0){
-        logRawData(logRecord, F("Unknown event"), false);
+        processLogRecord(logRecord, F("Unknown event"), false);
       } 
       else {
-        logRawData(logRecord, foundItemPtr->description, false);
+        processLogRecord(logRecord, foundItemPtr->description, false);
       }
 
     } 
     else if (isTemperature(logRecord)){
-      logRawData(logRecord, F("Temperature"), false, data); 
+      processLogRecord(logRecord, F("Temperature"), false, data); 
 
     } 
     else if (isError(logRecord)){    
@@ -69,36 +75,18 @@ public:
       byte sequenceSize = (data & B00110000)>>4; 
       Error* foundItemPtr = Error::findByIndex(sequence, sequenceSize);
       if (foundItemPtr == 0){
-        logRawData(logRecord, F("Unknown error"), false);
+        processLogRecord(logRecord, F("Unknown error"), false);
       } 
       else {
-        logRawData(logRecord, foundItemPtr->description, false);
+        processLogRecord(logRecord, foundItemPtr->description, false);
       }
     } 
     else {
-      logRawData(logRecord, F("Unknown"), false);
+      processLogRecord(logRecord, F("Unknown"), false);
     }
   }
 
 
-  static void printFullLog(boolean events, boolean errors, boolean temperature){
-    word index = 1;
-    if (BOOT_RECORD.boolPreferencies.isLogOverflow) {
-      for (word i = BOOT_RECORD.nextLogRecordAddress; i < (GB_Storage::CAPACITY-sizeof(LogRecord)) ; i+=sizeof(LogRecord)){
-       // printLogRecord(i, index++, events,  errors,  temperature);
-      }
-    }
-    for (word i = sizeof(BootRecord); i < BOOT_RECORD.nextLogRecordAddress ; i+=sizeof(LogRecord)){
-      //printLogRecord(i, index++,  events,  errors,  temperature);
-    }
-    if (index == 1){
-      Serial.println(F("- no records in log"));
-    }
-  }
-
-
-
-private:
 
   static boolean isEvent(LogRecord &logRecord){
     return (logRecord.data & B11000000) == B00000000;
@@ -110,17 +98,61 @@ private:
     return (logRecord.data & B11000000) == B11000000;
   }
 
-  static void logRawData(const LogRecord &logRecord, const __FlashStringHelper* description, boolean storeLog, byte temperature = 0){
+  /////////////////////////////////////////////////////////////////////
+  //                        GROWBOX COMMANDS                         //
+  /////////////////////////////////////////////////////////////////////
 
-    storeLog = storeLog && BOOT_RECORD.isCorrect() && BOOT_RECORD.boolPreferencies.isLoggerEnabled && GB_Storage::isPresent();
 
-    if (storeLog) {
-      GB_Storage::write(BOOT_RECORD.nextLogRecordAddress, &logRecord, sizeof(LogRecord));
-      BOOT_RECORD.increaseLogPointer();
+  static void printFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
+    LogRecord logRecord;
+    boolean isEmpty = true;
+    ;
+    for (int i = 0; i<GB_StorageHelper::getLogRecordsCount(); i++){
+      if (GB_StorageHelper::getLogRecord(i, logRecord)){
+
+
+        if (isEvent(logRecord) && !printEvents){
+          continue;
+        }
+        if (isError(logRecord) && !printErrors){
+          continue;
+        }
+        if (isTemperature(logRecord) && !printTemperature){
+          continue;
+        }
+
+        Serial.print('#');
+        Serial.print(i);
+        Serial.print(' ');
+        printLogRecord(logRecord);
+
+
+        isEmpty = false;
+      } 
+      else {
+        // TODO check it
+      }  
     }
 
+    if (isEmpty){
+      Serial.println(F("- no records in log"));
+    }
+    // TODO check Serial
+  }
+
+
+  // TODO improuve
+
+  void setLoggerEnable(boolean flag){
+    GB_StorageHelper::setLoggerEnabled(flag);
+  }
+
+private:
+
+  static void processLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, boolean isStored, byte temperature = 0){
+
     if (g_UseSerialMonitor) {
-      if (storeLog == false) {
+      if (!isStored) {
         Serial.print(F("NOT STORED "));
       }
       GB_Print::printTime(logRecord.timeStamp); 
@@ -137,28 +169,10 @@ private:
       GB_SerialHelper::printEnd();
     }
   }
-  
 
- static void printLogRecord(word address, word index, boolean events, boolean errors, boolean temperature){
-    LogRecord logRecord;
-    GB_Storage::read(address, &logRecord, sizeof(LogRecord));
-
-    if (isEvent(logRecord) && !events){
-      return;
-    }
-    if (isError(logRecord) && !errors){
-      return;
-    }
-    if (isTemperature(logRecord) && !temperature){
-      return;
-    }
-
-    Serial.print('#');
-    Serial.print(index);
-    Serial.print(' ');
-    printLogRecord(logRecord);
-  }
 
 };
 
 #endif
+
+
