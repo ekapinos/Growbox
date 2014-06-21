@@ -213,21 +213,43 @@ void setup() {
     GB_SerialHelper::printDirtyEnd();
   }
 
+ GB_StorageHelper::setStoreLogRecordsEnabled(true);
+  GB_StorageHelper::resetStoredLog();
+  for (int i = 0; i<=850; i++){  
+    if (i%50 ==0){
+      Serial.println(i);
+    }  
+    GB_Logger::logTemperature(i % 50);
 
-//  for (int i = 0; i<900; i++){  
-//    GB_Logger::logTemperature(i % 50);  
-//  }
-//  GB_Logger::printFullLog(true,  true,  true);
-  
+  }
+  GB_Logger::printFullLog(true,  true,  true);
+  printStorage();
+ GB_StorageHelper::setStoreLogRecordsEnabled(false);
+  //    LogRecord logRecord;
+  //    GB_StorageHelper::getLogRecordByIndex(0, logRecord);
+  //    
+  //    GB_PrintDirty::printRAM(&logRecord, sizeof(logRecord));
+
+
+
+
+  //   for(int i=0; i<900; i++){
+  //     Serial.print(i);
+  //     Serial.print(" - ");
+  //     GB_PrintDirty::printRAM(&(GB_StorageHelper::bootRecord.nextLogRecordAddress), sizeof(GB_StorageHelper::bootRecord.nextLogRecordAddress));
+  //     Serial.println();
+  //     GB_StorageHelper::increaseLogPointer();
+  //   }
+
 }
 
 // the loop routine runs over and over again forever:
 void loop() {
   digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
-  
+
   GB_Controller::checkFreeMemory();
   GB_SerialHelper::checkSerial(true, false); // not interraption cause Serial print problems
-  
+
   Alarm.delay(MAIN_LOOP_DELAY * 1000); // wait one second between clock display
 }
 
@@ -420,7 +442,7 @@ static void executeCommand(String &input){
   case 'l':
     switch(secondChar){
     case 'c': 
-      Serial.println(F("Reset stored log records"));
+      Serial.println(F("Stored log records cleaned"));
       GB_StorageHelper::resetStoredLog();
       break;
     case 'e':
@@ -701,6 +723,8 @@ static void printPinsStatus(){
     Serial.println();
   }
 }
+
+
 
 
 

@@ -9,13 +9,15 @@
 
 class GB_StorageHelper{
 
-private:
-  static BootRecord bootRecord;
-
 public:
 
   static const word LOG_CAPACITY = ((GB_Storage::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord));
 
+private:
+  static const word LOG_RECORD_OVERFLOW_OFFSET = LOG_CAPACITY * sizeof(LogRecord);
+  static BootRecord bootRecord;
+
+public:
   /////////////////////////////////////////////////////////////////////
   //                            BOOT RECORD                          //
   /////////////////////////////////////////////////////////////////////
@@ -78,7 +80,7 @@ public:
   static boolean isLogOverflow(){
     return bootRecord.boolPreferencies.isLogOverflow;
   }
-  
+
   static word getLogRecordsCount(){
     if (bootRecord.boolPreferencies.isLogOverflow){
       return LOG_CAPACITY; 
@@ -91,19 +93,19 @@ public:
     if (index >= getLogRecordsCount()){
       return false;
     }
-    
+
     word logRecordOffset = 0;
     if (bootRecord.boolPreferencies.isLogOverflow){
-      logRecordOffset = bootRecord.nextLogRecordAddress;
+      logRecordOffset = bootRecord.nextLogRecordAddress - sizeof(BootRecord);
     }
+    //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
     logRecordOffset += index * sizeof(LogRecord);
 
-    word maxLogRecordOffset = LOG_CAPACITY * sizeof(LogRecord);
-
-    if (logRecordOffset > maxLogRecordOffset){
-      logRecordOffset = logRecordOffset - maxLogRecordOffset;
+    //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
+    if (logRecordOffset >= LOG_RECORD_OVERFLOW_OFFSET){
+      logRecordOffset -= LOG_RECORD_OVERFLOW_OFFSET;
     }
-
+    //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
     word address = sizeof(BootRecord) + logRecordOffset; 
     GB_Storage::read(address, &logRecord, sizeof(LogRecord));  
     return true;
@@ -117,7 +119,7 @@ public:
     bootRecord.first_magic = 0;
     GB_Storage::write(0, &bootRecord, sizeof(BootRecord));
   }
-  
+
   static void resetStoredLog(){
     bootRecord.nextLogRecordAddress = sizeof(BootRecord);
     GB_Storage::write(OFFSETOF(BootRecord, nextLogRecordAddress), &(bootRecord.nextLogRecordAddress), sizeof(bootRecord.nextLogRecordAddress)); 
@@ -137,8 +139,8 @@ private :
   }
 
   static void increaseLogPointer(){
-    bootRecord.nextLogRecordAddress += sizeof(LogRecord);  
-    if (bootRecord.nextLogRecordAddress+sizeof(LogRecord) >= GB_Storage::CAPACITY){
+    bootRecord.nextLogRecordAddress += sizeof(LogRecord); 
+    if (bootRecord.nextLogRecordAddress >= (sizeof(BootRecord) + LOG_RECORD_OVERFLOW_OFFSET)){
       bootRecord.nextLogRecordAddress = sizeof(BootRecord);
       if (!bootRecord.boolPreferencies.isLogOverflow){
         bootRecord.boolPreferencies.isLogOverflow = true;
@@ -151,6 +153,7 @@ private :
 };
 
 #endif
+
 
 
 

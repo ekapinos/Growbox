@@ -59,7 +59,7 @@ public:
   static void printFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
     LogRecord logRecord;
     boolean isEmpty = true;
-    for (int i = 0; i<GB_StorageHelper::getLogRecordsCount(); i++){
+    for (int i = 0; i<=GB_StorageHelper::getLogRecordsCount(); i++){
       if (GB_StorageHelper::getLogRecordByIndex(i, logRecord)){
         if (!printEvents && isEvent(logRecord)){
           continue;
@@ -71,7 +71,7 @@ public:
           continue;
         }
         Serial.print('#');
-        Serial.print(i);
+        Serial.print(i+1);
         Serial.print(' ');
         const __FlashStringHelper* description = getLogRecordDescription(logRecord);
         if (isTemperature(logRecord)){

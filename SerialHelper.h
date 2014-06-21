@@ -55,7 +55,7 @@ static /*volatile*/ boolean useSerialWifi;
 
     if (checkWifi){
       for (int i = 0; i<2; i++){ // Sometimes first command returns ERROR, two attempts
-        String input = wifiExecuteCommand(F("at+reset=0")); // spec boot time
+        String input = wifiExecuteCommand(F("at+reset=0"), 500); // spec boot time 210
         useSerialWifi = WIFI_MESSAGE_WELLCOME.equals(input);
         if (useSerialWifi) {
           if(g_isGrowboxStarted){
