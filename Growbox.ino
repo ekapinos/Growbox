@@ -213,18 +213,19 @@ void setup() {
     GB_SerialHelper::printDirtyEnd();
   }
 
- GB_StorageHelper::setStoreLogRecordsEnabled(true);
-  GB_StorageHelper::resetStoredLog();
-  for (int i = 0; i<=850; i++){  
-    if (i%50 ==0){
-      Serial.println(i);
-    }  
-    GB_Logger::logTemperature(i % 50);
-
-  }
-  GB_Logger::printFullLog(true,  true,  true);
-  printStorage();
- GB_StorageHelper::setStoreLogRecordsEnabled(false);
+// GB_StorageHelper::setStoreLogRecordsEnabled(true);
+//  GB_StorageHelper::resetStoredLog();
+//  for (int i = 0; i<=850; i++){  
+//    if (i%50 ==0){
+//      Serial.println(i);
+//    }  
+//    GB_Logger::logTemperature(i % 50);
+//
+//  }
+//  GB_Logger::printFullLog(true,  true,  true);
+//  printStorage();
+// GB_StorageHelper::setStoreLogRecordsEnabled(false);
+ 
   //    LogRecord logRecord;
   //    GB_StorageHelper::getLogRecordByIndex(0, logRecord);
   //    
