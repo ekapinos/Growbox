@@ -4,15 +4,16 @@
 #include "Global.h"
 
 // Wi-Fi
-const String WIFI_MESSAGE_WELLCOME = "Welcome to RAK410\r\n";
-const String WIFI_MESSAGE_ERROR = "ERROR\xFF\r\n";
+const String WIFI_RESPONSE_WELLCOME = "Welcome to RAK410\r\n";   // TODO optimize here!
+const String WIFI_RESPONSE_ERROR = "ERROR\xFF\r\n";
+const String WIFI_RESPONSE_OK = "OK\r\n";
 
 const int WIFI_RESPONSE_DELAY_MAX = 5000; // max delay after "at+" commands 5000ms = 5s
-const int WIFI_RESPONSE_DELAY_INTERVAL = 100; // during 5s interval, we check for answer every 100 ms
+const int WIFI_RESPONSE_CHECK_INTERVAL = 100; // during 5s interval, we check for answer every 100 ms
 
-
-const String WIFI_SID = "Hell";
-const String WIFI_PASS = "flat65router";
+const String WIFI_ACSEESS_POINT_DEFAULT_SID = "Growbox";
+const String WIFI_ACSEESS_POINT_DEFAULT_PASS = "ingodwetrust"; // 8-63 chars
+const byte WIFI_ACSEESS_POINT_DEFAULT_HIDDEN = 1;  // 1 - hidden, 0 - not hidden
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //
@@ -25,8 +26,8 @@ class GB_SerialHelper{
 
 public:
 
-static /*volatile*/ boolean useSerialMonitor;
-static /*volatile*/ boolean useSerialWifi;
+  static /*volatile*/ boolean useSerialMonitor;
+  static /*volatile*/ boolean useSerialWifi;
 
 
   static void printDirtyEnd(){
@@ -53,19 +54,21 @@ static /*volatile*/ boolean useSerialWifi;
       serialInUse = true;
     }
 
+    boolean restartWifi = false;
     if (checkWifi){
       for (int i = 0; i<2; i++){ // Sometimes first command returns ERROR, two attempts
+        cleanSerialBuffer();
         String input = wifiExecuteCommand(F("at+reset=0"), 500); // spec boot time 210
-        useSerialWifi = WIFI_MESSAGE_WELLCOME.equals(input);
+        useSerialWifi = WIFI_RESPONSE_WELLCOME.equals(input);
         if (useSerialWifi) {
           if(g_isGrowboxStarted){
-            startWifi();
+            restartWifi = true;
           }
           break;
         }
         if (useSerialMonitor && input.length() != 0){
           Serial.print(F("Not corrent Wi-Fi startup message. Expected: "));
-          Serial.println(WIFI_MESSAGE_WELLCOME);
+          Serial.println(WIFI_RESPONSE_WELLCOME);
           Serial.print(F(" Received: "));
           Serial.println(input);
           printDirtyEnd();
@@ -89,10 +92,10 @@ static /*volatile*/ boolean useSerialWifi;
     }
     if (useSerialWifi != oldUseSerialWifi){
       if(useSerialWifi){
-        Serial.println(F("Serial Wi-Fi: enabled"));
+        Serial.println(F("Serial Wi-Fi: connected"));
       } 
       else {
-        Serial.println(F("Serial Wi-Fi: disabled"));
+        Serial.println(F("Serial Wi-Fi: disconnected"));
       }
       printDirtyEnd();
     }
@@ -101,27 +104,70 @@ static /*volatile*/ boolean useSerialWifi;
     serialInUse = (useSerialMonitor || useSerialWifi);
     if (!serialInUse){
       Serial.end();
+      return;
+    }
+    if (restartWifi){
+      startWifi();
     }
   }
 
-  static void startWifi(){
-    String rez = wifiExecuteCommand(F("at+scan=0"));
+  static boolean startWifi(){
+    cleanSerialBuffer();
+    String rez; 
 
-    Serial.print(rez);
+    //    rez = wifiExecuteCommand(F("at+scan=0"));
+    //    if (!WIFI_RESPONSE_OK.equals(rez)){
+    //      return false;
+    //    }
+
+    Serial.print(F("at+psk="));
+    Serial.print(WIFI_ACSEESS_POINT_DEFAULT_PASS);
+    rez = wifiExecuteCommand();
+    if (!WIFI_RESPONSE_OK.equals(rez)){
+      return false;
+    }
+
+    // at+ipstatic=<ip>,<mask>,<gateway>,<dns server1>(0 is valid),<dns server2>(0 is valid)\r\n
+    rez = wifiExecuteCommand(F("at+ipstatic=192.168.0.1,255.255.0.0,0.0.0.0,0,0"));
+    if (!WIFI_RESPONSE_OK.equals(rez)){
+      return false;
+    }
+
+    rez = wifiExecuteCommand(F("at+ipdhcp=1"));
+    if (!WIFI_RESPONSE_OK.equals(rez)){
+      return false;
+    }
+
+    Serial.print(F("at+ap="));
+    Serial.print(WIFI_ACSEESS_POINT_DEFAULT_SID);
+    Serial.print(',');
+    Serial.print(WIFI_ACSEESS_POINT_DEFAULT_HIDDEN);
+    rez = wifiExecuteCommand();
+    if (!WIFI_RESPONSE_OK.equals(rez)){
+      return false;
+    }
+
+    Serial.println("Wi-Fi access point started");
     printDirtyEnd();
+    return true;
   }
 
 private:
 
-  static  String wifiExecuteCommand(const __FlashStringHelper* command, int maxResponseDeleay = -1){
+  static String wifiExecuteCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = -1){
+    if (command == 0){
+      Serial.println();
+    } 
+    else {
+      Serial.println(command);
+    }
+
     if (maxResponseDeleay < 0){
       maxResponseDeleay = WIFI_RESPONSE_DELAY_MAX;
-    }
-    cleanSerialBuffer();
-    Serial.println(command);
+    }    
     boolean connectionEstablished = false;
-    for (int i=0; i <= maxResponseDeleay; i += WIFI_RESPONSE_DELAY_INTERVAL){
-      delay(WIFI_RESPONSE_DELAY_INTERVAL);
+    for (int i=0; i <= maxResponseDeleay; i += WIFI_RESPONSE_CHECK_INTERVAL){
+      delay(WIFI_RESPONSE_CHECK_INTERVAL);
       if (Serial.available()){
         connectionEstablished = true;
         break;
@@ -134,6 +180,11 @@ private:
     String input="";
     while (Serial.available()){
       input += (char) Serial.read();
+    }
+    if (useSerialMonitor){
+      Serial.print(F("WF> "));
+      Serial.print(input);
+      printDirtyEnd();
     }
     return input;
   }
@@ -148,5 +199,7 @@ private:
 };
 
 #endif
+
+
 
 

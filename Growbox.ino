@@ -196,7 +196,11 @@ void setup() {
     switchToNightMode();
   }
 
-  if (GB_SerialHelper::useSerialWifi){    
+  if (GB_SerialHelper::useSerialWifi){ 
+    if(GB_SerialHelper::useSerialMonitor){ 
+      Serial.println(F("Starting wi-fi..."));
+      GB_SerialHelper::printDirtyEnd();
+    }
     GB_SerialHelper::startWifi();
   }
 
@@ -213,19 +217,19 @@ void setup() {
     GB_SerialHelper::printDirtyEnd();
   }
 
-// GB_StorageHelper::setStoreLogRecordsEnabled(true);
-//  GB_StorageHelper::resetStoredLog();
-//  for (int i = 0; i<=850; i++){  
-//    if (i%50 ==0){
-//      Serial.println(i);
-//    }  
-//    GB_Logger::logTemperature(i % 50);
-//
-//  }
-//  GB_Logger::printFullLog(true,  true,  true);
-//  printStorage();
-// GB_StorageHelper::setStoreLogRecordsEnabled(false);
- 
+  // GB_StorageHelper::setStoreLogRecordsEnabled(true);
+  //  GB_StorageHelper::resetStoredLog();
+  //  for (int i = 0; i<=850; i++){  
+  //    if (i%50 ==0){
+  //      Serial.println(i);
+  //    }  
+  //    GB_Logger::logTemperature(i % 50);
+  //
+  //  }
+  //  GB_Logger::printFullLog(true,  true,  true);
+  //  printStorage();
+  // GB_StorageHelper::setStoreLogRecordsEnabled(false);
+
   //    LogRecord logRecord;
   //    GB_StorageHelper::getLogRecordByIndex(0, logRecord);
   //    
@@ -266,7 +270,7 @@ void serialEvent(){
   }
 
   // somthing wrong with Wi-Fi, we need to reboot it
-  if (input.indexOf(WIFI_MESSAGE_WELLCOME) >= 0 || input.indexOf(WIFI_MESSAGE_ERROR) >= 0){
+  if (input.indexOf(WIFI_RESPONSE_WELLCOME) >= 0 || input.indexOf(WIFI_RESPONSE_ERROR) >= 0){ // TODO move to SerialHelper file
     GB_SerialHelper::useSerialWifi = false; // TODO only for logging
     GB_SerialHelper::checkSerial(false, true);
     return;
@@ -724,6 +728,8 @@ static void printPinsStatus(){
     Serial.println();
   }
 }
+
+
 
 
 

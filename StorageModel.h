@@ -17,7 +17,9 @@ struct BootRecord { // 32 bytes
 boolean isLogOverflow :
     1;  
 boolean isLoggerEnabled :
-    2;     
+    2;      
+//boolean useWifiAccessPointMode :
+//    3;     
   } 
   boolPreferencies;                 //  1 
   byte reserved[17];                //  
