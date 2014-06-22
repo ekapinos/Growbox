@@ -26,10 +26,12 @@ public:
   //   DDDD - sequence data
   static void logError(Error &error){
     LogRecord logRecord(B01000000|(B00000011 | error.sequenceSize-1)<<4 | (B00001111 & error.sequence));
+    boolean isStoredNow = false;
     if(!error.isStored){
       error.isStored = GB_StorageHelper::storeLogRecord(logRecord);
-    }
-    printDirtyLogRecord(logRecord, error.description, error.isStored);
+      isStoredNow = true;
+    } 
+    printDirtyLogRecord(logRecord, error.description, isStoredNow);
     GB_SerialHelper::printDirtyEnd();
     error.isStored = true;   
     error.notify();
@@ -139,6 +141,7 @@ private:
     if (!GB_SerialHelper::useSerialMonitor) {
       return;
     }
+    Serial.print(F("LOG> ")); 
     if (!isStored) {
       Serial.print(F("NOT STORED "));
     }

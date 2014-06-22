@@ -87,11 +87,12 @@ void setup() {
 
   // We need to check Wi-Fi before use print to SerialMonitor
   g_isGrowboxStarted = false;
+  int controllerFreeMemoryBeforeBoot = freeMemory();
 
   GB_SerialHelper::checkSerial(true, true);
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
-  if(GB_SerialHelper::useSerialMonitor){ 
+  if(GB_SerialHelper::useSerialMonitor){
     printFreeMemory();
     Serial.println(F("Checking software configuration..."));
     GB_SerialHelper::printDirtyEnd();
@@ -206,16 +207,21 @@ void setup() {
 
   // Create main life circle timer
   Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
-  Alarm.timerRepeat(CHECK_GROWBOX_DELAY, checkGrowboxState);  // repeat every N seconds
+  Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus);  
+  Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);  // repeat every N seconds
 
   // Create suolemental rare switching
   Alarm.alarmRepeat(UP_HOUR, 00, 00, switchToDayMode);      // repeat once every day
   Alarm.alarmRepeat(DOWN_HOUR, 00, 00, switchToNightMode);  // repeat once every day
 
+  if (controllerFreeMemoryBeforeBoot != freeMemory()){
+    printFreeMemory();
+  }
   if(GB_SerialHelper::useSerialMonitor){ 
     Serial.println(F("Growbox successfully started"));
     GB_SerialHelper::printDirtyEnd();
   }
+
 
   // GB_StorageHelper::setStoreLogRecordsEnabled(true);
   //  GB_StorageHelper::resetStoredLog();
@@ -234,9 +240,6 @@ void setup() {
   //    GB_StorageHelper::getLogRecordByIndex(0, logRecord);
   //    
   //    GB_PrintDirty::printRAM(&logRecord, sizeof(logRecord));
-
-
-
 
   //   for(int i=0; i<900; i++){
   //     Serial.print(i);
@@ -267,7 +270,19 @@ void serialEvent(){
   String input; 
   while (Serial.available()){
     input += (char) Serial.read();
+    //delay(20);
   }
+
+  if (GB_SerialHelper::useSerialMonitor) {
+    Serial.print(F("SERIAL> "));
+    GB_PrintDirty::printHEX(input);
+    Serial.print(F(" > "));
+    Serial.print(input);
+    if (!input.endsWith("\r\n")){
+      Serial.println();
+    }     
+    GB_SerialHelper::printDirtyEnd();
+  }  
 
   // somthing wrong with Wi-Fi, we need to reboot it
   if (input.indexOf(WIFI_RESPONSE_WELLCOME) >= 0 || input.indexOf(WIFI_RESPONSE_ERROR) >= 0){ // TODO move to SerialHelper file
@@ -276,19 +291,37 @@ void serialEvent(){
     return;
   }
 
+  byte wifiPortDescriptor;
+  boolean isWifiCommand = GB_SerialHelper::isWifiCommand(input, &wifiPortDescriptor); // TOOD merge with upper code
+  if (isWifiCommand) {  
+    input = GB_SerialHelper::parseWifiCommandURL(wifiPortDescriptor, input);   
+    if (input.length() > 0){ 
+      GB_SerialHelper::sendHttpHeader(wifiPortDescriptor, WIFI_HTTP_RESPONSE_OK, 7);  
+      GB_SerialHelper::sendHttpDataFrameStart(wifiPortDescriptor, 7);
+      Serial.print(F("Growbox"));
+      GB_SerialHelper::sendHttpDataFrameStop();
+      //GB_SerialHelper::closeHttpConnection(); // client driven
+
+    }
+    return;
+  }
+  else if (!GB_SerialHelper::useSerialMonitor){   
+    return; // Serial monitor disabled
+  }
+
   input.trim();
   if (input.length() == 0){
     return;
   }
-  Serial.print(F("Serial.read: "));
-  Serial.println(input);
-  GB_SerialHelper::printDirtyEnd();
 
-  //if (g_UseSerialWifi) {
-  //
-  //} else
-  if (GB_SerialHelper::useSerialMonitor) {
-    executeCommand(input);
+  executeCommand(input);
+
+  if (isWifiCommand){
+
+  } 
+  else {
+    // It was command from SerialMonotor 
+    GB_SerialHelper::printDirtyEnd();
   }
 }
 
@@ -297,7 +330,7 @@ void serialEvent(){
 //                  TIMER/CLOCK EVENT HANDLERS                     //
 /////////////////////////////////////////////////////////////////////
 
-void checkGrowboxState() {
+void updateGrowboxState() {
 
   float temperature = GB_Thermometer::getTemperature();
 
@@ -351,7 +384,7 @@ void switchToDayMode(){
   g_isDayInGrowbox = true;
   GB_Logger::logEvent(EVENT_MODE_DAY);
 
-  checkGrowboxState();
+  updateGrowboxState();
 }
 
 void switchToNightMode(){
@@ -361,20 +394,25 @@ void switchToNightMode(){
   g_isDayInGrowbox = false;
   GB_Logger::logEvent(EVENT_MODE_NIGHT);
 
-  checkGrowboxState();
+  updateGrowboxState();
 }
 
 /////////////////////////////////////////////////////////////////////
-//                              SENSORS                            //
+//                              SCHEDULE                           //
 /////////////////////////////////////////////////////////////////////
 
 void updateThermometerStatistics(){ // should return void
   GB_Thermometer::updateStatistics(); 
 }
 
+void updateWiFiStatus(){ // should return void
+  GB_SerialHelper::updateWiFiStatus(); 
+}
+
 /////////////////////////////////////////////////////////////////////
 //                              DEVICES                            //
 /////////////////////////////////////////////////////////////////////
+
 
 void turnOnLight(){
   if (digitalRead(LIGHT_PIN) == RELAY_ON){
@@ -417,7 +455,9 @@ void turnOffFan(){
 }
 
 
-static void executeCommand(String &input){
+static void executeCommand(const String &input){
+
+  boolean isHttp = (input[0] == '/');
 
   // send data only when you receive data:
 
@@ -428,7 +468,7 @@ static void executeCommand(String &input){
     secondChar = input[1];
   }
 
-  Serial.print(F("GB>"));
+  Serial.print(F("COMMAND>"));
   Serial.print(firstChar);
   if (secondChar != 0){
     Serial.print(secondChar);
@@ -532,8 +572,6 @@ static void executeCommand(String &input){
   default: 
     GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
   }
-  delay(1000);               // wait for a second
-  GB_SerialHelper::printDirtyEnd();
 }
 
 
@@ -728,6 +766,11 @@ static void printPinsStatus(){
     Serial.println();
   }
 }
+
+
+
+
+
 
 
 

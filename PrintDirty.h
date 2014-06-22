@@ -46,8 +46,19 @@ public:
     }
   }
 
+  static void printHEX(const String input){   
+    for(int i = 0; i<input.length(); i++){
+      byte c = input[i];
+      print2digitsHEX(c);
+      if ((i+1)<input.length()) {
+        Serial.print(' '); 
+      }
+    }
+  }  
+
 };
 #endif
+
 
 
 
