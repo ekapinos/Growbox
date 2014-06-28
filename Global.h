@@ -79,5 +79,11 @@ const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
 extern OneWire g_oneWirePin;
 extern boolean g_isGrowboxStarted;
 
+
+static int flashStringLength(const __FlashStringHelper* str){ // INT_MAX (own test) or 1400 bytes max (Wi-Fi spec restriction)
+    const char PROGMEM * strPROGMEM = (const char PROGMEM *) str;
+    return strlen_P(strPROGMEM);
+}
+
 #endif
 

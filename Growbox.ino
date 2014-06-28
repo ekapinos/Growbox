@@ -61,6 +61,14 @@ boolean isDayInGrowbox(){
 //                                MAIN                             //
 /////////////////////////////////////////////////////////////////////
 
+  static void printBootStatus(const __FlashStringHelper* str){ //TODO 
+    if (GB_SerialHelper::useSerialMonitor){
+      Serial.print(F("Checking "));
+      Serial.print(str);
+      Serial.println(F("..."));
+      //GB_SerialHelper::printDirtyEnd();
+    }
+  }
 
 // the setup routine runs once when you press reset:
 void setup() {                
@@ -94,22 +102,22 @@ void setup() {
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
   if(GB_SerialHelper::useSerialMonitor){
     printFreeMemory();
-    Serial.println(F("Checking software configuration..."));
-    GB_SerialHelper::printDirtyEnd();
+    printBootStatus(F("software configuration"));
+    //GB_SerialHelper::printDirtyEnd();
   }
 
   initLoggerModel();
   if (!Error::isInitialized()){
     if(GB_SerialHelper::useSerialMonitor){ 
       Serial.print(F("Fatal error: not all Errors initialized"));
-      GB_SerialHelper::printDirtyEnd();
+      //GB_SerialHelper::printDirtyEnd();
     }
     while(true) delay(5000);  
   }
   if (!Event::isInitialized()){
     if(GB_SerialHelper::GB_SerialHelper::useSerialMonitor){ 
       Serial.print(F("Fatal error: not all Events initialized"));
-      GB_SerialHelper::printDirtyEnd();
+      //GB_SerialHelper::printDirtyEnd();
     }
     while(true) delay(5000);  
   }
@@ -121,7 +129,7 @@ void setup() {
       Serial.print(BOOT_RECORD_SIZE);
       Serial.print(F(", current: "));
       Serial.print(sizeof(BootRecord));
-      GB_SerialHelper::printDirtyEnd();
+      //GB_SerialHelper::printDirtyEnd();
     }
     while(true) delay(5000);
   }
@@ -133,7 +141,7 @@ void setup() {
       Serial.print(BOOT_RECORD_SIZE);
       Serial.print(F(", current: "));
       Serial.print(sizeof(BootRecord));
-      GB_SerialHelper::printDirtyEnd();
+      //GB_SerialHelper::printDirtyEnd();
     }
     while(true) delay(5000);
   }
@@ -141,8 +149,8 @@ void setup() {
   GB_Controller::checkFreeMemory();
 
   if(GB_SerialHelper::useSerialMonitor){ 
-    Serial.println(F("Checking clock..."));
-    GB_SerialHelper::printDirtyEnd();
+    printBootStatus(F("clock"));
+    //GB_SerialHelper::printDirtyEnd();
   }
 
   // Configure clock
@@ -156,8 +164,8 @@ void setup() {
   GB_Controller::checkFreeMemory();
 
   if(GB_SerialHelper::useSerialMonitor){ 
-    Serial.println(F("Checking termometer..."));
-    GB_SerialHelper::printDirtyEnd();
+    printBootStatus(F("termometer"));
+    //GB_SerialHelper::printDirtyEnd();
   }
 
   // Configure termometer
@@ -169,21 +177,12 @@ void setup() {
   GB_Controller::checkFreeMemory();
 
   if(GB_SerialHelper::useSerialMonitor){ 
-    Serial.println(F("Checking storage..."));
-    GB_SerialHelper::printDirtyEnd();
+    printBootStatus(F("storage"));
+    //GB_SerialHelper::printDirtyEnd();
   }
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean itWasRestart = GB_StorageHelper::start();
-
-  if (GB_SerialHelper::useSerialWifi){ 
-    if(GB_SerialHelper::useSerialMonitor){ 
-      Serial.println(F("Starting wi-fi..."));
-      GB_SerialHelper::printDirtyEnd();
-    }
-    GB_SerialHelper::setWifiConfiguration("Hell", "flat65router"); // OPTIMIZE IT
-    GB_SerialHelper::startWifi();
-  }
 
   g_isGrowboxStarted = true;
 
@@ -220,35 +219,17 @@ void setup() {
       printFreeMemory();
     }
     Serial.println(F("Growbox successfully started"));
+    //GB_SerialHelper::printDirtyEnd();
+  }
+
+  if(GB_SerialHelper::useSerialMonitor){  
     GB_SerialHelper::printDirtyEnd();
   }
 
-
-  // GB_StorageHelper::setStoreLogRecordsEnabled(true);
-  //  GB_StorageHelper::resetStoredLog();
-  //  for (int i = 0; i<=850; i++){  
-  //    if (i%50 ==0){
-  //      Serial.println(i);
-  //    }  
-  //    GB_Logger::logTemperature(i % 50);
-  //
-  //  }
-  //  GB_Logger::printFullLog(true,  true,  true);
-  //  printStorage();
-  // GB_StorageHelper::setStoreLogRecordsEnabled(false);
-
-  //    LogRecord logRecord;
-  //    GB_StorageHelper::getLogRecordByIndex(0, logRecord);
-  //    
-  //    GB_PrintDirty::printRAM(&logRecord, sizeof(logRecord));
-
-  //   for(int i=0; i<900; i++){
-  //     Serial.print(i);
-  //     Serial.print(" - ");
-  //     GB_PrintDirty::printRAM(&(GB_StorageHelper::bootRecord.nextLogRecordAddress), sizeof(GB_StorageHelper::bootRecord.nextLogRecordAddress));
-  //     Serial.println();
-  //     GB_StorageHelper::increaseLogPointer();
-  //   }
+  if (GB_SerialHelper::useSerialWifi){ 
+    GB_SerialHelper::setWifiConfiguration("Hell", "flat65router"); // OPTIMIZE IT
+    GB_SerialHelper::startWifi();
+  }
 
 }
 
@@ -409,17 +390,37 @@ void turnOffFan(){
   GB_Logger::logEvent(EVENT_FAN_OFF);
 }
 
+/////////////////////////////////////////////////////////////////////
+//                     HTTP SUPPLEMENTAL COMMANDS                  //
+/////////////////////////////////////////////////////////////////////
+
+static void printTagA(const byte wifiPortDescriptor, const __FlashStringHelper* url, const __FlashStringHelper* name){
+  const __FlashStringHelper* part1 = F("<a href=\"");
+  const __FlashStringHelper* part2 = F("\">");
+  const __FlashStringHelper* part3 = F("</a> ");
+  
+  word length = flashStringLength(part1) + flashStringLength(part2) + flashStringLength(part3) + flashStringLength(url) + flashStringLength(name) ;
+  
+  GB_SerialHelper::sendHTTPResponseDataFrameStart(wifiPortDescriptor, length);
+  Serial.print(part1);
+  Serial.print(url);
+  Serial.print(part2);
+  Serial.print(name);
+  Serial.print(part3);
+  GB_SerialHelper::sendHTTPResponseDataFrameStop();
+}
 
 static void executeCommand(String &input, const boolean isWifiRequest, const byte wifiPortDescriptor){
-/*
+
   if (isWifiRequest){
-    input = input.substring(1);
+      GB_SerialHelper::sendHTTPResponseData(wifiPortDescriptor, F("<h1>Growbox</h1>"));
+      printTagA(wifiPortDescriptor, F("/"), F("Home"));
+      printTagA(wifiPortDescriptor, F("/status"), F("Status"));
+      printTagA(wifiPortDescriptor, F("/log"), F("Log"));
+      GB_SerialHelper::sendHTTPResponseData(wifiPortDescriptor, F("<hr/>"));
+  } else {
+    input = "input;
   }
-*/
-  if (isWifiRequest){
-    GB_SerialHelper::sendHTTPResponseData(wifiPortDescriptor, F(""));
-  }
-  // send data only when you receive data:
 
   // read the incoming byte:
   char firstChar = 0, secondChar = 0; 
@@ -536,10 +537,10 @@ static void executeCommand(String &input, const boolean isWifiRequest, const byt
   if (isWifiRequest) {
     GB_SerialHelper::finishHTTPResponse(wifiPortDescriptor);
   }
-  else {
-    // It was command from SerialMonotor 
-    GB_SerialHelper::printDirtyEnd();
-  }
+  //else { // TODO temporary!!!!!!!!!!!!!!!!!!!!
+  // It was command from SerialMonotor 
+  GB_SerialHelper::printDirtyEnd();
+  // }
 }
 
 
@@ -736,6 +737,7 @@ static void printPinsStatus(){
 
 
 }
+
 
 
 

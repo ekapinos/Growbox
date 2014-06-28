@@ -147,67 +147,15 @@ public:
     }
   }
 
-
   static boolean startWifi(){
-
-    cleanSerialBuffer();
-
-    boolean isStationMode = (wifiSID.length()>0);
-
-    if (!wifiExecuteCommand(F("at+scan=0"))){
-      return false;
+    showWiFiStatus(F("Starting wi-fi..."));
+    boolean isLoaded = startWifiSilent();
+    if (isLoaded){
+      showWiFiStatus(F("Wi-Fi started"));
     } 
-
-    if (isStationMode){
-      if (wifiPass.length() > 0){
-        Serial.print(F("at+psk="));
-        Serial.print(wifiPass);
-        if (!wifiExecuteCommand()){
-          return false;
-        }
-      } 
-
-      Serial.print(F("at+connect="));
-      Serial.print(wifiSID);
-      if (!wifiExecuteCommand()){
-        return false;
-      }
-
-      if (!wifiExecuteCommand(F("at+ipdhcp=0"))){
-        return false;
-      }
-    }
     else {
-      if (!wifiExecuteCommand(F("at+psk=ingodwetrust"))){
-        return false;
-      }  
-
-      // at+ipstatic=<ip>,<mask>,<gateway>,<dns server1>(0 is valid),<dns server2>(0 is valid)\r\n
-      if (!wifiExecuteCommand(F("at+ipstatic=192.168.0.1,255.255.0.0,0.0.0.0,0,0"))){
-        return false;
-      }
-
-      if (!wifiExecuteCommand(F("at+ipdhcp=1"))){
-        return false;
-      }
-
-      if (!wifiExecuteCommand(F("at+ap=Growbox,1"))){ // Hidden
-        return false;
-      }
+      showWiFiStatus(F("Wi-Fi start failed"));
     }
-
-    /*if (!wifiExecuteCommand(F("at+httpd_open"))){
-     return false;
-     }*/
-    if (!wifiExecuteCommand(F("at+ltcp=80"))){
-      return false;
-    }
-
-    if (useSerialMonitor){
-      Serial.println(F("Wi-Fi started"));
-      printDirtyEnd();
-    }
-    return true;
   }
 
   static boolean handleSerialEvent(String &input, boolean &isWifiRequest, byte &wifiPortDescriptor){
@@ -293,6 +241,10 @@ public:
 
     } // while (Serial.available()) 
 
+    if (!isWifiRequest){
+      input.trim();
+    }
+
     if (useSerialMonitor) {
       if (isWifiRequestClientConnected || isWifiRequestClientDisconnected) {
         Serial.print(F("WIFI> Client ")); 
@@ -307,15 +259,16 @@ public:
       } 
       else {
         if (isWifiRequest){    
-          Serial.print(F("WIFI-R> "));
+          Serial.print(F("WIFI> GET "));
+          Serial.println(input);
         } 
         else {
           Serial.print(F("SERIAL> "));
-        }
-        GB_PrintDirty::printWithoutCRLF(input);
-        Serial.print(F(" > "));
-        GB_PrintDirty::printHEX(input); 
-        Serial.println();
+          GB_PrintDirty::printWithoutCRLF(input);
+          Serial.print(F(" > "));
+          GB_PrintDirty::printHEX(input);
+          Serial.println();
+        }  
       }
       printDirtyEnd();
     } 
@@ -328,7 +281,7 @@ public:
       return true;
     } 
     else if (useSerialMonitor){
-      input.trim();
+
       return true;
     } 
 
@@ -338,6 +291,7 @@ public:
   static void sendHTTPResponseData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
     if (!wifiPortDescriptorSendStatus[wifiPortDescriptor]){
       sendHttpOKHeader(wifiPortDescriptor); 
+      wifiPortDescriptorSendStatus[wifiPortDescriptor] = true;
     } 
     sendHttpData(wifiPortDescriptor, data);
   }  
@@ -345,11 +299,25 @@ public:
   static void sendHTTPResponseData(const byte &wifiPortDescriptor, const String data){
     if (!wifiPortDescriptorSendStatus[wifiPortDescriptor]){
       sendHttpOKHeader(wifiPortDescriptor); 
+      wifiPortDescriptorSendStatus[wifiPortDescriptor] = true;
     } 
     sendHttpDataFrameStart(wifiPortDescriptor, data.length());
     Serial.print(data);
     sendHttpDataFrameStop();
   }
+
+  static void sendHTTPResponseDataFrameStart(const byte wifiPortDescriptor, word length){ // 1024 bytes max (Wi-Fi module restriction)
+    if (!wifiPortDescriptorSendStatus[wifiPortDescriptor]){
+      sendHttpOKHeader(wifiPortDescriptor); 
+      wifiPortDescriptorSendStatus[wifiPortDescriptor] = true;
+    }    
+    sendHttpDataFrameStart(wifiPortDescriptor, length);
+  }
+
+  static void sendHTTPResponseDataFrameStop(){
+    sendHttpDataFrameStop();
+  }
+
 
   static void finishHTTPResponse(const byte &wifiPortDescriptor){  
     if (!wifiPortDescriptorSendStatus[wifiPortDescriptor]){
@@ -360,6 +328,14 @@ public:
 
 
 private:  
+
+  static void showWiFiStatus(const __FlashStringHelper* str){ //TODO 
+    if (useSerialMonitor){
+      Serial.print(F("WIFI> "));
+      Serial.println(str);
+      printDirtyEnd();
+    }
+  }
 
   /////////////////////////////////////////////////////////////////////
   //                          SERIAL READ                            //
@@ -393,7 +369,7 @@ private:
   }
 
   static void cleanSerialBuffer(){
-    delay(250);
+    delay(10);
     while (Serial.available()){
       Serial.read();
     }
@@ -402,6 +378,63 @@ private:
   /////////////////////////////////////////////////////////////////////
   //                             Wi-FI DEVICE                        //
   /////////////////////////////////////////////////////////////////////
+
+  static boolean startWifiSilent(){
+
+    cleanSerialBuffer();
+
+    if (!wifiExecuteCommand(F("at+scan=0"))){
+      return false;
+    } 
+
+    boolean isStationMode = (wifiSID.length()>0);    
+    if (isStationMode){
+      if (wifiPass.length() > 0){
+        Serial.print(F("at+psk="));
+        Serial.print(wifiPass);
+        if (!wifiExecuteCommand()){
+          return false;
+        }
+      } 
+
+      Serial.print(F("at+connect="));
+      Serial.print(wifiSID);
+      if (!wifiExecuteCommand()){
+        return false;
+      }
+
+      if (!wifiExecuteCommand(F("at+ipdhcp=0"))){
+        return false;
+      }
+    }
+    else {
+      if (!wifiExecuteCommand(F("at+psk=ingodwetrust"))){
+        return false;
+      }  
+
+      // at+ipstatic=<ip>,<mask>,<gateway>,<dns server1>(0 is valid),<dns server2>(0 is valid)\r\n
+      if (!wifiExecuteCommand(F("at+ipstatic=192.168.0.1,255.255.0.0,0.0.0.0,0,0"))){
+        return false;
+      }
+
+      if (!wifiExecuteCommand(F("at+ipdhcp=1"))){
+        return false;
+      }
+
+      if (!wifiExecuteCommand(F("at+ap=Growbox,1"))){ // Hidden
+        return false;
+      }
+    }
+
+    /*if (!wifiExecuteCommand(F("at+httpd_open"))){
+     return false;
+     }*/
+    if (!wifiExecuteCommand(F("at+ltcp=80"))){
+      return false;
+    }
+
+    return true;
+  }
 
   static boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = -1, boolean rebootOnFalse = true){
     String input = wifiExecuteRawCommand(command,maxResponseDeleay);
@@ -477,11 +510,11 @@ private:
   //                            WEB SERVER                           //
   /////////////////////////////////////////////////////////////////////
 
-  static boolean sendHttpOKHeader(const byte portDescriptor){ 
+  static void sendHttpOKHeader(const byte portDescriptor){ 
     sendHttpData(portDescriptor, F("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n"));
   }
 
-  static boolean sendHttpNotFoundHeader(const byte portDescriptor){ 
+  static void sendHttpNotFoundHeader(const byte portDescriptor){ 
     sendHttpData(portDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
     /*
       Serial.print(F("at+httpd_send="));
@@ -493,14 +526,13 @@ private:
      */
   }
 
-  static boolean sendHttpData(const byte portDescriptor, const __FlashStringHelper* data){ // INT_MAX (own test) or 1400 bytes max (Wi-Fi spec restriction)
-    const char PROGMEM * dataPROGMEM = (const char PROGMEM *) data;
-    sendHttpDataFrameStart(portDescriptor, strlen_P(dataPROGMEM));
+  static void sendHttpData(const byte portDescriptor, const __FlashStringHelper* data){ // INT_MAX (own test) or 1400 bytes max (Wi-Fi spec restriction)
+    sendHttpDataFrameStart(portDescriptor, flashStringLength(data));
     Serial.print(data);
     sendHttpDataFrameStop();
   }
 
-  static void sendHttpDataFrameStart(const byte portDescriptor, word length){ // 1024 bytes max (Wi-Fi module restriction)
+  static void sendHttpDataFrameStart(const byte portDescriptor, word length){ // 1024 bytes max (Wi-Fi module restriction)   
     Serial.print(F("at+send_data="));
     Serial.print(portDescriptor);
     Serial.print(',');
@@ -508,8 +540,8 @@ private:
     Serial.print(',');
   }
 
-  static boolean sendHttpDataFrameStop(){
-    return wifiExecuteCommand();
+  static void sendHttpDataFrameStop(){
+    wifiExecuteCommand();
   }
 
   static boolean closeConnection(const byte portDescriptor){
@@ -521,6 +553,10 @@ private:
 };
 
 #endif
+
+
+
+
 
 
 
