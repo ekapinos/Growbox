@@ -24,12 +24,12 @@ const int WIFI_RESPONSE_CHECK_INTERVAL = 100; // during 5s interval, we check fo
 
 class GB_SerialHelper{
 private:
-  static String wifiSID;
-  static String wifiPass;// 8-63 char
+  static String s_wifiSID;
+  static String s_wifiPass;// 8-63 char
 
-  static boolean restartWifi;
+  static boolean s_restartWifi;
 
-  static boolean wifiPortDescriptorSendStatus[];
+  static boolean s_wifiPortDescriptorSendStatus[];
 
 public:
 
@@ -47,11 +47,11 @@ public:
     }
   }
 
-  static void setWifiConfiguration(const String& _wifiSID, const String& _wifiPass){
-    wifiSID = _wifiSID;
-    wifiPass = _wifiPass;
+  static void setWifiConfiguration(const String& _s_wifiSID, const String& _s_wifiPass){
+    s_wifiSID = _s_wifiSID;
+    s_wifiPass = _s_wifiPass;
     //    if (g_isGrowboxStarted){
-    //        restartWifi = true;
+    //        s_restartWifi = true;
     //      checkSerial(false, true); // restart
     //    }
   }
@@ -59,7 +59,7 @@ public:
 
 
   static void updateWiFiStatus(){
-    if (restartWifi){
+    if (s_restartWifi){
       checkSerial(false, true);
     }
     //wifiExecuteCommand(F("at+con_status"));
@@ -90,13 +90,13 @@ public:
     }
 
     boolean loadWifiConfiguration = false;
-    if (checkWifi || restartWifi){
+    if (checkWifi || s_restartWifi){
       for (int i = 0; i<2; i++){ // Sometimes first command returns ERROR, two attempts
         cleanSerialBuffer();
         String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210
         useSerialWifi = input.startsWith(WIFI_RESPONSE_WELLCOME);
         if (useSerialWifi) {
-          restartWifi = false;
+          s_restartWifi = false;
           //wifiExecuteCommand(F("at+del_data"));
           //wifiExecuteCommand(F("at+storeenable=0"));
           if(g_isGrowboxStarted){
@@ -277,7 +277,7 @@ public:
       return false; 
     }
     else if (isWifiRequest){
-      wifiPortDescriptorSendStatus[wifiPortDescriptor] = false;
+      s_wifiPortDescriptorSendStatus[wifiPortDescriptor] = false;
       return true;
     } 
     else if (useSerialMonitor){
@@ -289,17 +289,17 @@ public:
   } 
 
   static void sendHTTPResponseData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
-    if (!wifiPortDescriptorSendStatus[wifiPortDescriptor]){
+    if (!s_wifiPortDescriptorSendStatus[wifiPortDescriptor]){
       sendHttpOKHeader(wifiPortDescriptor); 
-      wifiPortDescriptorSendStatus[wifiPortDescriptor] = true;
+      s_wifiPortDescriptorSendStatus[wifiPortDescriptor] = true;
     } 
     sendHttpData(wifiPortDescriptor, data);
   }  
 
   static void sendHTTPResponseData(const byte &wifiPortDescriptor, const String data){
-    if (!wifiPortDescriptorSendStatus[wifiPortDescriptor]){
+    if (!s_wifiPortDescriptorSendStatus[wifiPortDescriptor]){
       sendHttpOKHeader(wifiPortDescriptor); 
-      wifiPortDescriptorSendStatus[wifiPortDescriptor] = true;
+      s_wifiPortDescriptorSendStatus[wifiPortDescriptor] = true;
     } 
     sendHttpDataFrameStart(wifiPortDescriptor, data.length());
     Serial.print(data);
@@ -307,9 +307,9 @@ public:
   }
 
   static void sendHTTPResponseDataFrameStart(const byte wifiPortDescriptor, word length){ // 1024 bytes max (Wi-Fi module restriction)
-    if (!wifiPortDescriptorSendStatus[wifiPortDescriptor]){
+    if (!s_wifiPortDescriptorSendStatus[wifiPortDescriptor]){
       sendHttpOKHeader(wifiPortDescriptor); 
-      wifiPortDescriptorSendStatus[wifiPortDescriptor] = true;
+      s_wifiPortDescriptorSendStatus[wifiPortDescriptor] = true;
     }    
     sendHttpDataFrameStart(wifiPortDescriptor, length);
   }
@@ -320,7 +320,7 @@ public:
 
 
   static void finishHTTPResponse(const byte &wifiPortDescriptor){  
-    if (!wifiPortDescriptorSendStatus[wifiPortDescriptor]){
+    if (!s_wifiPortDescriptorSendStatus[wifiPortDescriptor]){
       sendHttpNotFoundHeader(wifiPortDescriptor);
     }
     closeConnection(wifiPortDescriptor);
@@ -387,18 +387,18 @@ private:
       return false;
     } 
 
-    boolean isStationMode = (wifiSID.length()>0);    
+    boolean isStationMode = (s_wifiSID.length()>0);    
     if (isStationMode){
-      if (wifiPass.length() > 0){
+      if (s_wifiPass.length() > 0){
         Serial.print(F("at+psk="));
-        Serial.print(wifiPass);
+        Serial.print(s_wifiPass);
         if (!wifiExecuteCommand()){
           return false;
         }
       } 
 
       Serial.print(F("at+connect="));
-      Serial.print(wifiSID);
+      Serial.print(s_wifiSID);
       if (!wifiExecuteCommand()){
         return false;
       }
@@ -464,7 +464,7 @@ private:
       }
     }
     if (rebootOnFalse){
-      restartWifi = true;
+      s_restartWifi = true;
     }
 
     return false;
@@ -500,7 +500,7 @@ private:
         Serial.println(F("WIFI> No response"));
         printDirtyEnd();
       }
-      restartWifi = true;
+      s_restartWifi = true;
     }
 
     return input;

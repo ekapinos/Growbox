@@ -145,7 +145,7 @@ private:
     if (!isStored) {
       Serial.print(F("NOT STORED "));
     }
-    GB_PrintDirty::printTime(logRecord.timeStamp); 
+    Serial.print(GB_PrintDirty::getTimeString(logRecord.timeStamp));  
     Serial.print(F(" 0x")); 
     GB_PrintDirty::printHEX(logRecord.data);
     Serial.print(' '); 

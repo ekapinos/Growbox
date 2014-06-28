@@ -28,6 +28,10 @@
 
 byte g_isDayInGrowbox = -1;
 
+// HTTP response supplemental  
+byte g_isWifiRequest = false;  
+byte g_wifiPortDescriptor = 0xFF;  
+
 /////////////////////////////////////////////////////////////////////
 //                              STATUS                             //
 /////////////////////////////////////////////////////////////////////
@@ -61,14 +65,14 @@ boolean isDayInGrowbox(){
 //                                MAIN                             //
 /////////////////////////////////////////////////////////////////////
 
-  static void printBootStatus(const __FlashStringHelper* str){ //TODO 
-    if (GB_SerialHelper::useSerialMonitor){
-      Serial.print(F("Checking "));
-      Serial.print(str);
-      Serial.println(F("..."));
-      //GB_SerialHelper::printDirtyEnd();
-    }
+static void printSendBootStatus(const __FlashStringHelper* str){ //TODO 
+  if (GB_SerialHelper::useSerialMonitor){
+    Serial.print(F("Checking "));
+    Serial.print(str);
+    Serial.println(F("..."));
+    //GB_SerialHelper::printDirtyEnd();
   }
+}
 
 // the setup routine runs once when you press reset:
 void setup() {                
@@ -101,8 +105,8 @@ void setup() {
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
   if(GB_SerialHelper::useSerialMonitor){
-    printFreeMemory();
-    printBootStatus(F("software configuration"));
+    printSendFreeMemory();
+    printSendBootStatus(F("software configuration"));
     //GB_SerialHelper::printDirtyEnd();
   }
 
@@ -149,7 +153,7 @@ void setup() {
   GB_Controller::checkFreeMemory();
 
   if(GB_SerialHelper::useSerialMonitor){ 
-    printBootStatus(F("clock"));
+    printSendBootStatus(F("clock"));
     //GB_SerialHelper::printDirtyEnd();
   }
 
@@ -164,7 +168,7 @@ void setup() {
   GB_Controller::checkFreeMemory();
 
   if(GB_SerialHelper::useSerialMonitor){ 
-    printBootStatus(F("termometer"));
+    printSendBootStatus(F("termometer"));
     //GB_SerialHelper::printDirtyEnd();
   }
 
@@ -177,7 +181,7 @@ void setup() {
   GB_Controller::checkFreeMemory();
 
   if(GB_SerialHelper::useSerialMonitor){ 
-    printBootStatus(F("storage"));
+    printSendBootStatus(F("storage"));
     //GB_SerialHelper::printDirtyEnd();
   }
 
@@ -216,7 +220,7 @@ void setup() {
 
   if(GB_SerialHelper::useSerialMonitor){ 
     if (controllerFreeMemoryBeforeBoot != freeMemory()){
-      printFreeMemory();
+      printSendFreeMemory();
     }
     Serial.println(F("Growbox successfully started"));
     //GB_SerialHelper::printDirtyEnd();
@@ -253,12 +257,14 @@ void serialEvent(){
   byte wifiPortDescriptor;
 
   String input; 
-  if (!GB_SerialHelper::handleSerialEvent(input, isWifiRequest, wifiPortDescriptor)){
+  if (!GB_SerialHelper::handleSerialEvent(input, g_isWifiRequest, g_wifiPortDescriptor)){
     return;
   }
 
-  executeCommand(input, isWifiRequest, wifiPortDescriptor);
+  executeCommand(input);
 
+  g_isWifiRequest = false;
+  g_wifiPortDescriptor = 0x00;
 }
 
 
@@ -394,13 +400,13 @@ void turnOffFan(){
 //                     HTTP SUPPLEMENTAL COMMANDS                  //
 /////////////////////////////////////////////////////////////////////
 
-static void printTagA(const byte wifiPortDescriptor, const __FlashStringHelper* url, const __FlashStringHelper* name){
+static void sendHTTPtagA(const byte wifiPortDescriptor, const __FlashStringHelper* url, const __FlashStringHelper* name){
   const __FlashStringHelper* part1 = F("<a href=\"");
   const __FlashStringHelper* part2 = F("\">");
   const __FlashStringHelper* part3 = F("</a> ");
-  
+
   word length = flashStringLength(part1) + flashStringLength(part2) + flashStringLength(part3) + flashStringLength(url) + flashStringLength(name) ;
-  
+
   GB_SerialHelper::sendHTTPResponseDataFrameStart(wifiPortDescriptor, length);
   Serial.print(part1);
   Serial.print(url);
@@ -410,227 +416,252 @@ static void printTagA(const byte wifiPortDescriptor, const __FlashStringHelper* 
   GB_SerialHelper::sendHTTPResponseDataFrameStop();
 }
 
-static void executeCommand(String &input, const boolean isWifiRequest, const byte wifiPortDescriptor){
+static void executeCommand(String &input){
 
-  if (isWifiRequest){
-      GB_SerialHelper::sendHTTPResponseData(wifiPortDescriptor, F("<h1>Growbox</h1>"));
-      printTagA(wifiPortDescriptor, F("/"), F("Home"));
-      printTagA(wifiPortDescriptor, F("/status"), F("Status"));
-      printTagA(wifiPortDescriptor, F("/log"), F("Log"));
-      GB_SerialHelper::sendHTTPResponseData(wifiPortDescriptor, F("<hr/>"));
-  } else {
-    input = "input;
+  if (g_isWifiRequest){
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<h1>Growbox</h1>"));
+    sendHTTPtagA(g_wifiPortDescriptor, F("/"), F("Home"));
+    //sendHTTPtagA(wifiPortDescriptor, F("/status"), F("Status"));
+    sendHTTPtagA(g_wifiPortDescriptor, F("/log"), F("Log"));
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<hr/>"));
   }
 
+
+  if (input.equals("/")){
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<pre>"));
+    printSendFullStatus(); 
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("</pre>"));
+  }
+  /*
   // read the incoming byte:
-  char firstChar = 0, secondChar = 0; 
-  firstChar = input[0];
-  if (input.length() > 1){
-    secondChar = input[1];
+   char firstChar = 0, secondChar = 0; 
+   firstChar = input[0];
+   if (input.length() > 1){
+   secondChar = input[1];
+   }
+   
+   Serial.print(F("COMMAND>"));
+   Serial.print(firstChar);
+   if (secondChar != 0){
+   Serial.print(secondChar);
+   }
+   Serial.println();
+   
+   boolean printEvents = true; // can't put in switch, Arduino bug
+   boolean printErrors = true;
+   boolean printTemperature = true;
+   
+   switch(firstChar){
+   case 's':
+   printprintSendFullStatus(); 
+   break;  
+   
+   case 'l':
+   switch(secondChar){
+   case 'c': 
+   Serial.println(F("Stored log records cleaned"));
+   GB_StorageHelper::resetStoredLog();
+   break;
+   case 'e':
+   Serial.println(F("Logger store enabled"));
+   GB_StorageHelper::setStoreLogRecordsEnabled(true);
+   break;
+   case 'd':
+   Serial.println(F("Logger store disabled"));
+   GB_StorageHelper::setStoreLogRecordsEnabled(false);
+   break;
+   case 't': 
+   printErrors = printEvents = false;
+   break;
+   case 'r': 
+   printEvents = printTemperature = false;
+   break;
+   case 'v': 
+   printTemperature = printErrors = false;
+   break;
+   } 
+   if ((secondChar != 'c') && (secondChar != 'e') && (secondChar != 'd')){
+   GB_Logger::printFullLog(printEvents,  printErrors,  printTemperature );
+   }
+   break; 
+   
+   case 'b': 
+   switch(secondChar){
+   case 'c': 
+   Serial.println(F("Cleaning boot record"));
+   
+   GB_StorageHelper::resetFirmware();
+   Serial.println(F("Magic number corrupted, reseting"));
+   
+   Serial.println('5');
+   delay(1000);
+   Serial.println('4');
+   delay(1000);
+   Serial.println('3');
+   delay(1000);
+   Serial.println('2');
+   delay(1000);
+   Serial.println('1');
+   delay(1000);
+   Serial.println(F("Rebooting..."));
+   GB_Controller::rebootController();
+   break;
+   } 
+   
+   Serial.println(F("Currnet boot record"));
+   Serial.print(F("-Memory : ")); 
+   {// TODO compilator madness
+   BootRecord bootRecord = GB_StorageHelper::getBootRecord();
+   GB_PrintDirty::printRAM(&bootRecord, sizeof(BootRecord));
+   Serial.println();
+   }
+   Serial.print(F("-Storage: ")); 
+   printStorage(0, sizeof(BootRecord));
+   
+   break;  
+   
+   case 'm':    
+   switch(secondChar){
+   case '0': 
+   GB_Storage::fillStorage(0x00); 
+   break; 
+   case 'a': 
+   GB_Storage::fillStorage(0xAA); 
+   break; 
+   case 'f': 
+   GB_Storage::fillStorage(0xFF); 
+   break; 
+   case 'i': 
+   GB_Storage::fillStorageIncremental(); 
+   break; 
+   }
+   printStorage();
+   break; 
+   case 'r':        
+   Serial.println(F("Rebooting..."));
+   GB_Controller::rebootController();
+   break; 
+   default: 
+   GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
+   }
+   */
+  if (g_isWifiRequest) {
+    GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
+  } 
+  else { 
+    // It was command from SerialMonotor 
+    GB_SerialHelper::printDirtyEnd();
   }
+}
 
-  Serial.print(F("COMMAND>"));
-  Serial.print(firstChar);
-  if (secondChar != 0){
-    Serial.print(secondChar);
+static void printSendData(const __FlashStringHelper* data){
+  if (g_isWifiRequest){
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, data);
+  } 
+  else {
+    Serial.print(data); 
   }
-  Serial.println();
+}
 
-  boolean printEvents = true; // can't put in switch, Arduino bug
-  boolean printErrors = true;
-  boolean printTemperature = true;
-
-  switch(firstChar){
-  case 's':
-    printStatus(); 
-    break;  
-
-  case 'l':
-    switch(secondChar){
-    case 'c': 
-      Serial.println(F("Stored log records cleaned"));
-      GB_StorageHelper::resetStoredLog();
-      break;
-    case 'e':
-      Serial.println(F("Logger store enabled"));
-      GB_StorageHelper::setStoreLogRecordsEnabled(true);
-      break;
-    case 'd':
-      Serial.println(F("Logger store disabled"));
-      GB_StorageHelper::setStoreLogRecordsEnabled(false);
-      break;
-    case 't': 
-      printErrors = printEvents = false;
-      break;
-    case 'r': 
-      printEvents = printTemperature = false;
-      break;
-    case 'v': 
-      printTemperature = printErrors = false;
-      break;
-    } 
-    if ((secondChar != 'c') && (secondChar != 'e') && (secondChar != 'd')){
-      GB_Logger::printFullLog(printEvents,  printErrors,  printTemperature );
-    }
-    break; 
-
-  case 'b': 
-    switch(secondChar){
-    case 'c': 
-      Serial.println(F("Cleaning boot record"));
-
-      GB_StorageHelper::resetFirmware();
-      Serial.println(F("Magic number corrupted, reseting"));
-
-      Serial.println('5');
-      delay(1000);
-      Serial.println('4');
-      delay(1000);
-      Serial.println('3');
-      delay(1000);
-      Serial.println('2');
-      delay(1000);
-      Serial.println('1');
-      delay(1000);
-      Serial.println(F("Rebooting..."));
-      GB_Controller::rebootController();
-      break;
-    } 
-
-    Serial.println(F("Currnet boot record"));
-    Serial.print(F("-Memory : ")); 
-    {// TODO compilator madness
-      BootRecord bootRecord = GB_StorageHelper::getBootRecord();
-      GB_PrintDirty::printRAM(&bootRecord, sizeof(BootRecord));
-      Serial.println();
-    }
-    Serial.print(F("-Storage: ")); 
-    printStorage(0, sizeof(BootRecord));
-
-    break;  
-
-  case 'm':    
-    switch(secondChar){
-    case '0': 
-      GB_Storage::fillStorage(0x00); 
-      break; 
-    case 'a': 
-      GB_Storage::fillStorage(0xAA); 
-      break; 
-    case 'f': 
-      GB_Storage::fillStorage(0xFF); 
-      break; 
-    case 'i': 
-      GB_Storage::fillStorageIncremental(); 
-      break; 
-    }
-    printStorage();
-    break; 
-  case 'r':        
-    Serial.println(F("Rebooting..."));
-    GB_Controller::rebootController();
-    break; 
-  default: 
-    GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
+/// TODO optimize it
+static void printSendData(int data){
+  if (g_isWifiRequest){
+    String str; 
+    str += data;
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, str);
+  } 
+  else {
+    Serial.print(data); 
   }
+}
 
-  if (isWifiRequest) {
-    GB_SerialHelper::finishHTTPResponse(wifiPortDescriptor);
+static void printSendData(word data){
+  if (g_isWifiRequest){
+    String str; 
+    str += data;
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, str);
+  } 
+  else {
+    Serial.print(data); 
   }
-  //else { // TODO temporary!!!!!!!!!!!!!!!!!!!!
-  // It was command from SerialMonotor 
-  GB_SerialHelper::printDirtyEnd();
-  // }
+}
+
+static void printSendData(char data){
+  if (g_isWifiRequest){
+    String str; 
+    str += data;
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, str);
+  } 
+  else {
+    Serial.print(data); 
+  }
+}
+
+static void printSendData(time_t data){
+  String str = GB_PrintDirty::getTimeString(data);
+  if (g_isWifiRequest){
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, str);
+  } 
+  else {
+    Serial.print(str); 
+  }
 }
 
 
-static void printFreeMemory(){
-  Serial.print(F("Free memory: "));     // print how much RAM is available.
-  Serial.print(freeMemory(), DEC);  // print how much RAM is available.
-  Serial.println(F(" bytes"));     // print how much RAM is available.
-}
-
-void printStorage(word address, byte sizeOf){
-  byte buffer[sizeOf];
-  GB_Storage::read(address, buffer, sizeOf);
-  GB_PrintDirty::printRAM(buffer, sizeOf);
-  Serial.println();
-}
-
-void printStorage(){
-  Serial.print(F("  "));
-  for (word i = 0; i < 16 ; i++){
-    Serial.print(F("  "));
-    Serial.print(i, HEX); 
-    Serial.print(' ');
-  }
-  for (word i = 0; i < GB_Storage::CAPACITY ; i++){
-    byte value = GB_Storage::read(i);
-
-    if (i% 16 ==0){
-      Serial.println();
-      GB_PrintDirty::printHEX(i/16);
-    }
-    Serial.print(" ");
-    GB_PrintDirty::printHEX(value);
-    Serial.print(" ");
-  }
-  Serial.println();  
-}
-
-
-static void printStatus(){
-  printFreeMemory();
-  printBootStatus();
-  printTimeStatus();
+static void printSendFullStatus(){
+  printSendFreeMemory();
+  printSendBootStatus();
+  printSendTimeStatus();
   printTemperatureStatus();
-  printPinsStatus();
-  Serial.println();
+  /* printPinsStatus();
+   Serial.println();*/
 }
 
-
+void printSendFreeMemory(){  
+  printSendData(F("Free memory: "));
+  printSendData(freeMemory()); 
+  printSendData(F(" bytes\r\n"));
+}
 
 // private:
 
-static void printBootStatus(){
-  Serial.print(F("Controller: frist startup time: ")); 
-  GB_PrintDirty::printTime(GB_StorageHelper::getFirstStartupTimeStamp());
-  Serial.print(F(", last startup time: ")); 
-  GB_PrintDirty::printTime(GB_StorageHelper::getLastStartupTimeStamp());
-  Serial.println();
-  Serial.print(F("Logger: "));
+static void printSendBootStatus(){
+  printSendData(F("Controller: frist startup time: ")); 
+  printSendData(GB_StorageHelper::getFirstStartupTimeStamp());
+  printSendData(F(", last startup time: ")); 
+  printSendData(GB_StorageHelper::getLastStartupTimeStamp());
+  printSendData(F("\r\nLogger: "));
   if (GB_StorageHelper::isStoreLogRecordsEnabled()){
-    Serial.print(F("enabled"));
+    printSendData(F("enabled"));
   } 
   else {
-    Serial.print(F("disabled"));
+    printSendData(F("disabled"));
   }
-  Serial.print(F(", records: "));
-  Serial.print(GB_StorageHelper::getLogRecordsCount());
-  Serial.print('/');
-  Serial.print(GB_StorageHelper::LOG_CAPACITY);
+  printSendData(F(", records: "));
+  printSendData(GB_StorageHelper::getLogRecordsCount());
+  printSendData('/');
+  printSendData(GB_StorageHelper::LOG_CAPACITY);
   if (GB_StorageHelper::isLogOverflow()){
-    Serial.print(F(", overflow"));
+    printSendData(F(", overflow"));
   } 
-  Serial.println();
+  printSendData(F("\r\n"));
 }
 
-static void printTimeStatus(){
-  Serial.print(F("Clock: mode:")); 
+static void printSendTimeStatus(){
+  printSendData(F("Clock: ")); 
   if (g_isDayInGrowbox) {
-    Serial.print(F("DAY"));
+    printSendData(F("DAY"));
   } 
   else{
-    Serial.print(F("NIGHT"));
+    printSendData(F("NIGHT"));
   }
-  Serial.print(F(", current time: ")); 
-  GB_PrintDirty::printTime(now());
-  Serial.print(F(", up time: [")); 
-  Serial.print(UP_HOUR); 
-  Serial.print(F(":00], down time: ["));
-  Serial.print(DOWN_HOUR);
-  Serial.print(F(":00], "));
-  Serial.println();
+  printSendData(F(" mode, current time ")); 
+  printSendData(now());
+  printSendData(F(", up time [")); 
+  printSendData(UP_HOUR); 
+  printSendData(F(":00], down time ["));
+  printSendData(DOWN_HOUR);
+  printSendData(F(":00]\r\n"));
 }
 
 static void printTemperatureStatus(){
@@ -737,6 +768,40 @@ static void printPinsStatus(){
 
 
 }
+
+
+void printStorage(word address, byte sizeOf){
+  byte buffer[sizeOf];
+  GB_Storage::read(address, buffer, sizeOf);
+  GB_PrintDirty::printRAM(buffer, sizeOf);
+  Serial.println();
+}
+
+void printStorage(){
+  Serial.print(F("  "));
+  for (word i = 0; i < 16 ; i++){
+    Serial.print(F("  "));
+    Serial.print(i, HEX); 
+    Serial.print(' ');
+  }
+  for (word i = 0; i < GB_Storage::CAPACITY ; i++){
+    byte value = GB_Storage::read(i);
+
+    if (i% 16 ==0){
+      Serial.println();
+      GB_PrintDirty::printHEX(i/16);
+    }
+    Serial.print(" ");
+    GB_PrintDirty::printHEX(value);
+    Serial.print(" ");
+  }
+  Serial.println();  
+}
+
+
+
+
+
 
 
 

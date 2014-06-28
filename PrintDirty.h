@@ -2,40 +2,50 @@
 #define GB_PrintDirty_h
 
 class GB_PrintDirty {
-
 public:
 
-  static void printTime(time_t time){
+  static String getFixedDigitsString(const int number, const byte numberOfDigits){
+    String out;
+    for (int i = 0; i< numberOfDigits; i++){
+      out +='0';
+    }
+    out += number;
+    return out.substring(out.length()-numberOfDigits);
+  }
+
+  static String getTimeString(time_t time){
+    String out;
+
     tmElements_t tm;
     breakTime(time, tm);
-    Serial.print('[');
-    // digital clock display of the time
-    print2digits(tm.Hour);
-    Serial.print(':');
-    print2digits(tm.Minute);
-    Serial.print(':');
-    print2digits(tm.Second);
-    Serial.print(' ');
-    print2digits(tm.Day);
-    Serial.print('.');
-    print2digits(tm.Month);
-    Serial.print('.');
-    Serial.print(tmYearToCalendar(tm.Year)); 
-    Serial.print(']');
+
+    out += '[';
+    out += getFixedDigitsString(tm.Hour, 2);
+    out += ':';
+    out += getFixedDigitsString(tm.Minute, 2);
+    out += ':';
+    out += getFixedDigitsString(tm.Second, 2);
+    out += ' ';
+    out += getFixedDigitsString(tm.Day, 2);
+    out +='.';
+    out += getFixedDigitsString(tm.Month, 2);
+    out += '.';
+    out += getFixedDigitsString(tmYearToCalendar(tm.Year), 4); 
+    out += ']';
+    return out;
+  } 
+
+
+  // utility function for digital clock display: prints preceding colon and leading 0
+  static void print2digits(byte number){
+    Serial.print(getFixedDigitsString(number, 2));
   }
 
-  static void print2digits(byte digits){
+  static void printHEX(byte number){
     // utility function for digital clock display: prints preceding colon and leading 0
-    if(digits < 10)
+    if(number < 0x10 )
       Serial.print('0');
-    Serial.print(digits);
-  }
-
-  static void printHEX(byte digits){
-    // utility function for digital clock display: prints preceding colon and leading 0
-    if(digits < 0x10 )
-      Serial.print('0');
-    Serial.print(digits, HEX);
+    Serial.print(number, HEX);
   }
 
 
@@ -48,7 +58,7 @@ public:
       }
     }
   }  
-  
+
   static void printWithoutCRLF(const String &input){   
     for (int i = 0; i<input.length(); i++){
       if (input[i] == '\r'){
@@ -62,7 +72,7 @@ public:
       }
     }
   }
-   
+
   static void printRAM(void *ptr, byte sizeOf){
     byte* buffer =(byte*)ptr;
     for(byte i=0; i<sizeOf; i++){
@@ -73,6 +83,7 @@ public:
 
 };
 #endif
+
 
 
 
