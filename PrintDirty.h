@@ -31,33 +31,49 @@ public:
     Serial.print(digits);
   }
 
-  static void print2digitsHEX(byte digits){
+  static void printHEX(byte digits){
     // utility function for digital clock display: prints preceding colon and leading 0
     if(digits < 0x10 )
       Serial.print('0');
     Serial.print(digits, HEX);
   }
 
-  static void printRAM(void *ptr, byte sizeOf){
-    byte* buffer =(byte*)ptr;
-    for(byte i=0; i<sizeOf; i++){
-      print2digitsHEX(buffer[i]);
-      Serial.print(' ');
-    }
-  }
 
-  static void printHEX(const String input){   
+  static void printHEX(const String &input){   
     for(int i = 0; i<input.length(); i++){
       byte c = input[i];
-      print2digitsHEX(c);
+      printHEX(c);
       if ((i+1)<input.length()) {
         Serial.print(' '); 
       }
     }
   }  
+  
+  static void printWithoutCRLF(const String &input){   
+    for (int i = 0; i<input.length(); i++){
+      if (input[i] == '\r'){
+        Serial.print(F("\\r"));
+      } 
+      else if (input[i] == '\n'){
+        Serial.print(F("\\n"));
+      } 
+      else {
+        Serial.print(input[i]);
+      }
+    }
+  }
+   
+  static void printRAM(void *ptr, byte sizeOf){
+    byte* buffer =(byte*)ptr;
+    for(byte i=0; i<sizeOf; i++){
+      printHEX(buffer[i]);
+      Serial.print(' ');
+    }
+  }
 
 };
 #endif
+
 
 
 

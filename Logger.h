@@ -147,7 +147,7 @@ private:
     }
     GB_PrintDirty::printTime(logRecord.timeStamp); 
     Serial.print(F(" 0x")); 
-    GB_PrintDirty::print2digitsHEX(logRecord.data);
+    GB_PrintDirty::printHEX(logRecord.data);
     Serial.print(' '); 
     Serial.print(description);
     if (temperature != 0xFF) {

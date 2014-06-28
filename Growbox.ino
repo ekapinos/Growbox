@@ -21,7 +21,6 @@
 #include "Thermometer.h"
 #include "SerialHelper.h"
 
-#define GB_EXTRA_STRINGS
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //
@@ -85,8 +84,9 @@ void setup() {
   // Configure inputs
   //attachInterrupt(0, interrapton0handler, CHANGE); // PIN 2
 
-  // We need to check Wi-Fi before use print to SerialMonitor
   g_isGrowboxStarted = false;
+
+  // We need to check Wi-Fi before use print to SerialMonitor
   int controllerFreeMemoryBeforeBoot = freeMemory();
 
   GB_SerialHelper::checkSerial(true, true);
@@ -176,6 +176,15 @@ void setup() {
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean itWasRestart = GB_StorageHelper::start();
 
+ if (GB_SerialHelper::useSerialWifi){ 
+    if(GB_SerialHelper::useSerialMonitor){ 
+      Serial.println(F("Starting wi-fi..."));
+      GB_SerialHelper::printDirtyEnd();
+    }
+    GB_SerialHelper::setWifiConfiguration("Hell", "flat65router"); // OPTIMIZE IT
+    GB_SerialHelper::startWifi();
+  }
+
   g_isGrowboxStarted = true;
 
   // Now we can use logger
@@ -197,14 +206,6 @@ void setup() {
     switchToNightMode();
   }
 
-  if (GB_SerialHelper::useSerialWifi){ 
-    if(GB_SerialHelper::useSerialMonitor){ 
-      Serial.println(F("Starting wi-fi..."));
-      GB_SerialHelper::printDirtyEnd();
-    }
-    GB_SerialHelper::startWifi();
-  }
-
   // Create main life circle timer
   Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
   Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus);  
@@ -214,10 +215,10 @@ void setup() {
   Alarm.alarmRepeat(UP_HOUR, 00, 00, switchToDayMode);      // repeat once every day
   Alarm.alarmRepeat(DOWN_HOUR, 00, 00, switchToNightMode);  // repeat once every day
 
-  if (controllerFreeMemoryBeforeBoot != freeMemory()){
-    printFreeMemory();
-  }
   if(GB_SerialHelper::useSerialMonitor){ 
+    if (controllerFreeMemoryBeforeBoot != freeMemory()){
+      printFreeMemory();
+    }
     Serial.println(F("Growbox successfully started"));
     GB_SerialHelper::printDirtyEnd();
   }
@@ -267,52 +268,14 @@ void serialEvent(){
     return; //Do not handle events during startup
   }
 
-  String input; 
-  while (Serial.available()){
-    input += (char) Serial.read();
-    //delay(20);
-  }
-
-  if (GB_SerialHelper::useSerialMonitor) {
-    Serial.print(F("SERIAL> "));
-    GB_PrintDirty::printHEX(input);
-    Serial.print(F(" > "));
-    Serial.print(input);
-    if (!input.endsWith("\r\n")){
-      Serial.println();
-    }     
-    GB_SerialHelper::printDirtyEnd();
-  }  
-
-  // somthing wrong with Wi-Fi, we need to reboot it
-  if (input.indexOf(WIFI_RESPONSE_WELLCOME) >= 0 || input.indexOf(WIFI_RESPONSE_ERROR) >= 0){ // TODO move to SerialHelper file
-    GB_SerialHelper::useSerialWifi = false; // TODO only for logging
-    GB_SerialHelper::checkSerial(false, true);
-    return;
-  }
-
-  byte wifiPortDescriptor;
-  boolean isWifiCommand = GB_SerialHelper::isWifiCommand(input, &wifiPortDescriptor); // TOOD merge with upper code
-  if (isWifiCommand) {  
-    input = GB_SerialHelper::parseWifiCommandURL(wifiPortDescriptor, input);   
-    if (input.length() > 0){ 
-      GB_SerialHelper::sendHttpHeader(wifiPortDescriptor, WIFI_HTTP_RESPONSE_OK, 7);  
-      GB_SerialHelper::sendHttpDataFrameStart(wifiPortDescriptor, 7);
-      Serial.print(F("Growbox"));
-      GB_SerialHelper::sendHttpDataFrameStop();
-      //GB_SerialHelper::closeHttpConnection(); // client driven
-
-    }
-    return;
-  }
-  else if (!GB_SerialHelper::useSerialMonitor){   
-    return; // Serial monitor disabled
-  }
-
+  String input = GB_SerialHelper::readSerial();
+ 
   input.trim();
   if (input.length() == 0){
     return;
   }
+  
+  boolean isWifiCommand = (input[0] == '/');
 
   executeCommand(input);
 
@@ -406,7 +369,7 @@ void updateThermometerStatistics(){ // should return void
 }
 
 void updateWiFiStatus(){ // should return void
-  GB_SerialHelper::updateWiFiStatus(); 
+  //GB_SerialHelper::updateWiFiStatus(); 
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -600,10 +563,10 @@ void printStorage(){
 
     if (i% 16 ==0){
       Serial.println();
-      GB_PrintDirty::print2digitsHEX(i/16);
+      GB_PrintDirty::printHEX(i/16);
     }
     Serial.print(" ");
-    GB_PrintDirty::print2digitsHEX(value);
+    GB_PrintDirty::printHEX(value);
     Serial.print(" ");
   }
   Serial.println();  
@@ -766,6 +729,7 @@ static void printPinsStatus(){
     Serial.println();
   }
 }
+
 
 
 
