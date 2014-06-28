@@ -447,8 +447,8 @@ private:
     else if (input.startsWith(WIFI_RESPONSE_ERROR) && input.endsWith("\r\n")) {
       if (useSerialMonitor){
         byte errorCode = input[5];
-        Serial.print(F("WIFI> error 0x"));
-        GB_PrintDirty::printHEX(errorCode);
+        Serial.print(F("WIFI> error "));
+        GB_PrintDirty::printHEX(errorCode, true);
         Serial.println();
         printDirtyEnd();
       }      

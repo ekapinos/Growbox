@@ -13,6 +13,30 @@ public:
     return out.substring(out.length()-numberOfDigits);
   }
 
+  static String getHEX(byte number, boolean addPrefix = false){
+    String out(number, HEX);
+    if(number < 0x10){
+      out = String('0') + out;
+    }
+    if (addPrefix){
+      out = String("0x") + out;
+    }
+    return out;
+  }
+  static String floatToString(float number){
+    String out;
+
+    int temp = number*100;
+    int whole = temp/100;
+    int fract = temp%100;
+
+    out += whole;
+    out += '.';
+    out += getFixedDigitsString(temp,2);
+    return out;
+  }
+
+
   static String getTimeString(time_t time){
     String out;
 
@@ -41,11 +65,8 @@ public:
     Serial.print(getFixedDigitsString(number, 2));
   }
 
-  static void printHEX(byte number){
-    // utility function for digital clock display: prints preceding colon and leading 0
-    if(number < 0x10 )
-      Serial.print('0');
-    Serial.print(number, HEX);
+  static void printHEX(byte number, boolean addPrefix = false){
+    Serial.print(getHEX(number));
   }
 
 
@@ -83,6 +104,7 @@ public:
 
 };
 #endif
+
 
 
 

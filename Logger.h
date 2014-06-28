@@ -58,53 +58,23 @@ public:
   //                        GROWBOX COMMANDS                         //
   /////////////////////////////////////////////////////////////////////
 
-  static void printFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
+  static int getLogRecordsCount(){
+    return GB_StorageHelper::getLogRecordsCount();
+  }  
+
+  static LogRecord getLogRecordByIndex(int index){
     LogRecord logRecord;
-    boolean isEmpty = true;
-    for (int i = 0; i<=GB_StorageHelper::getLogRecordsCount(); i++){
-      if (GB_StorageHelper::getLogRecordByIndex(i, logRecord)){
-        if (!printEvents && isEvent(logRecord)){
-          continue;
-        }
-        if (!printErrors && isError(logRecord)){
-          continue;
-        }
-        if (!printTemperature && isTemperature(logRecord)){
-          continue;
-        }
-        Serial.print('#');
-        Serial.print(i+1);
-        Serial.print(' ');
-        const __FlashStringHelper* description = getLogRecordDescription(logRecord);
-        if (isTemperature(logRecord)){
-          byte temperature = (logRecord.data & B00111111);
-          printDirtyLogRecord(logRecord, description, true, temperature);
-        } 
-        else {
-          printDirtyLogRecord(logRecord, description, true);
-        }
-        isEmpty = false;
-      } 
-      else {
-        // TODO check it
-      }  
-    }
-    if (isEmpty){
-      Serial.println(F("Log empty"));
-    }
-    // GB_SerialHelper::printEnd();  - no need it is Growbox command
+    GB_StorageHelper::getLogRecordByIndex(index, logRecord);
+    return logRecord;
   }
 
-private:
-
-  static boolean isEvent(LogRecord &logRecord){
-    return (logRecord.data & B11000000) == B00000000;
-  }
-  static boolean isError(LogRecord &logRecord){
-    return (logRecord.data & B11000000) == B01000000;
-  }
-  static boolean isTemperature(LogRecord &logRecord){
-    return (logRecord.data & B11000000) == B11000000;
+  static String getLogRecordPrefix(const LogRecord &logRecord){        
+    String out;
+    out += GB_PrintDirty::getTimeString(logRecord.timeStamp);
+    out += ' '; 
+    out += GB_PrintDirty::getHEX(logRecord.data, true);
+    out += ' '; 
+    return out;
   }
 
   static const __FlashStringHelper* getLogRecordDescription(LogRecord &logRecord) {
@@ -136,8 +106,35 @@ private:
       return F("Unknown");
     }
   }
+  
+  static String getLogRecordSuffix(const LogRecord &logRecord){        
+    String out;
+    if (isTemperature(logRecord)) {
+      byte temperature = (logRecord.data & B00111111);
+      out += " [";
+      out += temperature;
+      out += "] C";
+    }
+    //Serial.print(F(" HEX: "));
+    //GB_PrintDirty::printRAM(&((LogRecord)logRecord), sizeof(LogRecord));  
 
-  static void printDirtyLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, boolean isStored, byte temperature = 0xFF){
+    return out;
+  }
+
+  static boolean isEvent(const LogRecord &logRecord){
+    return (logRecord.data & B11000000) == B00000000;
+  }
+  static boolean isError(const LogRecord &logRecord){
+    return (logRecord.data & B11000000) == B01000000;
+  }
+  static boolean isTemperature(const LogRecord &logRecord){
+    return (logRecord.data & B11000000) == B11000000;
+  }
+
+
+private:
+
+  static void printDirtyLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean isStored, const byte temperature = 0xFF){
     if (!GB_SerialHelper::useSerialMonitor) {
       return;
     }
@@ -145,24 +142,19 @@ private:
     if (!isStored) {
       Serial.print(F("NOT STORED "));
     }
-    Serial.print(GB_PrintDirty::getTimeString(logRecord.timeStamp));  
-    Serial.print(F(" 0x")); 
-    GB_PrintDirty::printHEX(logRecord.data);
-    Serial.print(' '); 
+    Serial.print(getLogRecordPrefix(logRecord));    
     Serial.print(description);
-    if (temperature != 0xFF) {
-      Serial.print(F(" ["));
-      Serial.print((unsigned byte)temperature);
-      Serial.print(F("] C"));
-    }
-    //Serial.print(F(" HEX: "));
-    //GB_PrintDirty::printRAM(&((LogRecord)logRecord), sizeof(LogRecord));
+    Serial.print(getLogRecordSuffix(logRecord));  
+
     Serial.println();      
   }
 
 };
 
 #endif
+
+
+
 
 
 

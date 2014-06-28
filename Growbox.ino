@@ -400,14 +400,65 @@ void turnOffFan(){
 //                     HTTP SUPPLEMENTAL COMMANDS                  //
 /////////////////////////////////////////////////////////////////////
 
-static void sendHTTPtagA(const byte wifiPortDescriptor, const __FlashStringHelper* url, const __FlashStringHelper* name){
+static void printSendData(const __FlashStringHelper* data){
+  if (g_isWifiRequest){
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, data);
+  } 
+  else {
+    Serial.print(data); 
+  }
+}
+
+static void printSendData(const String &data){
+  if (g_isWifiRequest){
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, data);
+  } 
+  else {
+    Serial.print(data); 
+  }
+}
+
+static void printSendDataLn(){
+  printSendData(F("\r\n"));
+}
+
+/// TODO optimize it
+static void printSendData(int data){
+  String str; 
+  str += data;
+  printSendData(str);
+}
+
+static void printSendData(word data){
+  String str; 
+  str += data;
+  printSendData(str);
+}
+
+static void printSendData(char data){
+  String str; 
+  str += data;
+  printSendData(str);
+}
+
+static void printSendData(float data){
+  String str = GB_PrintDirty::floatToString(data);
+  printSendData(str);
+}
+
+static void printSendData(time_t data){
+  String str = GB_PrintDirty::getTimeString(data);
+  printSendData(str);
+}
+
+static void sendHTTPtagA(const __FlashStringHelper* url, const __FlashStringHelper* name){
   const __FlashStringHelper* part1 = F("<a href=\"");
   const __FlashStringHelper* part2 = F("\">");
   const __FlashStringHelper* part3 = F("</a> ");
 
   word length = flashStringLength(part1) + flashStringLength(part2) + flashStringLength(part3) + flashStringLength(url) + flashStringLength(name) ;
 
-  GB_SerialHelper::sendHTTPResponseDataFrameStart(wifiPortDescriptor, length);
+  GB_SerialHelper::sendHTTPResponseDataFrameStart(g_wifiPortDescriptor, length);
   Serial.print(part1);
   Serial.print(url);
   Serial.print(part2);
@@ -416,20 +467,28 @@ static void sendHTTPtagA(const byte wifiPortDescriptor, const __FlashStringHelpe
   GB_SerialHelper::sendHTTPResponseDataFrameStop();
 }
 
+static void sendHTTPtagHR(){
+  printSendData(F("<hr/>"));
+}
+
 static void executeCommand(String &input){
 
   if (g_isWifiRequest){
     GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<h1>Growbox</h1>"));
-    sendHTTPtagA(g_wifiPortDescriptor, F("/"), F("Home"));
-    //sendHTTPtagA(wifiPortDescriptor, F("/status"), F("Status"));
-    sendHTTPtagA(g_wifiPortDescriptor, F("/log"), F("Log"));
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<hr/>"));
+    sendHTTPtagA(F("/"), F("Home"));
+    //sendHTTPtagA(F("/status"), F("Status"));
+    sendHTTPtagA(F("/log"), F("Log"));
+    sendHTTPtagHR();
   }
-
 
   if (input.equals("/")){
     GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<pre>"));
     printSendFullStatus(); 
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("</pre>"));
+  } 
+  else if (input.equals("/log")){
+    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<pre>"));
+    printSendFullLog(true, true, true); 
     GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("</pre>"));
   }
   /*
@@ -554,67 +613,12 @@ static void executeCommand(String &input){
   }
 }
 
-static void printSendData(const __FlashStringHelper* data){
-  if (g_isWifiRequest){
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, data);
-  } 
-  else {
-    Serial.print(data); 
-  }
-}
-
-/// TODO optimize it
-static void printSendData(int data){
-  if (g_isWifiRequest){
-    String str; 
-    str += data;
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, str);
-  } 
-  else {
-    Serial.print(data); 
-  }
-}
-
-static void printSendData(word data){
-  if (g_isWifiRequest){
-    String str; 
-    str += data;
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, str);
-  } 
-  else {
-    Serial.print(data); 
-  }
-}
-
-static void printSendData(char data){
-  if (g_isWifiRequest){
-    String str; 
-    str += data;
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, str);
-  } 
-  else {
-    Serial.print(data); 
-  }
-}
-
-static void printSendData(time_t data){
-  String str = GB_PrintDirty::getTimeString(data);
-  if (g_isWifiRequest){
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, str);
-  } 
-  else {
-    Serial.print(str); 
-  }
-}
-
-
 static void printSendFullStatus(){
   printSendFreeMemory();
   printSendBootStatus();
   printSendTimeStatus();
-  printTemperatureStatus();
-  /* printPinsStatus();
-   Serial.println();*/
+  printSendTemperatureStatus();
+  printSendPinsStatus();
 }
 
 void printSendFreeMemory(){  
@@ -637,14 +641,14 @@ static void printSendBootStatus(){
   else {
     printSendData(F("disabled"));
   }
-  printSendData(F(", records: "));
+  printSendData(F(", records "));
   printSendData(GB_StorageHelper::getLogRecordsCount());
   printSendData('/');
   printSendData(GB_StorageHelper::LOG_CAPACITY);
   if (GB_StorageHelper::isLogOverflow()){
     printSendData(F(", overflow"));
   } 
-  printSendData(F("\r\n"));
+  printSendDataLn();
 }
 
 static void printSendTimeStatus(){
@@ -664,44 +668,45 @@ static void printSendTimeStatus(){
   printSendData(F(":00]\r\n"));
 }
 
-static void printTemperatureStatus(){
+static void printSendTemperatureStatus(){
   float workingTemperature, statisticsTemperature;
   int statisticsCount;
   GB_Thermometer::getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
 
-  Serial.print(F("Temperature work:")); 
-  Serial.print(workingTemperature);
-  Serial.print(F(", count:")); 
-  Serial.print(statisticsTemperature);
-  Serial.print(F("(el:")); 
-  Serial.print(statisticsCount);
+  printSendData(F("Temperature: current ")); 
+  printSendData(workingTemperature);
+  printSendData(F(", next ")); 
+  printSendData(statisticsTemperature);
+  printSendData(F(" (count ")); 
+  printSendData(statisticsCount);
 
-  Serial.print(F("), day:"));
-  Serial.print(TEMPERATURE_DAY);
-  Serial.print(F("+/-"));
-  Serial.print(TEMPERATURE_DELTA);
-  Serial.print(F(", night:"));
-  Serial.print(TEMPERATURE_NIGHT);
-  Serial.print(F("+/-"));
-  Serial.print(2*TEMPERATURE_DELTA);
-  Serial.print(F(", critical:"));
-  Serial.print(TEMPERATURE_CRITICAL);
-  Serial.println();
+  printSendData(F("), day "));
+  printSendData(TEMPERATURE_DAY);
+  printSendData(F("+/-"));
+  printSendData(TEMPERATURE_DELTA);
+  printSendData(F(", night "));
+  printSendData(TEMPERATURE_NIGHT);
+  printSendData(F("+/-"));
+  printSendData(2*TEMPERATURE_DELTA);
+  printSendData(F(", critical "));
+  printSendData(TEMPERATURE_CRITICAL);
+  printSendDataLn();
 }
 
-static void printPinsStatus(){
-  Serial.println();
-  Serial.println(F("Pin OUTPUT INPUT")); 
+static void printSendPinsStatus(){
+  sendHTTPtagHR();
+  printSendData(F("Pin OUTPUT INPUT")); 
+  printSendDataLn();
   for(int i=0; i<=19;i++){
-    Serial.print(' ');
+    printSendData(' ');
     if (i>=14){
-      Serial.print('A');
-      Serial.print(i-14);
+      printSendData('A');
+      printSendData(i-14);
     } 
     else { 
-      GB_PrintDirty::print2digits(i);
+      printSendData(GB_PrintDirty::getFixedDigitsString(i, 2));
     }
-    Serial.print(F("  ")); 
+    printSendData(F("  ")); 
 
     boolean io_status, dataStatus, inputStatus;
     if (i<=7){ 
@@ -720,53 +725,91 @@ static void printPinsStatus(){
       inputStatus = bitRead(PINC, i-14);
     }
     if (io_status == OUTPUT){
-      Serial.print(F("  "));
-      Serial.print(dataStatus);
-      Serial.print(F("     -   "));
+      printSendData(F("  "));
+      printSendData(dataStatus);
+      printSendData(F("     -   "));
     } 
     else {
-      Serial.print(F("  -     "));
-      Serial.print(inputStatus);
-      Serial.print(F("   "));
+      printSendData(F("  -     "));
+      printSendData(inputStatus);
+      printSendData(F("   "));
     }
 
 #ifdef GB_EXTRA_STRINGS
     switch(i){
     case 0: 
     case 1: 
-      Serial.print(F("Reserved by Serial/USB. Can be used, if Serial/USB won't be connected"));
+      printSendData(F("Reserved by Serial/USB. Can be used, if Serial/USB won't be connected"));
       break;
     case LIGHT_PIN: 
-      Serial.print(F("Relay: light on(0)/off(1)"));
+      printSendData(F("Relay: light on(0)/off(1)"));
       break;
     case FAN_PIN: 
-      Serial.print(F("Relay: fun on(0)/off(1)"));
+      printSendData(F("Relay: fun on(0)/off(1)"));
       break;
     case FAN_SPEED_PIN: 
-      Serial.print(F("Relay: fun max(0)/min(1) speed switch"));
+      printSendData(F("Relay: fun max(0)/min(1) speed switch"));
       break;
     case ONE_WIRE_PIN: 
-      Serial.print(F("1-Wire: termometer"));
+      printSendData(F("1-Wire: termometer"));
       break;
     case USE_SERIAL_MONOTOR_PIN: 
-      Serial.print(F("Use serial monitor on(1)/off(0)"));
+      printSendData(F("Use serial monitor on(1)/off(0)"));
       break;
     case ERROR_PIN: 
-      Serial.print(F("Error status"));
+      printSendData(F("Error status"));
       break;
     case BREEZE_PIN: 
-      Serial.print(F("Breeze"));
+      printSendData(F("Breeze"));
       break;
     case 18: 
     case 19: 
-      Serial.print(F("Reserved by I2C. Can be used, if SCL, SDA pins will be used"));
+      printSendData(F("Reserved by I2C. Can be used, if SCL, SDA pins will be used"));
       break;
     }
 #endif
-    Serial.println();
+    printSendDataLn();
   }
+}
 
 
+static void printSendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
+  LogRecord logRecord;
+  boolean isEmpty = true;
+  printSendData(F("<table>"));
+  for (int i = 0; i<=GB_Logger::getLogRecordsCount(); i++){
+  
+    logRecord = GB_Logger::getLogRecordByIndex(i);
+    if (!printEvents && GB_Logger::isEvent(logRecord)){
+      continue;
+    }
+    if (!printErrors && GB_Logger::isError(logRecord)){
+      continue;
+    }
+    if (!printTemperature && GB_Logger::isTemperature(logRecord)){
+      continue;
+    }
+    
+    printSendData(F("<tr>"));
+    printSendData(F("<td>"));
+    printSendData(i+1);
+    printSendData(F("</td><td>"));
+    printSendData(GB_PrintDirty::getTimeString(logRecord.timeStamp));    
+    printSendData(F("</td><td>"));
+    printSendData(GB_PrintDirty::getHEX(logRecord.data, true));
+    printSendData(F("</td><td>"));
+    printSendData(GB_Logger::getLogRecordDescription(logRecord));
+    printSendData(GB_Logger::getLogRecordSuffix(logRecord));
+    printSendData(F("</td>"));
+    //printSendDataLn();
+    printSendData(F("</tr>"));
+    isEmpty = false;
+
+  }
+  printSendData(F("</table>"));
+  if (isEmpty){
+    printSendData(F("Log empty"));
+  }
 }
 
 
@@ -797,28 +840,6 @@ void printStorage(){
   }
   Serial.println();  
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
