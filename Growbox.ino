@@ -268,7 +268,7 @@ void serialEvent(){
     return; //Do not handle events during startup
   }
 
-  String input = GB_SerialHelper::readSerial();
+  String input = GB_SerialHelper::handleSerialEvent();
  
   input.trim();
   if (input.length() == 0){
@@ -369,7 +369,7 @@ void updateThermometerStatistics(){ // should return void
 }
 
 void updateWiFiStatus(){ // should return void
-  //GB_SerialHelper::updateWiFiStatus(); 
+  GB_SerialHelper::updateWiFiStatus(); 
 }
 
 /////////////////////////////////////////////////////////////////////
