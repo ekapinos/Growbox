@@ -176,7 +176,7 @@ void setup() {
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean itWasRestart = GB_StorageHelper::start();
 
- if (GB_SerialHelper::useSerialWifi){ 
+  if (GB_SerialHelper::useSerialWifi){ 
     if(GB_SerialHelper::useSerialMonitor){ 
       Serial.println(F("Starting wi-fi..."));
       GB_SerialHelper::printDirtyEnd();
@@ -268,24 +268,16 @@ void serialEvent(){
     return; //Do not handle events during startup
   }
 
-  String input = GB_SerialHelper::handleSerialEvent();
- 
-  input.trim();
-  if (input.length() == 0){
+  boolean isWifiRequest;
+  byte wifiPortDescriptor;
+
+  String input; 
+  if (!GB_SerialHelper::handleSerialEvent(input, isWifiRequest, wifiPortDescriptor)){
     return;
   }
-  
-  boolean isWifiCommand = (input[0] == '/');
 
-  executeCommand(input);
+  executeCommand(input, isWifiRequest, wifiPortDescriptor);
 
-  if (isWifiCommand){
-
-  } 
-  else {
-    // It was command from SerialMonotor 
-    GB_SerialHelper::printDirtyEnd();
-  }
 }
 
 
@@ -418,10 +410,15 @@ void turnOffFan(){
 }
 
 
-static void executeCommand(const String &input){
-
-  boolean isHttp = (input[0] == '/');
-
+static void executeCommand(String &input, const boolean isWifiRequest, const byte wifiPortDescriptor){
+/*
+  if (isWifiRequest){
+    input = input.substring(1);
+  }
+*/
+  if (isWifiRequest){
+    GB_SerialHelper::sendHTTPResponseData(wifiPortDescriptor, F(""));
+  }
   // send data only when you receive data:
 
   // read the incoming byte:
@@ -534,6 +531,14 @@ static void executeCommand(const String &input){
     break; 
   default: 
     GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
+  }
+
+  if (isWifiRequest) {
+    GB_SerialHelper::finishHTTPResponse(wifiPortDescriptor);
+  }
+  else {
+    // It was command from SerialMonotor 
+    GB_SerialHelper::printDirtyEnd();
   }
 }
 
@@ -728,7 +733,11 @@ static void printPinsStatus(){
 #endif
     Serial.println();
   }
+
+
 }
+
+
 
 
 
