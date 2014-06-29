@@ -823,23 +823,23 @@ static void printSendFullLog(boolean printEvents, boolean printErrors, boolean p
     sendHTTPtagTR();
     sendHTTPtagTD();
     printSendData(i+1);
-    sendHTTPtagTD(false);
+    sendHTTPtagTD(true);
     sendHTTPtagTD();
     printSendData(GB_PrintDirty::getTimeString(logRecord.timeStamp));    
-    sendHTTPtagTD(false);
+    sendHTTPtagTD(true);
     sendHTTPtagTD();
     printSendData(GB_PrintDirty::getHEX(logRecord.data, true));
-    sendHTTPtagTD(false);
+    sendHTTPtagTD(true);
     sendHTTPtagTD();
     printSendData(GB_Logger::getLogRecordDescription(logRecord));
     printSendData(GB_Logger::getLogRecordSuffix(logRecord));
-    sendHTTPtagTD(false);
+    sendHTTPtagTD(true);
     //printSendDataLn();
-    sendHTTPtagTR(false);
+    sendHTTPtagTR(true);
     isEmpty = false;
 
   }
-  sendHTTPtagTABLE(false);
+  sendHTTPtagTABLE(true);
   if (isEmpty){
     printSendData(F("Log empty"));
   }
@@ -857,32 +857,32 @@ void printSendStorageDump(){
   sendHTTPtagTABLE();
   sendHTTPtagTR();
   sendHTTPtagTD();
-  sendHTTPtagTD(false);
+  sendHTTPtagTD(true);
   for (word i = 0; i < 16 ; i++){
     sendHTTPtagTD();
     printSendData(GB_PrintDirty::getHEX(i)); 
-    sendHTTPtagTD(false);
+    sendHTTPtagTD(true);
   }
-  sendHTTPtagTR(false);
+  sendHTTPtagTR(true);
 
   for (word i = 0; i < GB_Storage::CAPACITY ; i++){
     byte value = GB_Storage::read(i);
 
     if (i% 16 ==0){
       if (i>0){
-        sendHTTPtagTR(false);
+        sendHTTPtagTR(true);
       }
       sendHTTPtagTR();
       sendHTTPtagTD();
       printSendData(GB_PrintDirty::getHEX(i/16));
-      sendHTTPtagTD(false);
+      sendHTTPtagTD(true);
     }
     sendHTTPtagTD();
     printSendData(GB_PrintDirty::getHEX(value));
-    sendHTTPtagTD(false);
+    sendHTTPtagTD(true);
   }
-  sendHTTPtagTR(false);
-  sendHTTPtagTABLE(false);
+  sendHTTPtagTR(true);
+  sendHTTPtagTABLE(true);
 }
 
 
