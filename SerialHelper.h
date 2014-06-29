@@ -12,8 +12,8 @@ const String WIFI_RESPONSE_ERROR = "ERROR";//"ERROR\xFF\r\n";
 const String WIFI_RESPONSE_OK = "OK";//"OK\r\n";
 const String WIFI_REQUEST_HEADER = "at+recv_data=";
 
-const int WIFI_RESPONSE_DELAY_MAX = 5000; // max delay after "at+" commands 5000ms = 5s
-const int WIFI_RESPONSE_CHECK_INTERVAL = 100; // during 5s interval, we check for answer every 100 ms
+const int WIFI_RESPONSE_DELAY_MAX = 1000; // max delay after "at+" commands 5000ms = 5s
+const int WIFI_RESPONSE_CHECK_INTERVAL = 10; // during 5s interval, we check for answer every 100 ms
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //
@@ -297,6 +297,9 @@ public:
   }  
 
   static void sendHTTPResponseData(const byte &wifiPortDescriptor, const String data){
+    if (data.length() == 0){
+      return;
+    }
     if (!s_wifiPortDescriptorSendStatus[wifiPortDescriptor]){
       sendHttpOKHeader(wifiPortDescriptor); 
       s_wifiPortDescriptorSendStatus[wifiPortDescriptor] = true;
@@ -527,7 +530,11 @@ private:
   }
 
   static void sendHttpData(const byte portDescriptor, const __FlashStringHelper* data){ // INT_MAX (own test) or 1400 bytes max (Wi-Fi spec restriction)
-    sendHttpDataFrameStart(portDescriptor, flashStringLength(data));
+    int length = flashStringLength(data);
+    if (length == 0){
+      return;
+    }
+    sendHttpDataFrameStart(portDescriptor, length);
     Serial.print(data);
     sendHttpDataFrameStop();
   }

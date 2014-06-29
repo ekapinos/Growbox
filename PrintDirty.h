@@ -15,6 +15,7 @@ public:
 
   static String getHEX(byte number, boolean addPrefix = false){
     String out(number, HEX);
+    out.toUpperCase();
     if(number < 0x10){
       out = String('0') + out;
     }

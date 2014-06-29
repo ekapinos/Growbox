@@ -482,14 +482,10 @@ static void executeCommand(String &input){
   }
 
   if (input.equals("/")){
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<pre>"));
     printSendFullStatus(); 
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("</pre>"));
   } 
   else if (input.equals("/log")){
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<pre>"));
     printSendFullLog(true, true, true); 
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("</pre>"));
   }
   /*
   // read the incoming byte:
@@ -614,11 +610,18 @@ static void executeCommand(String &input){
 }
 
 static void printSendFullStatus(){
+  GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<pre>"));
+  
   printSendFreeMemory();
   printSendBootStatus();
   printSendTimeStatus();
   printSendTemperatureStatus();
+  
+  sendHTTPtagHR();
+  
   printSendPinsStatus();
+  
+  GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("</pre>"));
 }
 
 void printSendFreeMemory(){  
@@ -694,7 +697,6 @@ static void printSendTemperatureStatus(){
 }
 
 static void printSendPinsStatus(){
-  sendHTTPtagHR();
   printSendData(F("Pin OUTPUT INPUT")); 
   printSendDataLn();
   for(int i=0; i<=19;i++){
