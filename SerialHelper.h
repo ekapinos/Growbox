@@ -12,7 +12,7 @@ const String WIFI_RESPONSE_ERROR = "ERROR";//"ERROR\xFF\r\n";
 const String WIFI_RESPONSE_OK = "OK";//"OK\r\n";
 const String WIFI_REQUEST_HEADER = "at+recv_data=";
 
-const int WIFI_RESPONSE_DELAY_MAX = 1000; // max delay after "at+" commands 5000ms = 5s
+const int WIFI_RESPONSE_DELAY_MAX = 5000; // max delay after "at+" commands 5000ms = 5s
 const int WIFI_RESPONSE_CHECK_INTERVAL = 10; // during 5s interval, we check for answer every 100 ms
 
 /////////////////////////////////////////////////////////////////////
@@ -560,62 +560,4 @@ private:
 };
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -467,26 +467,59 @@ static void sendHTTPtagA(const __FlashStringHelper* url, const __FlashStringHelp
   GB_SerialHelper::sendHTTPResponseDataFrameStop();
 }
 
+static void sendHTTPtag(const __FlashStringHelper* name, boolean isClose = false, boolean isSingle = false){
+  printSendData('<');
+  if (isClose && !isSingle){
+    printSendData('/');
+  }
+  printSendData(name);
+  if (isSingle){
+    printSendData('/');
+  }
+  printSendData('>');
+}
+
 static void sendHTTPtagHR(){
-  printSendData(F("<hr/>"));
+  sendHTTPtag(F("hr"), true, true);
+}
+
+static void sendHTTPtagBR(){
+  sendHTTPtag(F("br"), true, true);
+}
+
+static void sendHTTPtagTABLE(boolean isClose = false){
+  sendHTTPtag(F("table"), isClose);
+}
+
+static void sendHTTPtagTR(boolean isClose = false){
+  sendHTTPtag(F("tr"), isClose);
+}
+static void sendHTTPtagTD(boolean isClose = false){
+  sendHTTPtag(F("td"), isClose);
 }
 
 static void executeCommand(String &input){
 
   if (g_isWifiRequest){
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<h1>Growbox</h1>"));
+    printSendData(F("<h1>Growbox</h1>"));
     sendHTTPtagA(F("/"), F("Home"));
     //sendHTTPtagA(F("/status"), F("Status"));
     sendHTTPtagA(F("/log"), F("Log"));
+    sendHTTPtagA(F("/storage"), F("Storage"));
     sendHTTPtagHR();
   }
 
+  printSendData(F("<pre>"));
   if (input.equals("/")){
     printSendFullStatus(); 
   } 
   else if (input.equals("/log")){
     printSendFullLog(true, true, true); 
   }
+  else if (input.equals("/storage")){
+    printSendStorage(); 
+  }
+  printSendData(F("</pre>"));
   /*
   // read the incoming byte:
    char firstChar = 0, secondChar = 0; 
@@ -571,7 +604,7 @@ static void executeCommand(String &input){
    Serial.println();
    }
    Serial.print(F("-Storage: ")); 
-   printStorage(0, sizeof(BootRecord));
+   printSendStorage(0, sizeof(BootRecord));
    
    break;  
    
@@ -590,7 +623,7 @@ static void executeCommand(String &input){
    GB_Storage::fillStorageIncremental(); 
    break; 
    }
-   printStorage();
+   printSendStorage();
    break; 
    case 'r':        
    Serial.println(F("Rebooting..."));
@@ -610,18 +643,12 @@ static void executeCommand(String &input){
 }
 
 static void printSendFullStatus(){
-  GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("<pre>"));
-  
   printSendFreeMemory();
   printSendBootStatus();
   printSendTimeStatus();
-  printSendTemperatureStatus();
-  
-  sendHTTPtagHR();
-  
-  printSendPinsStatus();
-  
-  GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, F("</pre>"));
+  printSendTemperatureStatus();  
+  sendHTTPtagHR();  
+  printSendPinsStatus();  
 }
 
 void printSendFreeMemory(){  
@@ -778,9 +805,9 @@ static void printSendPinsStatus(){
 static void printSendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
   LogRecord logRecord;
   boolean isEmpty = true;
-  printSendData(F("<table>"));
+  sendHTTPtagTABLE();
   for (int i = 0; i<=GB_Logger::getLogRecordsCount(); i++){
-  
+
     logRecord = GB_Logger::getLogRecordByIndex(i);
     if (!printEvents && GB_Logger::isEvent(logRecord)){
       continue;
@@ -791,24 +818,27 @@ static void printSendFullLog(boolean printEvents, boolean printErrors, boolean p
     if (!printTemperature && GB_Logger::isTemperature(logRecord)){
       continue;
     }
-    
-    printSendData(F("<tr>"));
-    printSendData(F("<td>"));
+
+    sendHTTPtagTR();
+    sendHTTPtagTD();
     printSendData(i+1);
-    printSendData(F("</td><td>"));
+    sendHTTPtagTD(false);
+    sendHTTPtagTD();
     printSendData(GB_PrintDirty::getTimeString(logRecord.timeStamp));    
-    printSendData(F("</td><td>"));
+    sendHTTPtagTD(false);
+    sendHTTPtagTD();
     printSendData(GB_PrintDirty::getHEX(logRecord.data, true));
-    printSendData(F("</td><td>"));
+    sendHTTPtagTD(false);
+    sendHTTPtagTD();
     printSendData(GB_Logger::getLogRecordDescription(logRecord));
     printSendData(GB_Logger::getLogRecordSuffix(logRecord));
-    printSendData(F("</td>"));
+    sendHTTPtagTD(false);
     //printSendDataLn();
-    printSendData(F("</tr>"));
+    sendHTTPtagTR(false);
     isEmpty = false;
 
   }
-  printSendData(F("</table>"));
+  sendHTTPtagTABLE(false);
   if (isEmpty){
     printSendData(F("Log empty"));
   }
@@ -822,26 +852,40 @@ void printStorage(word address, byte sizeOf){
   Serial.println();
 }
 
-void printStorage(){
-  Serial.print(F("  "));
+void printSendStorage(){
+  sendHTTPtagTABLE();
+  sendHTTPtagTR();
+  sendHTTPtagTD();
+  sendHTTPtagTD(false);
   for (word i = 0; i < 16 ; i++){
-    Serial.print(F("  "));
-    Serial.print(i, HEX); 
-    Serial.print(' ');
+    sendHTTPtagTD();
+    printSendData(GB_PrintDirty::getHEX(i)); 
+    sendHTTPtagTD(false);
   }
+  sendHTTPtagTR(false);
+
   for (word i = 0; i < GB_Storage::CAPACITY ; i++){
     byte value = GB_Storage::read(i);
 
     if (i% 16 ==0){
-      Serial.println();
-      GB_PrintDirty::printHEX(i/16);
+      if (i>0){
+        sendHTTPtagTR(false);
+      }
+      sendHTTPtagTR();
+      sendHTTPtagTD();
+      printSendData(GB_PrintDirty::getHEX(i/16));
+      sendHTTPtagTD(false);
     }
-    Serial.print(" ");
-    GB_PrintDirty::printHEX(value);
-    Serial.print(" ");
+    sendHTTPtagTD();
+    printSendData(GB_PrintDirty::getHEX(value));
+    sendHTTPtagTD(false);
   }
-  Serial.println();  
+  sendHTTPtagTR(false);
+  sendHTTPtagTABLE(false);
 }
+
+
+
 
 
 
