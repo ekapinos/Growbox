@@ -21,7 +21,6 @@
 #include "Thermometer.h"
 #include "SerialHelper.h"
 
-
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //
 /////////////////////////////////////////////////////////////////////
@@ -419,7 +418,7 @@ void turnOffFan(){
 
 static void printSendData(const __FlashStringHelper* data){
   if (g_isWifiRequest){
-    if (!GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, data)){
+    if (!GB_SerialHelper::sendHttpResponseData(g_wifiPortDescriptor, data)){
       g_isWifiResponseError =true;
     }
   } 
@@ -430,7 +429,7 @@ static void printSendData(const __FlashStringHelper* data){
 
 static void printSendData(const String &data){
   if (g_isWifiRequest){
-    if (!GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, data)){
+    if (!GB_SerialHelper::sendHttpResponseData(g_wifiPortDescriptor, data)){
       g_isWifiResponseError =true;
     }
   } 
@@ -480,35 +479,32 @@ static void sendHTTPtagButton(const __FlashStringHelper* url, const __FlashStrin
   printSendData(F("\"/>"));
 }
 
-static void sendHTTPtag(const __FlashStringHelper* name, boolean isClose = false, boolean isSingle = false){
+static void sendHTTPtag(const __FlashStringHelper* name, HTTP_TAG type){
   printSendData('<');
-  if (isClose && !isSingle){
+  if (type == HTTP_TAG_CLOSED){
     printSendData('/');
   }
   printSendData(name);
-  if (isSingle){
+  if (type == HTTP_TAG_SINGLE){
     printSendData('/');
   }
   printSendData('>');
 }
 
 static void sendHTTPtagHR(){
-  sendHTTPtag(F("hr"), true, true);
+  sendHTTPtag(F("hr"), HTTP_TAG_SINGLE);
 }
-
 static void sendHTTPtagBR(){
-  sendHTTPtag(F("br"), true, true);
+  sendHTTPtag(F("br"), HTTP_TAG_SINGLE);
 }
-
-static void sendHTTPtagTABLE(boolean isClose = false){
-  sendHTTPtag(F("table"), isClose);
+static void sendHTTPtagTABLE(HTTP_TAG type){
+  sendHTTPtag(F("table"), type);
 }
-
-static void sendHTTPtagTR(boolean isClose = false){
-  sendHTTPtag(F("tr"), isClose);
+static void sendHTTPtagTR(HTTP_TAG type){
+  sendHTTPtag(F("tr"), type);
 }
-static void sendHTTPtagTD(boolean isClose = false){
-  sendHTTPtag(F("td"), isClose);
+static void sendHTTPtagTD(HTTP_TAG type){
+  sendHTTPtag(F("td"), type);
 }
 
 static void executeCommand(String &input){
@@ -814,8 +810,8 @@ static void printSendPinsStatus(){
 static void printSendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
   LogRecord logRecord;
   boolean isEmpty = true;
-  sendHTTPtagTABLE();
-  for (int i = 0; i<=GB_Logger::getLogRecordsCount(); i++){
+  sendHTTPtagTABLE(HTTP_TAG_OPEN);
+  for (int i = 0; i < GB_Logger::getLogRecordsCount(); i++){
 
     logRecord = GB_Logger::getLogRecordByIndex(i);
     if (!printEvents && GB_Logger::isEvent(logRecord)){
@@ -828,34 +824,34 @@ static void printSendFullLog(boolean printEvents, boolean printErrors, boolean p
       continue;
     }
 
-    sendHTTPtagTR();
-    sendHTTPtagTD();
+    sendHTTPtagTR(HTTP_TAG_OPEN);
+    sendHTTPtagTD(HTTP_TAG_OPEN);
     printSendData(i+1);
-    sendHTTPtagTD(true);
-    sendHTTPtagTD();
+    sendHTTPtagTD(HTTP_TAG_CLOSED);
+    sendHTTPtagTD(HTTP_TAG_OPEN);
     printSendData(GB_PrintDirty::getTimeString(logRecord.timeStamp));    
-    sendHTTPtagTD(true);
-    sendHTTPtagTD();
+    sendHTTPtagTD(HTTP_TAG_CLOSED);
+    sendHTTPtagTD(HTTP_TAG_OPEN);
     printSendData(GB_PrintDirty::getHEX(logRecord.data, true));
-    sendHTTPtagTD(true);
-    sendHTTPtagTD();
+    sendHTTPtagTD(HTTP_TAG_CLOSED);
+    sendHTTPtagTD(HTTP_TAG_OPEN);
     printSendData(GB_Logger::getLogRecordDescription(logRecord));
     printSendData(GB_Logger::getLogRecordSuffix(logRecord));
-    sendHTTPtagTD(true);
+    sendHTTPtagTD(HTTP_TAG_CLOSED);
     //printSendDataLn();
-    sendHTTPtagTR(true);
+    sendHTTPtagTR(HTTP_TAG_CLOSED);
     isEmpty = false;
 
     if (g_isWifiResponseError) return;
 
   }
-  sendHTTPtagTABLE(true);
+  sendHTTPtagTABLE(HTTP_TAG_CLOSED);
   if (isEmpty){
     printSendData(F("Log empty"));
   }
 }
 
-
+// TODO garbage?
 void printStorage(word address, byte sizeOf){
   byte buffer[sizeOf];
   GB_Storage::read(address, buffer, sizeOf);
@@ -864,38 +860,38 @@ void printStorage(word address, byte sizeOf){
 }
 
 void printSendStorageDump(){
-  sendHTTPtagTABLE();
-  sendHTTPtagTR();
-  sendHTTPtagTD();
-  sendHTTPtagTD(true);
+  sendHTTPtagTABLE(HTTP_TAG_OPEN);
+  sendHTTPtagTR(HTTP_TAG_OPEN);
+  sendHTTPtagTD(HTTP_TAG_OPEN);
+  sendHTTPtagTD(HTTP_TAG_CLOSED);
   for (word i = 0; i < 16 ; i++){
-    sendHTTPtagTD();
+    sendHTTPtagTD(HTTP_TAG_OPEN);
     printSendData(GB_PrintDirty::getHEX(i)); 
-    sendHTTPtagTD(true);
+    sendHTTPtagTD(HTTP_TAG_CLOSED);
   }
-  sendHTTPtagTR(true);
+  sendHTTPtagTR(HTTP_TAG_CLOSED);
 
   for (word i = 0; i < GB_Storage::CAPACITY ; i++){
     byte value = GB_Storage::read(i);
 
     if (i% 16 ==0){
       if (i>0){
-        sendHTTPtagTR(true);
+        sendHTTPtagTR(HTTP_TAG_CLOSED);
       }
-      sendHTTPtagTR();
-      sendHTTPtagTD();
+      sendHTTPtagTR(HTTP_TAG_OPEN);
+      sendHTTPtagTD(HTTP_TAG_OPEN);
       printSendData(GB_PrintDirty::getHEX(i/16));
-      sendHTTPtagTD(true);
+      sendHTTPtagTD(HTTP_TAG_CLOSED);
     }
-    sendHTTPtagTD();
+    sendHTTPtagTD(HTTP_TAG_OPEN);
     printSendData(GB_PrintDirty::getHEX(value));
-    sendHTTPtagTD(true);
+    sendHTTPtagTD(HTTP_TAG_CLOSED);
 
     if (g_isWifiResponseError) return;
 
   }
-  sendHTTPtagTR(true);
-  sendHTTPtagTABLE(true);
+  sendHTTPtagTR(HTTP_TAG_CLOSED);
+  sendHTTPtagTABLE(HTTP_TAG_CLOSED);
 }
 
 

@@ -80,6 +80,15 @@ extern OneWire g_oneWirePin;
 extern boolean g_isGrowboxStarted;
 
 
+/////////////////////////////////////////////////////////////////////
+//                       SOME GLOBAL STUFF                         //
+/////////////////////////////////////////////////////////////////////
+
+
+enum HTTP_TAG {
+  HTTP_TAG_OPEN, HTTP_TAG_CLOSED, HTTP_TAG_SINGLE
+};
+
 static int flashStringLength(const __FlashStringHelper* str){ 
     const char PROGMEM * strPROGMEM = (const char PROGMEM *) str;
     return strlen_P(strPROGMEM);
