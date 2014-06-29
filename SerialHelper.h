@@ -303,7 +303,8 @@ public:
   }
 
 
-  static void sendHTTPResponseData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
+  static boolean sendHTTPResponseData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
+    boolean isSendOK = true;
     if (!s_wifiIsHeaderSended){
       sendHttpOKHeader(wifiPortDescriptor); 
       s_wifiIsHeaderSended = true;
@@ -318,7 +319,7 @@ public:
         char c = flashCharAt(data, index++);
         s_wifiResponseAutoFlushConut += Serial.print(c);
       }
-      stopAutoFlushFrame();
+      isSendOK = stopAutoFlushFrame();
       startAutoFlushFrame(wifiPortDescriptor);   
       while (index < flashStringLength(data)){
         char c = flashCharAt(data, index++);
@@ -326,11 +327,13 @@ public:
       } 
 
     }
+    return isSendOK;
   }  
 
-  static void sendHTTPResponseData(const byte &wifiPortDescriptor, const String &data){
+  static boolean sendHTTPResponseData(const byte &wifiPortDescriptor, const String &data){
+    boolean isSendOK = true;
     if (data.length() == 0){
-      return;
+      return isSendOK;
     }
     if (!s_wifiIsHeaderSended){
       sendHttpOKHeader(wifiPortDescriptor); 
@@ -346,14 +349,15 @@ public:
         char c = data[index++];
         s_wifiResponseAutoFlushConut += Serial.print(c);
       }
-      stopAutoFlushFrame();
+      isSendOK = stopAutoFlushFrame();
       startAutoFlushFrame(wifiPortDescriptor); 
-      
+
       while (index < data.length()){
         char c = data[index++];
         s_wifiResponseAutoFlushConut += Serial.print(c);
       }      
     }
+    return isSendOK;
   }
 
 
@@ -364,13 +368,13 @@ private:
     s_wifiResponseAutoFlushConut = 0;
   }
 
-  static void stopAutoFlushFrame(){
+  static boolean stopAutoFlushFrame(){
     if (s_wifiResponseAutoFlushConut > 0){
       while (s_wifiResponseAutoFlushConut < WIFI_RESPONSE_FRAME_SIZE){
         s_wifiResponseAutoFlushConut += Serial.write(0x00);
       }
     }
-    sendWifiFrameStop();
+    return sendWifiFrameStop(false);
   }  
 
   /*
@@ -489,7 +493,7 @@ private:
   }
 
   static boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = -1, boolean rebootOnFalse = true){
-    String input = wifiExecuteRawCommand(command,maxResponseDeleay);
+    String input = wifiExecuteRawCommand(command,maxResponseDeleay, rebootOnFalse);
     if (input.length() == 0){
       // Nothing to do
     } 
@@ -515,14 +519,11 @@ private:
         printDirtyEnd();
       }
     }
-    if (rebootOnFalse){
-      s_restartWifi = true;
-    }
 
     return false;
   }
 
-  static String wifiExecuteRawCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = -1){
+  static String wifiExecuteRawCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = -1, boolean rebootOnFalse = true){
     if (command == 0){
       Serial.println();
     } 
@@ -549,10 +550,17 @@ private:
 
     if (input.length() == 0){
       if (useSerialMonitor){   
-        Serial.println(F("WIFI> No response"));
-        printDirtyEnd();
+        Serial.print(F("WIFI> No response"));
+
       }
-      s_restartWifi = true;
+      if (rebootOnFalse){
+        Serial.println(F(" (reboot)"));
+        s_restartWifi = true;
+      } 
+      else {
+        Serial.println();
+      }
+      printDirtyEnd();
     }
 
     return input;
@@ -596,8 +604,8 @@ private:
     Serial.print(',');
   }
 
-  static void sendWifiFrameStop(){
-    wifiExecuteCommand();
+  static boolean sendWifiFrameStop(boolean rebootOnFalse = true){
+    return wifiExecuteCommand(0,-1,rebootOnFalse);
   }
 
   static boolean closeConnection(const byte portDescriptor){
@@ -609,6 +617,8 @@ private:
 };
 
 #endif
+
+
 
 
 

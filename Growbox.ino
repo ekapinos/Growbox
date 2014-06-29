@@ -30,7 +30,8 @@ byte g_isDayInGrowbox = -1;
 
 // HTTP response supplemental  
 byte g_isWifiRequest = false;  
-byte g_wifiPortDescriptor = 0xFF;  
+byte g_wifiPortDescriptor = 0xFF;
+byte g_isWifiResponseError = false;  
 
 /////////////////////////////////////////////////////////////////////
 //                              STATUS                             //
@@ -253,18 +254,34 @@ void serialEvent(){
     return; //Do not handle events during startup
   }
 
-  boolean isWifiRequest;
-  byte wifiPortDescriptor;
-
+  g_isWifiRequest = false;
+  g_isWifiResponseError = false;
+  g_wifiPortDescriptor = 0x00;
   String input; 
+
   if (!GB_SerialHelper::handleSerialEvent(input, g_isWifiRequest, g_wifiPortDescriptor)){
     return;
   }
 
+  if (g_isWifiRequest){
+    GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor);
+  }
+
   executeCommand(input);
 
-  g_isWifiRequest = false;
-  g_wifiPortDescriptor = 0x00;
+  if (g_isWifiRequest) {
+    GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
+  } 
+  else {     
+    GB_SerialHelper::printDirtyEnd(); // It was command from SerialMonotor 
+  }
+
+  if(GB_SerialHelper::useSerialMonitor){ 
+    if (g_isWifiResponseError){
+      Serial.println(F("WIFI> Responce error"));
+      GB_SerialHelper::printDirtyEnd();
+    }
+  }
 }
 
 
@@ -402,7 +419,9 @@ void turnOffFan(){
 
 static void printSendData(const __FlashStringHelper* data){
   if (g_isWifiRequest){
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, data);
+    if (!GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, data)){
+      g_isWifiResponseError =true;
+    }
   } 
   else {
     Serial.print(data); 
@@ -411,7 +430,9 @@ static void printSendData(const __FlashStringHelper* data){
 
 static void printSendData(const String &data){
   if (g_isWifiRequest){
-    GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, data);
+    if (!GB_SerialHelper::sendHTTPResponseData(g_wifiPortDescriptor, data)){
+      g_isWifiResponseError =true;
+    }
   } 
   else {
     Serial.print(data); 
@@ -451,26 +472,12 @@ static void printSendData(time_t data){
   printSendData(str);
 }
 
-static void sendHTTPtagA(const __FlashStringHelper* url, const __FlashStringHelper* name){
- /* const __FlashStringHelper* part1 = F("<a href=\"");
-  const __FlashStringHelper* part2 = F("\">");
-  const __FlashStringHelper* part3 = F("</a> ");
-
-  //word length = flashStringLength(part1) + flashStringLength(part2) + flashStringLength(part3) + flashStringLength(url) + flashStringLength(name) ;
-
-  //GB_SerialHelper::sendHTTPResponseDataFrameStart(g_wifiPortDescriptor, length);
-  printSendData(part1);
-  printSendData(url);
-  printSendData(part2);
-  printSendData(name);
-  printSendData(part3);
-  */
+static void sendHTTPtagButton(const __FlashStringHelper* url, const __FlashStringHelper* name){
   printSendData(F("<input type=\"button\" onclick=\"document.location='"));
   printSendData(url);
   printSendData(F("'\" value=\""));
   printSendData(name);
   printSendData(F("\"/>"));
-  //GB_SerialHelper::sendHTTPResponseDataFrameStop();
 }
 
 static void sendHTTPtag(const __FlashStringHelper* name, boolean isClose = false, boolean isSingle = false){
@@ -506,13 +513,11 @@ static void sendHTTPtagTD(boolean isClose = false){
 
 static void executeCommand(String &input){
 
-  if (g_isWifiRequest){
-    GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor);
-    
+  if (g_isWifiRequest){    
     printSendData(F("<html><h1>Growbox</h1>"));
-    sendHTTPtagA(F("/"), F("Status"));
-    sendHTTPtagA(F("/log"), F("Daily log"));
-    sendHTTPtagA(F("/storage"), F("Storage dump"));
+    sendHTTPtagButton(F("/"), F("Status"));
+    sendHTTPtagButton(F("/log"), F("Daily log"));
+    sendHTTPtagButton(F("/storage"), F("Storage dump"));
     sendHTTPtagHR();
   }
 
@@ -521,11 +526,14 @@ static void executeCommand(String &input){
     printSendFullStatus(); 
   } 
   else if (input.equals("/log")){
-    printSendFullLog(true, true, true); 
+    printSendFullLog(true, true, true); // TODO use parameters
   }
   else if (input.equals("/storage")){
     printSendStorageDump(); 
   }
+  
+  if (g_isWifiResponseError) return;
+
   printSendData(F("</pre></html>"));
   /*
   // read the incoming byte:
@@ -640,13 +648,7 @@ static void executeCommand(String &input){
    GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
    }
    */
-  if (g_isWifiRequest) {
-    GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
-  } 
-  else { 
-    // It was command from SerialMonotor 
-    GB_SerialHelper::printDirtyEnd();
-  }
+
 }
 
 static void printSendFullStatus(){
@@ -844,6 +846,8 @@ static void printSendFullLog(boolean printEvents, boolean printErrors, boolean p
     sendHTTPtagTR(true);
     isEmpty = false;
 
+    if (g_isWifiResponseError) return;
+
   }
   sendHTTPtagTABLE(true);
   if (isEmpty){
@@ -886,10 +890,15 @@ void printSendStorageDump(){
     sendHTTPtagTD();
     printSendData(GB_PrintDirty::getHEX(value));
     sendHTTPtagTD(true);
+
+    if (g_isWifiResponseError) return;
+
   }
   sendHTTPtagTR(true);
   sendHTTPtagTABLE(true);
 }
+
+
 
 
 
