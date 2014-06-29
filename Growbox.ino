@@ -456,15 +456,15 @@ static void sendHTTPtagA(const __FlashStringHelper* url, const __FlashStringHelp
   const __FlashStringHelper* part2 = F("\">");
   const __FlashStringHelper* part3 = F("</a> ");
 
-  word length = flashStringLength(part1) + flashStringLength(part2) + flashStringLength(part3) + flashStringLength(url) + flashStringLength(name) ;
+  //word length = flashStringLength(part1) + flashStringLength(part2) + flashStringLength(part3) + flashStringLength(url) + flashStringLength(name) ;
 
-  GB_SerialHelper::sendHTTPResponseDataFrameStart(g_wifiPortDescriptor, length);
-  Serial.print(part1);
-  Serial.print(url);
-  Serial.print(part2);
-  Serial.print(name);
-  Serial.print(part3);
-  GB_SerialHelper::sendHTTPResponseDataFrameStop();
+  //GB_SerialHelper::sendHTTPResponseDataFrameStart(g_wifiPortDescriptor, length);
+  printSendData(part1);
+  printSendData(url);
+  printSendData(part2);
+  printSendData(name);
+  printSendData(part3);
+  //GB_SerialHelper::sendHTTPResponseDataFrameStop();
 }
 
 static void sendHTTPtag(const __FlashStringHelper* name, boolean isClose = false, boolean isSingle = false){
@@ -501,11 +501,12 @@ static void sendHTTPtagTD(boolean isClose = false){
 static void executeCommand(String &input){
 
   if (g_isWifiRequest){
+    GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor);
+    
     printSendData(F("<h1>Growbox</h1>"));
     sendHTTPtagA(F("/"), F("Home"));
-    //sendHTTPtagA(F("/status"), F("Status"));
     sendHTTPtagA(F("/log"), F("Log"));
-    sendHTTPtagA(F("/storage"), F("Storage"));
+    sendHTTPtagA(F("/storage"), F("Storage dump"));
     sendHTTPtagHR();
   }
 
@@ -517,7 +518,7 @@ static void executeCommand(String &input){
     printSendFullLog(true, true, true); 
   }
   else if (input.equals("/storage")){
-    printSendStorage(); 
+    printSendStorageDump(); 
   }
   printSendData(F("</pre>"));
   /*
@@ -852,7 +853,7 @@ void printStorage(word address, byte sizeOf){
   Serial.println();
 }
 
-void printSendStorage(){
+void printSendStorageDump(){
   sendHTTPtagTABLE();
   sendHTTPtagTR();
   sendHTTPtagTD();

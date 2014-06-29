@@ -8,9 +8,11 @@
 /*volatile*/boolean GB_SerialHelper::useSerialWifi = false;
 boolean GB_SerialHelper::s_restartWifi = false;
 
-boolean GB_SerialHelper::s_wifiPortDescriptorSendStatus[8];
+
 
 String GB_SerialHelper::s_wifiSID;
 String GB_SerialHelper::s_wifiPass;
 
+boolean GB_SerialHelper::s_wifiIsHeaderSended;
+int GB_SerialHelper::s_wifiResponseAutoFlushConut;
 
