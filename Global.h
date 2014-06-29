@@ -80,10 +80,19 @@ extern OneWire g_oneWirePin;
 extern boolean g_isGrowboxStarted;
 
 
-static int flashStringLength(const __FlashStringHelper* str){ // INT_MAX (own test) or 1400 bytes max (Wi-Fi spec restriction)
+static int flashStringLength(const __FlashStringHelper* str){ 
     const char PROGMEM * strPROGMEM = (const char PROGMEM *) str;
     return strlen_P(strPROGMEM);
 }
+
+static char flashCharAt(const __FlashStringHelper* str, int index){ 
+  if (index >= flashStringLength(str)){
+    return 0xFF; 
+  }
+  const char PROGMEM * strPROGMEM = (const char PROGMEM *) str;
+  return pgm_read_byte(strPROGMEM+index);
+}
+
 
 #endif
 

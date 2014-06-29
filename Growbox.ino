@@ -452,7 +452,7 @@ static void printSendData(time_t data){
 }
 
 static void sendHTTPtagA(const __FlashStringHelper* url, const __FlashStringHelper* name){
-  const __FlashStringHelper* part1 = F("<a href=\"");
+ /* const __FlashStringHelper* part1 = F("<a href=\"");
   const __FlashStringHelper* part2 = F("\">");
   const __FlashStringHelper* part3 = F("</a> ");
 
@@ -464,6 +464,12 @@ static void sendHTTPtagA(const __FlashStringHelper* url, const __FlashStringHelp
   printSendData(part2);
   printSendData(name);
   printSendData(part3);
+  */
+  printSendData(F("<input type=\"button\" onclick=\"document.location='"));
+  printSendData(url);
+  printSendData(F("'\" value=\""));
+  printSendData(name);
+  printSendData(F("\"/>"));
   //GB_SerialHelper::sendHTTPResponseDataFrameStop();
 }
 
@@ -503,9 +509,9 @@ static void executeCommand(String &input){
   if (g_isWifiRequest){
     GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor);
     
-    printSendData(F("<h1>Growbox</h1>"));
-    sendHTTPtagA(F("/"), F("Home"));
-    sendHTTPtagA(F("/log"), F("Log"));
+    printSendData(F("<html><h1>Growbox</h1>"));
+    sendHTTPtagA(F("/"), F("Status"));
+    sendHTTPtagA(F("/log"), F("Daily log"));
     sendHTTPtagA(F("/storage"), F("Storage dump"));
     sendHTTPtagHR();
   }
@@ -520,7 +526,7 @@ static void executeCommand(String &input){
   else if (input.equals("/storage")){
     printSendStorageDump(); 
   }
-  printSendData(F("</pre>"));
+  printSendData(F("</pre></html>"));
   /*
   // read the incoming byte:
    char firstChar = 0, secondChar = 0; 
