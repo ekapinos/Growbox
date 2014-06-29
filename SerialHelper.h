@@ -108,7 +108,7 @@ public:
           break;
         }
         if (useSerialMonitor && input.length() > 0){
-          Serial.print(F("WIFI> Not corrent wellcome message: "));
+          showWifiStatus(F("Not corrent wellcome message: "), false);
           GB_PrintDirty::printWithoutCRLF(input);
           Serial.print(F(" > "));
           GB_PrintDirty::printHEX(input); 
@@ -121,20 +121,20 @@ public:
     if (useSerialMonitor != oldUseSerialMonitor){
       Serial.print(F("Serial monitor: "));
       if (useSerialMonitor){
-        Serial.println(F("enabled"));
+        Serial.println(FS(S_enabled));
       } 
       else {
-        Serial.println(F("disabled"));
+        Serial.println(FS(S_disabled));
       }
       printDirtyEnd();
     }
     if (useSerialWifi != oldUseSerialWifi && (useSerialMonitor || (useSerialMonitor != oldUseSerialMonitor ))){
       if(useSerialWifi){ 
-        Serial.print(F("Serial Wi-Fi: "));
-        Serial.println(F("connected")); // shows when useSerialMonitor=false
+        Serial.print(F("Serial Wi-Fi:"));
+        Serial.println(FS(S_connected)); // shows when useSerialMonitor=false
       } 
       else {
-        Serial.println(F("disconnected"));
+        Serial.println(FS(S_disconnected));
       }
       printDirtyEnd();
     }
@@ -151,13 +151,13 @@ public:
   }
 
   static boolean startWifi(){
-    showWifiStatus(F("Starting wi-fi..."));
+    showWifiStatus(F("Starting..."));
     boolean isLoaded = startWifiSilent();
     if (isLoaded){
-      showWifiStatus(F("Wi-Fi started"));
+      showWifiStatus(F("Started"));
     } 
     else {
-      showWifiStatus(F("Wi-Fi start failed"));
+      showWifiStatus(F("Start failed"));
     }
   }
 
@@ -250,19 +250,19 @@ public:
 
     if (useSerialMonitor) {
       if (isWifiRequestClientConnected || isWifiRequestClientDisconnected) {
-        Serial.print(F("WIFI> Client ")); 
+        showWifiStatus(F("Client ")); 
         Serial.print(wifiPortDescriptor);
         if (isWifiRequestClientConnected){
-          Serial.println(F(" connected"));
+          Serial.println(FS(S_connected));
         } 
         else {
-          Serial.println(F(" disconnected"));
+          Serial.println(FS(S_disconnected));
         }
 
       } 
       else {
-        if (isWifiRequest){    
-          Serial.print(F("WIFI> GET "));
+        if (isWifiRequest){  
+          showWifiStatus(F("GET "), false);
           Serial.println(input);
         } 
         else {
@@ -316,13 +316,13 @@ public:
     else {
       int index = 0;
       while (s_wifiResponseAutoFlushConut < WIFI_RESPONSE_FRAME_SIZE){
-        char c = flashCharAt(data, index++);
+        char c = flashStringCharAt(data, index++);
         s_wifiResponseAutoFlushConut += Serial.print(c);
       }
       isSendOK = stopHttpFrame();
       startHttpFrame(wifiPortDescriptor);   
       while (index < flashStringLength(data)){
-        char c = flashCharAt(data, index++);
+        char c = flashStringCharAt(data, index++);
         s_wifiResponseAutoFlushConut += Serial.print(c);
       } 
 
@@ -363,11 +363,13 @@ public:
 
 private:
 
-  static void showWifiStatus(const __FlashStringHelper* str){ //TODO 
+  static void showWifiStatus(const __FlashStringHelper* str, boolean newLine = true){ //TODO 
     if (useSerialMonitor){
-      Serial.print(F("WIFI> "));
+      Serial.print(FS(S_WIFI));
       Serial.println(str);
-      printDirtyEnd();
+      if (newLine){    
+        printDirtyEnd();
+      }
     }
   }
 
@@ -481,7 +483,7 @@ private:
     else if (input.startsWith(WIFI_RESPONSE_ERROR) && input.endsWith("\r\n")) {
       if (useSerialMonitor){
         byte errorCode = input[5];
-        Serial.print(F("WIFI> error "));
+        showWifiStatus(F("error "), false);
         GB_PrintDirty::printHEX(errorCode, true);
         Serial.println();
         printDirtyEnd();
@@ -489,7 +491,7 @@ private:
     } 
     else {
       if (useSerialMonitor){
-        Serial.print(F("WIFI> "));
+        showWifiStatus(FS(S_empty), false);
         GB_PrintDirty::printWithoutCRLF(input);
         Serial.print(F(" > "));
         GB_PrintDirty::printHEX(input); 
@@ -528,16 +530,14 @@ private:
 
     if (input.length() == 0){
       if (useSerialMonitor){   
-        Serial.print(F("WIFI> No response"));
+        showWifiStatus(F("No response"), false);
 
       }
       if (rebootOnFalse){
-        Serial.println(F(" (reboot)"));
+        Serial.print(F(" (reboot)"));
         s_restartWifi = true;
       } 
-      else {
-        Serial.println();
-      }
+      Serial.println();
       printDirtyEnd();
     }
 

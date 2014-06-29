@@ -84,24 +84,55 @@ extern boolean g_isGrowboxStarted;
 //                       SOME GLOBAL STUFF                         //
 /////////////////////////////////////////////////////////////////////
 
+#define FS(x) (__FlashStringHelper*)(x)
+
+const char S_empty[] PROGMEM  = "";
+const char S_CRLF[] PROGMEM  = "\r\n";
+const char S_WIFI[] PROGMEM  = "WIFI> ";
+const char S_connected[] PROGMEM  = " connected";
+const char S_disconnected[] PROGMEM  = " disconnected";
+const char S_enabled[] PROGMEM  = " enabled";
+const char S_disabled[] PROGMEM  = " disabled";
+const char S_Temperature[] PROGMEM  = "Temperature";
+const char S_Free_memory[] PROGMEM  = "Free memory: ";
+const char S_bytes[] PROGMEM  = " bytes";
+const char S_PlusMinus [] PROGMEM  = "+/-";
 
 enum HTTP_TAG {
   HTTP_TAG_OPEN, HTTP_TAG_CLOSED, HTTP_TAG_SINGLE
 };
 
-static int flashStringLength(const __FlashStringHelper* str){ 
-    const char PROGMEM * strPROGMEM = (const char PROGMEM *) str;
-    return strlen_P(strPROGMEM);
+static int flashStringLength(const __FlashStringHelper* fstr){ 
+    const char PROGMEM * pstr = (const char PROGMEM *) fstr;
+    return strlen_P(pstr);
 }
 
-static char flashCharAt(const __FlashStringHelper* str, int index){ 
-  if (index >= flashStringLength(str)){
+static char flashStringCharAt(const __FlashStringHelper* fstr, int index){ 
+  if (index >= flashStringLength(fstr)){
     return 0xFF; 
   }
-  const char PROGMEM * strPROGMEM = (const char PROGMEM *) str;
-  return pgm_read_byte(strPROGMEM+index);
+  const char PROGMEM * pstr = (const char PROGMEM *) fstr;
+  return pgm_read_byte(pstr+index);
 }
 
+static boolean flashStringEquals(const __FlashStringHelper* fstr, const String &str){ 
+  if (flashStringLength(fstr) != str.length()) {
+    return false; 
+  }
+  for (int i = 0; i< flashStringLength(fstr); i++){
+    if (flashStringCharAt(fstr, i) != str[i]){
+      return false;
+    }
+  }
+  return true;
+}
 
+static String flashStringLoad(const __FlashStringHelper* fstr){ 
+  String str;
+  for (int i = 0; i< flashStringLength(fstr); i++){
+    str += flashStringCharAt(fstr, i);
+  }
+  return str;
+}
 #endif
 

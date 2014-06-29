@@ -50,7 +50,7 @@ public:
   static void logTemperature(byte temperature){
     LogRecord logRecord(B11000000|temperature);
     boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
-    printDirtyLogRecord(logRecord, F("Temperature"), isStored, temperature);
+    printDirtyLogRecord(logRecord, FS(S_Temperature), isStored, temperature);
     GB_SerialHelper::printDirtyEnd();
   }
 
@@ -89,7 +89,7 @@ public:
       }
     } 
     else if (isTemperature(logRecord)){
-      return F("Temperature");
+      return FS(S_Temperature);
     } 
     else if (isError(logRecord)){    
       byte sequence = (data & B00001111); 
@@ -111,9 +111,9 @@ public:
     String out;
     if (isTemperature(logRecord)) {
       byte temperature = (logRecord.data & B00111111);
-      out += " [";
+      out += flashStringLoad(F(" ["));
       out += temperature;
-      out += "] C";
+      out += flashStringLoad(F("] C"));
     }
     //Serial.print(F(" HEX: "));
     //GB_PrintDirty::printRAM(&((LogRecord)logRecord), sizeof(LogRecord));  
