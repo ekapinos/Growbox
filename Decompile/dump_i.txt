@@ -1,0 +1,37 @@
+BFD header file version (GNU Binutils) 2.19
+elf32-avr
+ (header little endian, data little endian)
+  avr
+coff-avr
+ (header little endian, data little endian)
+  avr
+coff-ext-avr
+ (header little endian, data little endian)
+  avr
+elf32-little
+ (header little endian, data little endian)
+  avr
+elf32-big
+ (header big endian, data big endian)
+  avr
+srec
+ (header endianness unknown, data endianness unknown)
+  avr
+symbolsrec
+ (header endianness unknown, data endianness unknown)
+  avr
+tekhex
+ (header endianness unknown, data endianness unknown)
+  avr
+binary
+ (header endianness unknown, data endianness unknown)
+  avr
+ihex
+ (header endianness unknown, data endianness unknown)
+  avr
+
+               elf32-avr coff-avr coff-ext-avr elf32-little elf32-big srec 
+           avr elf32-avr coff-avr coff-ext-avr elf32-little elf32-big srec 
+
+               symbolsrec tekhex binary ihex 
+           avr symbolsrec tekhex binary ihex 
