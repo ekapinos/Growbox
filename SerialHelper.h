@@ -6,11 +6,10 @@
 #include "Global.h"
 #include "PrintDirty.h"
 
-// TODO optimize it
-const String WIFI_RESPONSE_WELLCOME = "Welcome to RAK410\r\n";   // TODO optimize here!
-const String WIFI_RESPONSE_ERROR = "ERROR";//"ERROR\xFF\r\n";
-const String WIFI_RESPONSE_OK = "OK";//"OK\r\n";
-const String WIFI_REQUEST_HEADER = "at+recv_data=";
+const char S_WIFI_RESPONSE_WELLCOME[] PROGMEM  = "Welcome to RAK410\r\n";
+const char S_WIFI_RESPONSE_ERROR[] PROGMEM  = "ERROR";
+const char S_WIFI_RESPONSE_OK[] PROGMEM  = "OK";
+const char S_WIFI_GET_[] PROGMEM  = "GET /";
 
 const int WIFI_RESPONSE_DELAY_MAX = 5000; // max delay after "at+" commands 5000ms = 5s
 const int WIFI_RESPONSE_CHECK_INTERVAL = 10; // during 5s interval, we check for answer every 100 ms
@@ -97,7 +96,7 @@ public:
       for (int i = 0; i<2; i++){ // Sometimes first command returns ERROR, two attempts
         cleanSerialBuffer();
         String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210
-        useSerialWifi = input.startsWith(WIFI_RESPONSE_WELLCOME);
+        useSerialWifi = input.startsWith(flashStringLoad(S_WIFI_RESPONSE_WELLCOME));
         if (useSerialWifi) {
           s_restartWifi = false;
           //wifiExecuteCommand(F("at+del_data"));
@@ -110,7 +109,7 @@ public:
         if (useSerialMonitor && input.length() > 0){
           showWifiStatus(F("Not corrent wellcome message: "), false);
           GB_PrintDirty::printWithoutCRLF(input);
-          Serial.print(F(" > "));
+          Serial.print(FS(S_Next));
           GB_PrintDirty::printHEX(input); 
           Serial.println();
           printDirtyEnd();
@@ -175,7 +174,7 @@ public:
     while (Serial.available()){
       input += (char) readByteFromSerialBuffer(isReadError); // Always use casting to (char) with String object!
 
-      if (input.equals(WIFI_REQUEST_HEADER)){ // length compires first 
+      if (flashStringEquals(F("at+recv_data="), input)){ // length compires first 
         input = "";     
         byte firstRequestHeaderByte = readByteFromSerialBuffer(isReadError); // first byte
 
@@ -196,13 +195,13 @@ public:
           skipByteFromSerialBuffer(isReadError, 8); // skip Destination port, IP and data length
 
           // Read first line   
-          while (Serial.available() && !input.endsWith("\r\n")){
+          while (Serial.available() && !input.endsWith(flashStringLoad(S_CRLF))){
             input += (char) readByteFromSerialBuffer(isReadError); // Always use casting to (char) with String object!
           }
 
           //Serial.print(F("WIFI-T> ")); Serial.println(input); printDirtyEnd(); 
 
-          if (input.startsWith("GET /") && input.endsWith("\r\n")){
+          if (input.startsWith(flashStringLoad(S_WIFI_GET_)) && input.endsWith(flashStringLoad(S_CRLF))){
             int lastIndex = input.indexOf(' ', 4);
             if (lastIndex == -1){
               lastIndex = input.length()-2; // \r\n-1
@@ -237,7 +236,7 @@ public:
         }
         return false;
       }
-      else if (input.startsWith(WIFI_RESPONSE_WELLCOME) || input.startsWith(WIFI_RESPONSE_ERROR)){
+      else if (input.startsWith(flashStringLoad(S_WIFI_RESPONSE_WELLCOME)) || input.startsWith(flashStringLoad(S_WIFI_RESPONSE_ERROR))){
         checkSerial(false, true); // manual restart
         return false;
       }
@@ -262,13 +261,13 @@ public:
       } 
       else {
         if (isWifiRequest){  
-          showWifiStatus(F("GET "), false);
-          Serial.println(input);
+          showWifiStatus(FS(S_WIFI_GET_), false);
+          Serial.println(input.substring(1));
         } 
         else {
           Serial.print(F("SERIAL> "));
           GB_PrintDirty::printWithoutCRLF(input);
-          Serial.print(F(" > "));
+          Serial.print(FS(S_Next));
           GB_PrintDirty::printHEX(input);
           Serial.println();
         }  
@@ -477,10 +476,10 @@ private:
     if (input.length() == 0){
       // Nothing to do
     } 
-    else if (input.startsWith(WIFI_RESPONSE_OK) && input.endsWith("\r\n")){
+    else if (input.startsWith(flashStringLoad(S_WIFI_RESPONSE_OK)) && input.endsWith(flashStringLoad(S_CRLF))){
       return true;
     } 
-    else if (input.startsWith(WIFI_RESPONSE_ERROR) && input.endsWith("\r\n")) {
+    else if (input.startsWith(flashStringLoad(S_WIFI_RESPONSE_ERROR)) && input.endsWith(flashStringLoad(S_CRLF))) {
       if (useSerialMonitor){
         byte errorCode = input[5];
         showWifiStatus(F("error "), false);
@@ -493,7 +492,7 @@ private:
       if (useSerialMonitor){
         showWifiStatus(FS(S_empty), false);
         GB_PrintDirty::printWithoutCRLF(input);
-        Serial.print(F(" > "));
+        Serial.print(FS(S_Next));
         GB_PrintDirty::printHEX(input); 
         Serial.println();
         printDirtyEnd();

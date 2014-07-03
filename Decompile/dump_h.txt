@@ -3,27 +3,27 @@ Growbox.cpp.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .data         000000f0  00800100  00007942  000079d6  2**0
+  0 .data         0000003c  00800100  000078d4  00007968  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  1 .text         00007942  00000000  00000000  00000094  2**1
+  1 .text         000078d4  00000000  00000000  00000094  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .bss          000002f6  008001f0  008001f0  00007ac6  2**0
+  2 .bss          000002a2  0080013c  0080013c  000079a4  2**0
                   ALLOC
-  3 .debug_aranges 00000ea0  00000000  00000000  00007ac6  2**0
+  3 .debug_aranges 00000e58  00000000  00000000  000079a4  2**0
                   CONTENTS, READONLY, DEBUGGING
-  4 .debug_pubnames 00002b76  00000000  00000000  00008966  2**0
+  4 .debug_pubnames 00002b5e  00000000  00000000  000087fc  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_info   00017044  00000000  00000000  0000b4dc  2**0
+  5 .debug_info   000171b8  00000000  00000000  0000b35a  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 0000389f  00000000  00000000  00022520  2**0
+  6 .debug_abbrev 00003881  00000000  00000000  00022512  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   0000a79a  00000000  00000000  00025dbf  2**0
+  7 .debug_line   0000a625  00000000  00000000  00025d93  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_frame  00001a60  00000000  00000000  0003055c  2**2
+  8 .debug_frame  000019d0  00000000  00000000  000303b8  2**2
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_str    000065f3  00000000  00000000  00031fbc  2**0
+  9 .debug_str    00006527  00000000  00000000  00031d88  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    000080ec  00000000  00000000  000385af  2**0
+ 10 .debug_loc    00007fd7  00000000  00000000  000382af  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_ranges 00001078  00000000  00000000  0004069b  2**0
+ 11 .debug_ranges 00001030  00000000  00000000  00040286  2**0
                   CONTENTS, READONLY, DEBUGGING

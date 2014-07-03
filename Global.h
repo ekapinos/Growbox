@@ -97,6 +97,8 @@ const char S_Temperature[] PROGMEM  = "Temperature";
 const char S_Free_memory[] PROGMEM  = "Free memory: ";
 const char S_bytes[] PROGMEM  = " bytes";
 const char S_PlusMinus [] PROGMEM  = "+/-";
+const char S_Next [] PROGMEM  = " > ";
+const char S_0x [] PROGMEM  = "0x";
 
 enum HTTP_TAG {
   HTTP_TAG_OPEN, HTTP_TAG_CLOSED, HTTP_TAG_SINGLE
@@ -127,12 +129,20 @@ static boolean flashStringEquals(const __FlashStringHelper* fstr, const String &
   return true;
 }
 
+static boolean flashStringEquals(const char PROGMEM* pstr, const String &str){ 
+  return flashStringEquals((const __FlashStringHelper*) pstr, str);
+}
+
 static String flashStringLoad(const __FlashStringHelper* fstr){ 
   String str;
   for (int i = 0; i< flashStringLength(fstr); i++){
     str += flashStringCharAt(fstr, i);
   }
   return str;
+}
+
+static String flashStringLoad(const char PROGMEM* pstr){ 
+  return flashStringLoad((const __FlashStringHelper*) pstr);
 }
 #endif
 

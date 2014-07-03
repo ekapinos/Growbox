@@ -20,7 +20,7 @@ public:
       out = String('0') + out;
     }
     if (addPrefix){
-      out = String("0x") + out;
+      out = flashStringLoad(S_0x) + out;
     }
     return out;
   }
