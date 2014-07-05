@@ -10,9 +10,7 @@ const char S_WIFI_RESPONSE_WELLCOME[] PROGMEM  = "Welcome to RAK410\r\n";
 const char S_WIFI_RESPONSE_ERROR[] PROGMEM  = "ERROR";
 const char S_WIFI_RESPONSE_OK[] PROGMEM  = "OK";
 const char S_WIFI_GET_[] PROGMEM  = "GET /";
-
-const int WIFI_RESPONSE_DELAY_MAX = 5000; // max delay after "at+" commands 5000ms = 5s
-const int WIFI_RESPONSE_CHECK_INTERVAL = 10; // during 5s interval, we check for answer every 100 ms
+const char S_WIFI_POST_[] PROGMEM  = "POST /"; 
 
 const int WIFI_RESPONSE_FRAME_SIZE = 1400; // 1400 max
 
@@ -29,6 +27,7 @@ private:
   static String s_wifiPass;// 8-63 char
 
   static boolean s_restartWifi;
+  static boolean s_restartWifiIfNoResponceAutomatically;
 
   static boolean s_wifiIsHeaderSended;
   static int s_wifiResponseAutoFlushConut;
@@ -52,10 +51,6 @@ public:
   static void setWifiConfiguration(const String& _s_wifiSID, const String& _s_wifiPass){
     s_wifiSID = _s_wifiSID;
     s_wifiPass = _s_wifiPass;
-    //    if (g_isGrowboxStarted){
-    //        s_restartWifi = true;
-    //      checkSerial(false, true); // restart
-    //    }
   }
 
 
@@ -95,8 +90,11 @@ public:
     if (checkWifi || s_restartWifi){
       for (int i = 0; i<2; i++){ // Sometimes first command returns ERROR, two attempts
         cleanSerialBuffer();
+        s_restartWifiIfNoResponceAutomatically = false;
         String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210
-        useSerialWifi = input.startsWith(flashStringLoad(S_WIFI_RESPONSE_WELLCOME));
+        s_restartWifiIfNoResponceAutomatically = true;
+        
+        useSerialWifi = flashStringStartsWith(input, S_WIFI_RESPONSE_WELLCOME);
         if (useSerialWifi) {
           s_restartWifi = false;
           //wifiExecuteCommand(F("at+del_data"));
@@ -107,7 +105,7 @@ public:
           break;
         }
         if (useSerialMonitor && input.length() > 0){
-          showWifiStatus(F("Not corrent wellcome message: "), false);
+          showWifiStatus(F("Not correct wellcome message: "), false);
           GB_PrintDirty::printWithoutCRLF(input);
           Serial.print(FS(S_Next));
           GB_PrintDirty::printHEX(input); 
@@ -157,14 +155,18 @@ public:
     } 
     else {
       showWifiStatus(F("Start failed"));
+      s_restartWifi = true;
     }
   }
 
-  static boolean handleSerialEvent(String &input, boolean &isWifiRequest, byte &wifiPortDescriptor){
+  static boolean handleSerialEvent(String &input, boolean &isWifiRequest, byte &wifiPortDescriptor, String &postParams){
 
-    input = "";  
+    input = String();  
     isWifiRequest = false; 
     wifiPortDescriptor = 0xFF;
+    postParams = String(); 
+
+    boolean isPostRequest = false;
 
     boolean isReadError = false;
 
@@ -174,8 +176,8 @@ public:
     while (Serial.available()){
       input += (char) readByteFromSerialBuffer(isReadError); // Always use casting to (char) with String object!
 
-      if (flashStringEquals(F("at+recv_data="), input)){ // length compires first 
-        input = "";     
+      if (flashStringEquals(input, F("at+recv_data="))){ // length compires first 
+        input = String();     
         byte firstRequestHeaderByte = readByteFromSerialBuffer(isReadError); // first byte
 
         // Serial.print(F("WIFI-T> ")); Serial.println((byte)firstRequestHeaderByte, HEX); printDirtyEnd();
@@ -194,25 +196,56 @@ public:
           // Optimization
           skipByteFromSerialBuffer(isReadError, 8); // skip Destination port, IP and data length
 
+          String CRLF = flashStringLoad(S_CRLF);
+
           // Read first line   
-          while (Serial.available() && !input.endsWith(flashStringLoad(S_CRLF))){
+          while (Serial.available() && !input.endsWith(CRLF)){
             input += (char) readByteFromSerialBuffer(isReadError); // Always use casting to (char) with String object!
           }
 
           //Serial.print(F("WIFI-T> ")); Serial.println(input); printDirtyEnd(); 
 
-          if (input.startsWith(flashStringLoad(S_WIFI_GET_)) && input.endsWith(flashStringLoad(S_CRLF))){
-            int lastIndex = input.indexOf(' ', 4);
+          if ((flashStringStartsWith(input, S_WIFI_GET_) ||  flashStringStartsWith(input, S_WIFI_POST_)) && input.endsWith(CRLF)){
+            int firstIndex;
+            if (flashStringStartsWith(input, S_WIFI_GET_)){
+              isPostRequest = false;
+              firstIndex = flashStringLength(S_WIFI_GET_) - 1;
+            } 
+            else {
+              isPostRequest = true;
+              firstIndex = flashStringLength(S_WIFI_POST_) - 1;
+            }
+            int lastIndex = input.indexOf(' ', firstIndex);
             if (lastIndex == -1){
               lastIndex = input.length()-2; // \r\n-1
             }
-            input = input.substring(4, lastIndex);             
-            //Serial.print(F("WIFI-T> ")); Serial.println(input); printDirtyEnd(); 
+            input = input.substring(firstIndex, lastIndex);             
 
+            if (isPostRequest){
+              String CRLFCRLF = CRLF+CRLF;
+              String CR = String('\r');
+              String LF = String('\n');
+              while (Serial.available()){   
+
+                postParams += (char) readByteFromSerialBuffer(isReadError) ; // Always use casting to (char) with String object!
+                //                if (postParams.endsWith(CRLFCRLF)){
+                //                  break;
+                //                }                
+                //                else if (!postParams.endsWith(CR) && !postParams.endsWith(LF)){
+                //                  postParams = String();
+                //                }
+              }
+              //              if (postParams.endsWith(CRLFCRLF)){
+              //                while (Serial.available()){   
+              //                  postParams += (char) readByteFromSerialBuffer(isReadError) ; // Always use casting to (char) with String object!        
+              //                }             
+              //              } else {
+              //                postParams = String();
+              //              }
+            } 
             cleanSerialBuffer(); // We are not interested in data which is remained
-
             break; // outside cicrle
-          } 
+          }
           cleanSerialBuffer();
           closeConnection(wifiPortDescriptor);  // This is garbage request, only one attempt allowed
         } 
@@ -236,7 +269,7 @@ public:
         }
         return false;
       }
-      else if (input.startsWith(flashStringLoad(S_WIFI_RESPONSE_WELLCOME)) || input.startsWith(flashStringLoad(S_WIFI_RESPONSE_ERROR))){
+      else if (flashStringStartsWith(input, S_WIFI_RESPONSE_WELLCOME) || flashStringStartsWith(input, S_WIFI_RESPONSE_ERROR)){
         checkSerial(false, true); // manual restart
         return false;
       }
@@ -244,12 +277,12 @@ public:
     } // while (Serial.available()) 
 
     if (!isWifiRequest){
-      input.trim();
+      // input.trim();
     }
 
     if (useSerialMonitor) {
       if (isWifiRequestClientConnected || isWifiRequestClientDisconnected) {
-        showWifiStatus(F("Client ")); 
+        showWifiStatus(F("Client "), false); 
         Serial.print(wifiPortDescriptor);
         if (isWifiRequestClientConnected){
           Serial.println(FS(S_connected));
@@ -261,8 +294,16 @@ public:
       } 
       else {
         if (isWifiRequest){  
-          showWifiStatus(FS(S_WIFI_GET_), false);
-          Serial.println(input.substring(1));
+          if (isPostRequest){
+            showWifiStatus(FS(S_WIFI_POST_), false);
+          } 
+          else {
+            showWifiStatus(FS(S_WIFI_GET_), false);
+          }
+          Serial.print(input.substring(1));
+          Serial.print(' ');
+          Serial.print(postParams);
+          Serial.println();
         } 
         else {
           Serial.print(F("SERIAL> "));
@@ -365,10 +406,11 @@ private:
   static void showWifiStatus(const __FlashStringHelper* str, boolean newLine = true){ //TODO 
     if (useSerialMonitor){
       Serial.print(FS(S_WIFI));
-      Serial.println(str);
-      if (newLine){    
-        printDirtyEnd();
+      Serial.print(str);
+      if (newLine){  
+        Serial.println();        
       }
+      printDirtyEnd();
     }
   }
 
@@ -418,7 +460,7 @@ private:
 
     cleanSerialBuffer();
 
-    if (!wifiExecuteCommand(F("at+scan=0"))){
+    if (!wifiExecuteCommand(F("at+scan=0"), 5000)){
       return false;
     } 
 
@@ -434,11 +476,11 @@ private:
 
       Serial.print(F("at+connect="));
       Serial.print(s_wifiSID);
-      if (!wifiExecuteCommand()){
+      if (!wifiExecuteCommand(0, 5000)){
         return false;
       }
 
-      if (!wifiExecuteCommand(F("at+ipdhcp=0"))){
+      if (!wifiExecuteCommand(F("at+ipdhcp=0"), 5000)){
         return false;
       }
     }
@@ -452,11 +494,11 @@ private:
         return false;
       }
 
-      if (!wifiExecuteCommand(F("at+ipdhcp=1"))){
+      if (!wifiExecuteCommand(F("at+ipdhcp=1"), 5000)){
         return false;
       }
 
-      if (!wifiExecuteCommand(F("at+ap=Growbox,1"))){ // Hidden
+      if (!wifiExecuteCommand(F("at+ap=Growbox,1"), 5000)){ // Hidden
         return false;
       }
     }
@@ -471,15 +513,16 @@ private:
     return true;
   }
 
-  static boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = -1, boolean rebootOnFalse = true){
-    String input = wifiExecuteRawCommand(command,maxResponseDeleay, rebootOnFalse);
+  static boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = 1000){   
+    String CRLF = flashStringLoad(S_CRLF);
+    String input = wifiExecuteRawCommand(command, maxResponseDeleay);
     if (input.length() == 0){
       // Nothing to do
     } 
-    else if (input.startsWith(flashStringLoad(S_WIFI_RESPONSE_OK)) && input.endsWith(flashStringLoad(S_CRLF))){
+    else if (flashStringStartsWith(input, S_WIFI_RESPONSE_OK) && input.endsWith(CRLF)){
       return true;
     } 
-    else if (input.startsWith(flashStringLoad(S_WIFI_RESPONSE_ERROR)) && input.endsWith(flashStringLoad(S_CRLF))) {
+    else if (flashStringStartsWith(input, S_WIFI_RESPONSE_ERROR) && input.endsWith(CRLF)){
       if (useSerialMonitor){
         byte errorCode = input[5];
         showWifiStatus(F("error "), false);
@@ -502,7 +545,7 @@ private:
     return false;
   }
 
-  static String wifiExecuteRawCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = -1, boolean rebootOnFalse = true){
+  static String wifiExecuteRawCommand(const __FlashStringHelper* command, int maxResponseDeleay){
     if (command == 0){
       Serial.println();
     } 
@@ -510,34 +553,25 @@ private:
       Serial.println(command);
     }
 
-    if (maxResponseDeleay < 0){
-      maxResponseDeleay = WIFI_RESPONSE_DELAY_MAX;
-    }    
+    Serial.setTimeout(maxResponseDeleay);
 
-    for (int i=0; i <= maxResponseDeleay; i += WIFI_RESPONSE_CHECK_INTERVAL){
-      delay(WIFI_RESPONSE_CHECK_INTERVAL);
-      if (Serial.available()){
-        break;
-      }
-    }
-
-    boolean isReadError = false;
-    String input;
-    while (Serial.available()){
-      input += (char) readByteFromSerialBuffer(isReadError);
-    }
+    String input = Serial.readString();
 
     if (input.length() == 0){
+      
+      if (s_restartWifiIfNoResponceAutomatically){
+        s_restartWifi = true;
+      }
+      
       if (useSerialMonitor){   
         showWifiStatus(F("No response"), false);
-
+        if (s_restartWifiIfNoResponceAutomatically){
+          Serial.print(F(" (reboot)"));
+        } 
+        Serial.println();
+        printDirtyEnd();
       }
-      if (rebootOnFalse){
-        Serial.print(F(" (reboot)"));
-        s_restartWifi = true;
-      } 
-      Serial.println();
-      printDirtyEnd();
+      
     }
 
     return input;
@@ -553,14 +587,6 @@ private:
 
   static void sendHttpNotFoundHeader(const byte portDescriptor){ 
     sendWifiData(portDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
-    /*
-      Serial.print(F("at+httpd_send="));
-     Serial.print(portDescriptor);
-     Serial.print(',');
-     Serial.print(code); 
-     Serial.print(F(",0")); //length of data
-     return wifiExecuteCommand(); 
-     */
   }
 
   static void startHttpFrame(const byte &wifiPortDescriptor){
@@ -574,7 +600,7 @@ private:
         s_wifiResponseAutoFlushConut += Serial.write(0x00);
       }
     }
-    return sendWifiFrameStop(false);
+    return sendWifiFrameStop();
   } 
 
   static void sendWifiData(const byte portDescriptor, const __FlashStringHelper* data){ // INT_MAX (own test) or 1400 bytes max (Wi-Fi spec restriction)
@@ -594,10 +620,14 @@ private:
     Serial.print(',');
     Serial.print(length);
     Serial.print(',');
+
   }
 
-  static boolean sendWifiFrameStop(boolean rebootOnFalse = true){
-    return wifiExecuteCommand(0,-1,rebootOnFalse);
+  static boolean sendWifiFrameStop(){
+    s_restartWifiIfNoResponceAutomatically = false;
+    boolean rez = wifiExecuteCommand();
+    s_restartWifiIfNoResponceAutomatically = true;
+    return rez;
   }
 
   static boolean closeConnection(const byte portDescriptor){
@@ -609,6 +639,11 @@ private:
 };
 
 #endif
+
+
+
+
+
 
 
 

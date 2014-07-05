@@ -275,15 +275,16 @@ void loop() {
 
 void serialEvent(){
   if(!g_isGrowboxStarted){
+    GB_SerialHelper::printDirtyEnd();
     return; //Do not handle events during startup
   }
 
+  String input; 
   g_isWifiRequest = false;
   g_isWifiResponseError = false;
   g_wifiPortDescriptor = 0x00;
-  String input; 
-
-  if (!GB_SerialHelper::handleSerialEvent(input, g_isWifiRequest, g_wifiPortDescriptor)){
+  String postParams; 
+  if (!GB_SerialHelper::handleSerialEvent(input, g_isWifiRequest, g_wifiPortDescriptor, postParams)){
     return;
   }
 
@@ -291,7 +292,7 @@ void serialEvent(){
     GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor);
   }
 
-  executeCommand(input);
+  executeCommand(input, postParams);
 
   if (g_isWifiRequest) {
     GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
@@ -498,7 +499,7 @@ static void sendData(time_t data){
 }
 
 
-static void sendHTTPtagButton(const char PROGMEM* url, const __FlashStringHelper* name){
+static void sendTagButton(const char PROGMEM* url, const __FlashStringHelper* name){
   sendData(F("<input type=\"button\" onclick=\"document.location='"));
   sendData(FS(url));
   sendData(F("'\" value=\""));
@@ -506,7 +507,7 @@ static void sendHTTPtagButton(const char PROGMEM* url, const __FlashStringHelper
   sendData(F("\"/>"));
 }
 
-static void sendHTTPtag(const char PROGMEM* pname, HTTP_TAG type){
+static void sendTag(const char PROGMEM* pname, HTTP_TAG type){
   sendData('<');
   if (type == HTTP_TAG_CLOSED){
     sendData('/');
@@ -518,39 +519,47 @@ static void sendHTTPtag(const char PROGMEM* pname, HTTP_TAG type){
   sendData('>');
 }
 
-static void executeCommand(String &input){
+static void executeCommand(const String &input, const String &postParams){
 
+  if (
+  !flashStringEquals(input, S_url) && 
+    !flashStringEquals(input, S_url_log) &&
+    !flashStringEquals(input, S_url_conf) &&
+    !flashStringEquals(input, S_url_storage)
+    ){
+    return;
+  }
   if (g_isWifiRequest){
-    sendHTTPtag(S_html, HTTP_TAG_OPEN);    
+    sendTag(S_html, HTTP_TAG_OPEN);    
     sendData(F("<h1>Growbox</h1>"));
-    sendHTTPtagButton(S_url, F("Status"));
-    sendHTTPtagButton(S_url_log, F("Daily log"));
-    sendHTTPtagButton(S_url_conf, F("Configuration"));
-    sendHTTPtagButton(S_url_storage, F("Storage dump"));
-    sendHTTPtag(S_hr, HTTP_TAG_SINGLE);
-    sendHTTPtag(S_pre, HTTP_TAG_OPEN);
+    sendTagButton(S_url, F("Status"));
+    sendTagButton(S_url_log, F("Daily log"));
+    sendTagButton(S_url_conf, F("Configuration"));
+    sendTagButton(S_url_storage, F("Storage dump"));
+    sendTag(S_hr, HTTP_TAG_SINGLE);
+    sendTag(S_pre, HTTP_TAG_OPEN);
     sendBriefStatus();
-    sendHTTPtag(S_pre, HTTP_TAG_CLOSED);
+    sendTag(S_pre, HTTP_TAG_CLOSED);
   }
 
-  sendHTTPtag(S_pre, HTTP_TAG_OPEN);
-  if (flashStringEquals(S_url, input)){
+  sendTag(S_pre, HTTP_TAG_OPEN);
+  if (flashStringEquals(input, S_url)){
     printSendPinsStatus();   
   } 
-  else if (flashStringEquals(S_url_conf, input)){
+  else if (flashStringEquals(input, S_url_conf)){
     printSendConfigurationControls(); 
   } 
-  else if (flashStringEquals(S_url_log, input)){
+  else if (flashStringEquals(input, S_url_log)){
     printSendFullLog(true, true, true); // TODO use parameters
   }
-  else if (flashStringEquals(S_url_storage, input)){
+  else if (flashStringEquals(input, S_url_storage)){
     printSendStorageDump(); 
   }
 
   if (g_isWifiResponseError) return;
 
-  sendHTTPtag(S_pre, HTTP_TAG_CLOSED);
-  sendHTTPtag(S_html, HTTP_TAG_CLOSED);
+  sendTag(S_pre, HTTP_TAG_CLOSED);
+  sendTag(S_html, HTTP_TAG_CLOSED);
   /*
   // read the incoming byte:
    char firstChar = 0, secondChar = 0; 
@@ -672,13 +681,13 @@ static void sendBriefStatus(){
   sendBootStatus();
   sendTimeStatus();
   sendTemperatureStatus();  
-  sendHTTPtag(S_hr, HTTP_TAG_SINGLE); 
+  sendTag(S_hr, HTTP_TAG_SINGLE); 
 }
 
 
 static void printSendConfigurationControls(){
   sendData(F("<form action=\"/\" method=\"post\">"));
-  
+
 
   sendData(F("<input type=\"submit\" value=\"Submit\">"));
   sendData(F("</form>"));
@@ -718,14 +727,14 @@ static void sendBootStatus(){
 
 static void sendTimeStatus(){
   sendData(F("Clock: ")); 
-  sendHTTPtag(S_b, HTTP_TAG_OPEN);
+  sendTag(S_b, HTTP_TAG_OPEN);
   if (g_isDayInGrowbox) {
     sendData(F("DAY"));
   } 
   else{
     sendData(F("NIGHT"));
   }
-  sendHTTPtag(S_b, HTTP_TAG_CLOSED);
+  sendTag(S_b, HTTP_TAG_CLOSED);
   sendData(F(" mode, time ")); 
   sendData(now());
   sendData(F(", up time [")); 
@@ -843,7 +852,7 @@ static void printSendPinsStatus(){
 static void printSendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
   LogRecord logRecord;
   boolean isEmpty = true;
-  sendHTTPtag(S_table, HTTP_TAG_OPEN);
+  sendTag(S_table, HTTP_TAG_OPEN);
   for (int i = 0; i < GB_Logger::getLogRecordsCount(); i++){
 
     logRecord = GB_Logger::getLogRecordByIndex(i);
@@ -857,28 +866,28 @@ static void printSendFullLog(boolean printEvents, boolean printErrors, boolean p
       continue;
     }
 
-    sendHTTPtag(S_tr, HTTP_TAG_OPEN);
-    sendHTTPtag(S_td, HTTP_TAG_OPEN);
+    sendTag(S_tr, HTTP_TAG_OPEN);
+    sendTag(S_td, HTTP_TAG_OPEN);
     sendData(i+1);
-    sendHTTPtag(S_td, HTTP_TAG_CLOSED);
-    sendHTTPtag(S_td, HTTP_TAG_OPEN);
+    sendTag(S_td, HTTP_TAG_CLOSED);
+    sendTag(S_td, HTTP_TAG_OPEN);
     sendData(GB_PrintDirty::getTimeString(logRecord.timeStamp));    
-    sendHTTPtag(S_td, HTTP_TAG_CLOSED);
-    sendHTTPtag(S_td, HTTP_TAG_OPEN);
+    sendTag(S_td, HTTP_TAG_CLOSED);
+    sendTag(S_td, HTTP_TAG_OPEN);
     sendData(GB_PrintDirty::getHEX(logRecord.data, true));
-    sendHTTPtag(S_td, HTTP_TAG_CLOSED);
-    sendHTTPtag(S_td, HTTP_TAG_OPEN);
+    sendTag(S_td, HTTP_TAG_CLOSED);
+    sendTag(S_td, HTTP_TAG_OPEN);
     sendData(GB_Logger::getLogRecordDescription(logRecord));
     sendData(GB_Logger::getLogRecordSuffix(logRecord));
-    sendHTTPtag(S_td, HTTP_TAG_CLOSED);
+    sendTag(S_td, HTTP_TAG_CLOSED);
     //sendDataLn();
-    sendHTTPtag(S_tr, HTTP_TAG_CLOSED);
+    sendTag(S_tr, HTTP_TAG_CLOSED);
     isEmpty = false;
 
     if (g_isWifiResponseError) return;
 
   }
-  sendHTTPtag(S_table, HTTP_TAG_CLOSED);
+  sendTag(S_table, HTTP_TAG_CLOSED);
   if (isEmpty){
     sendData(F("Log empty"));
   }
@@ -893,43 +902,44 @@ void printStorage(word address, byte sizeOf){
 }
 
 void printSendStorageDump(){
-  sendHTTPtag(S_table, HTTP_TAG_OPEN);
-  sendHTTPtag(S_tr, HTTP_TAG_OPEN);
-  sendHTTPtag(S_td, HTTP_TAG_OPEN);
-  sendHTTPtag(S_td, HTTP_TAG_CLOSED);
+  sendTag(S_table, HTTP_TAG_OPEN);
+  sendTag(S_tr, HTTP_TAG_OPEN);
+  sendTag(S_td, HTTP_TAG_OPEN);
+  sendTag(S_td, HTTP_TAG_CLOSED);
   for (word i = 0; i < 16 ; i++){
-    sendHTTPtag(S_td, HTTP_TAG_OPEN);
-    sendHTTPtag(S_b, HTTP_TAG_OPEN);
+    sendTag(S_td, HTTP_TAG_OPEN);
+    sendTag(S_b, HTTP_TAG_OPEN);
     sendData(GB_PrintDirty::getHEX(i));
-    sendHTTPtag(S_b, HTTP_TAG_CLOSED); 
-    sendHTTPtag(S_td, HTTP_TAG_CLOSED);
+    sendTag(S_b, HTTP_TAG_CLOSED); 
+    sendTag(S_td, HTTP_TAG_CLOSED);
   }
-  sendHTTPtag(S_tr, HTTP_TAG_CLOSED);
+  sendTag(S_tr, HTTP_TAG_CLOSED);
 
   for (word i = 0; i < GB_Storage::CAPACITY ; i++){
     byte value = GB_Storage::read(i);
 
     if (i% 16 ==0){
       if (i>0){
-        sendHTTPtag(S_tr, HTTP_TAG_CLOSED);
+        sendTag(S_tr, HTTP_TAG_CLOSED);
       }
-      sendHTTPtag(S_tr, HTTP_TAG_OPEN);
-      sendHTTPtag(S_td, HTTP_TAG_OPEN);
-      sendHTTPtag(S_b, HTTP_TAG_OPEN);
+      sendTag(S_tr, HTTP_TAG_OPEN);
+      sendTag(S_td, HTTP_TAG_OPEN);
+      sendTag(S_b, HTTP_TAG_OPEN);
       sendData(GB_PrintDirty::getHEX(i/16));
-      sendHTTPtag(S_b, HTTP_TAG_CLOSED);
-      sendHTTPtag(S_td, HTTP_TAG_CLOSED);
+      sendTag(S_b, HTTP_TAG_CLOSED);
+      sendTag(S_td, HTTP_TAG_CLOSED);
     }
-    sendHTTPtag(S_td, HTTP_TAG_OPEN);
+    sendTag(S_td, HTTP_TAG_OPEN);
     sendData(GB_PrintDirty::getHEX(value));
-    sendHTTPtag(S_td, HTTP_TAG_CLOSED);
+    sendTag(S_td, HTTP_TAG_CLOSED);
 
     if (g_isWifiResponseError) return;
 
   }
-  sendHTTPtag(S_tr, HTTP_TAG_CLOSED);
-  sendHTTPtag(S_table, HTTP_TAG_CLOSED);
+  sendTag(S_tr, HTTP_TAG_CLOSED);
+  sendTag(S_table, HTTP_TAG_CLOSED);
 }
+
 
 
 

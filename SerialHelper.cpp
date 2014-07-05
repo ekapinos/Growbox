@@ -7,6 +7,7 @@
 /*volatile*/boolean GB_SerialHelper::useSerialMonitor = false;
 /*volatile*/boolean GB_SerialHelper::useSerialWifi = false;
 boolean GB_SerialHelper::s_restartWifi = false;
+boolean GB_SerialHelper::s_restartWifiIfNoResponceAutomatically = true;
 
 
 

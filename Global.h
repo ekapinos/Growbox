@@ -104,9 +104,11 @@ enum HTTP_TAG {
   HTTP_TAG_OPEN, HTTP_TAG_CLOSED, HTTP_TAG_SINGLE
 };
 
-static int flashStringLength(const __FlashStringHelper* fstr){ 
-    const char PROGMEM * pstr = (const char PROGMEM *) fstr;
+static int flashStringLength(const char PROGMEM * pstr){ 
     return strlen_P(pstr);
+}
+static int flashStringLength(const __FlashStringHelper* fstr){ 
+    return flashStringLength((const char PROGMEM *) fstr);
 }
 
 static char flashStringCharAt(const __FlashStringHelper* fstr, int index){ 
@@ -117,7 +119,7 @@ static char flashStringCharAt(const __FlashStringHelper* fstr, int index){
   return pgm_read_byte(pstr+index);
 }
 
-static boolean flashStringEquals(const __FlashStringHelper* fstr, const String &str){ 
+static boolean flashStringEquals(const String &str, const __FlashStringHelper* fstr){ 
   if (flashStringLength(fstr) != str.length()) {
     return false; 
   }
@@ -129,8 +131,19 @@ static boolean flashStringEquals(const __FlashStringHelper* fstr, const String &
   return true;
 }
 
-static boolean flashStringEquals(const char PROGMEM* pstr, const String &str){ 
-  return flashStringEquals((const __FlashStringHelper*) pstr, str);
+
+
+static boolean flashStringStartsWith(const String &str, const __FlashStringHelper* fstr){
+  if (flashStringLength(fstr) > str.length()) {
+    return false; 
+  }
+  for (int i = 0; i< flashStringLength(fstr); i++){
+    if (flashStringCharAt(fstr, i) != str[i]){
+      return false;
+    }
+  }
+  return true;
+  
 }
 
 static String flashStringLoad(const __FlashStringHelper* fstr){ 
@@ -141,8 +154,15 @@ static String flashStringLoad(const __FlashStringHelper* fstr){
   return str;
 }
 
+static boolean flashStringStartsWith(const String &str, const char PROGMEM* pstr){ 
+  return flashStringStartsWith(str, (const __FlashStringHelper*) pstr);
+}
+static boolean flashStringEquals(const String &str, const char PROGMEM* pstr){ 
+  return flashStringEquals(str, (const __FlashStringHelper*) pstr);
+}
 static String flashStringLoad(const char PROGMEM* pstr){ 
   return flashStringLoad((const __FlashStringHelper*) pstr);
 }
+
 #endif
 
