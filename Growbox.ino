@@ -1,4 +1,6 @@
 
+#include <stdint.h>
+
 // Warning! We need to include all used libraries, 
 // otherwise Arduino IDE doesn't set correct build 
 // params for gcc compilator
@@ -27,8 +29,8 @@
 
 byte g_isDayInGrowbox = -1;
 
-// HTTP response supplemental  
-byte g_isWifiRequest = false;  
+// HTTP response supplemental 
+GB_COMMAND_TYPE g_commandType = GB_COMMAND_NONE; 
 byte g_wifiPortDescriptor = 0xFF;
 byte g_isWifiResponseError = false;  
 
@@ -236,7 +238,10 @@ void setup() {
 
   // Create main life circle timer
   Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
-  Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus);  
+  Alarm.timerRepeat(UPDATE_SERIAL_MONITOR_STATUS_DELAY, updateSerialMonitorStatus);
+  Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
+  Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
+
   Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);  // repeat every N seconds
 
   // Create suolemental rare switching
@@ -247,6 +252,10 @@ void setup() {
     if (controllerFreeMemoryBeforeBoot != freeMemory()){
       printFreeMemory();
     }
+    /*int i = 0;
+     char c = 0xfe;
+     i = c;
+     GB_PrintDirty::printRAM(&i, sizeof(i));*/
     Serial.println(F("Growbox successfully started"));
     //GB_SerialHelper::printDirtyEnd();
   }
@@ -264,37 +273,75 @@ void setup() {
 
 // the loop routine runs over and over again forever:
 void loop() {
-  digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
-
-  GB_Controller::checkFreeMemory();
-  GB_SerialHelper::checkSerial(true, false); // not interraption cause Serial print problems
-
-  Alarm.delay(MAIN_LOOP_DELAY * 1000); // wait one second between clock display
+  //WARNING! We need quick response for Serial events, thay handled afer each loop. So, we decreese delay to zero 
+  Alarm.delay(0); 
 }
 
 
 void serialEvent(){
+
   if(!g_isGrowboxStarted){
     GB_SerialHelper::printDirtyEnd();
     return; //Do not handle events during startup
   }
 
-  String input; 
-  g_isWifiRequest = false;
+  /*int freeMemoryonStart = freeMemory();*/
   g_isWifiResponseError = false;
+  
+  String input;   
   g_wifiPortDescriptor = 0x00;
   String postParams; 
-  if (!GB_SerialHelper::handleSerialEvent(input, g_isWifiRequest, g_wifiPortDescriptor, postParams)){
+  
+  g_commandType = GB_SerialHelper::handleSerialEvent(input, g_wifiPortDescriptor, postParams);
+  
+  if (g_commandType == GB_COMMAND_NONE){
+    /* Serial.print(F("serialEvent() free memory on start : "));
+     Serial.print(freeMemoryonStart);
+     Serial.print(F(", now "));
+     printFreeMemory();
+     GB_SerialHelper::printDirtyEnd();*/
+
+    /*
+    Serial.print(F("SERIAL1> input="));
+     GB_PrintDirty::printWithoutCRLF(input);
+     Serial.print(FS(S_Next));
+     GB_PrintDirty::printHEX(input);
+     Serial.println();
+     Serial.print(F("SERIAL2> postParams="));
+     GB_PrintDirty::printWithoutCRLF(postParams);
+     Serial.print(FS(S_Next));
+     GB_PrintDirty::printHEX(postParams);
+     Serial.println();
+     GB_SerialHelper::printDirtyEnd();
+     */
+
     return;
   }
+  /*
+  GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor); // send 404
+  GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
 
-  if (g_isWifiRequest){
+  Serial.print(F("SERIAL1> input="));
+  GB_PrintDirty::printWithoutCRLF(input);
+  Serial.print(FS(S_Next));
+  GB_PrintDirty::printHEX(input);
+  Serial.println();
+  Serial.print(F("SERIAL2> postParams="));
+  GB_PrintDirty::printWithoutCRLF(postParams);
+  Serial.print(FS(S_Next));
+  GB_PrintDirty::printHEX(postParams);
+  Serial.println();
+  GB_SerialHelper::printDirtyEnd();
+  
+  return;
+*/
+  if (g_commandType == GB_COMMAND_HTTP_GET){
     GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor);
   }
 
   executeCommand(input, postParams);
 
-  if (g_isWifiRequest) {
+  if (g_commandType == GB_COMMAND_HTTP_GET) {
     GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
   } 
   else {     
@@ -316,6 +363,8 @@ void serialEvent(){
 /////////////////////////////////////////////////////////////////////
 
 void updateGrowboxState() {
+
+  GB_Controller::checkFreeMemory();
 
   float temperature = GB_Thermometer::getTemperature();
 
@@ -394,6 +443,16 @@ void updateWiFiStatus(){ // should return void
   GB_SerialHelper::updateWiFiStatus(); 
 }
 
+void updateSerialMonitorStatus(){ // should return void
+  GB_SerialHelper::updateSerialMonitorStatus(); 
+}
+
+void updateBreezeStatus() {
+  digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
+  /*printFreeMemory();
+   GB_SerialHelper::printDirtyEnd();*/
+}
+
 /////////////////////////////////////////////////////////////////////
 //                              DEVICES                            //
 /////////////////////////////////////////////////////////////////////
@@ -444,7 +503,7 @@ void turnOffFan(){
 /////////////////////////////////////////////////////////////////////
 
 static void sendData(const __FlashStringHelper* data){
-  if (g_isWifiRequest){
+  if (g_commandType == GB_COMMAND_HTTP_GET){
     if (!GB_SerialHelper::sendHttpResponseData(g_wifiPortDescriptor, data)){
       g_isWifiResponseError = true;
     }
@@ -455,7 +514,7 @@ static void sendData(const __FlashStringHelper* data){
 }
 
 static void sendData(const String &data){
-  if (g_isWifiRequest){
+  if (g_commandType == GB_COMMAND_HTTP_GET){
     if (!GB_SerialHelper::sendHttpResponseData(g_wifiPortDescriptor, data)){
       g_isWifiResponseError = true;
     }
@@ -529,7 +588,7 @@ static void executeCommand(const String &input, const String &postParams){
     ){
     return;
   }
-  if (g_isWifiRequest){
+  if (g_commandType == GB_COMMAND_HTTP_GET){
     sendTag(S_html, HTTP_TAG_OPEN);    
     sendData(F("<h1>Growbox</h1>"));
     sendTagButton(S_url, F("Status"));
@@ -939,6 +998,7 @@ void printSendStorageDump(){
   sendTag(S_tr, HTTP_TAG_CLOSED);
   sendTag(S_table, HTTP_TAG_CLOSED);
 }
+
 
 
 
