@@ -25,7 +25,7 @@ const int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" comma
 class GB_SerialHelper{
 private:
   static const unsigned long Stream_timeout = 1000; // Like in Stram.h
-
+  
   static String s_wifiSID;
   static String s_wifiPass;// 8-63 char
 
@@ -97,7 +97,7 @@ public:
         showWifiStatus(F("Restarting..."));
         cleanSerialBuffer();
         s_restartWifiIfNoResponseAutomatically = false;
-        String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210
+        String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
         s_restartWifiIfNoResponseAutomatically = true;
 
         useSerialWifi = flashStringStartsWith(input, S_WIFI_RESPONSE_WELLCOME);
@@ -195,9 +195,11 @@ public:
       // WARNING! We need to do it quick. Standart serial buffer capacity only 64 bytes
       Serial_readString(input, 1); // ends with '\r', cause '\n' will be removed
       byte firstRequestHeaderByte = input[13]; //
-      if (firstRequestHeaderByte <= 0x07) {
+      
+      if (firstRequestHeaderByte <= 0x07) {        
         // Data Received Successfully
         wifiPortDescriptor = firstRequestHeaderByte; 
+    
         Serial_readString(input, 8);  // get full request header
 
         byte lowByteDataLength = input[20];
@@ -213,6 +215,7 @@ public:
         boolean isPost = flashStringStartsWith(input, S_WIFI_POST_);
 
         if ((isGet || isPost) && flashStringEndsWith(input, S_CRLF)){
+         
           int firstIndex;
           if (isGet){  
             firstIndex = flashStringLength(S_WIFI_GET_) - 1;
@@ -264,14 +267,20 @@ public:
         }
 
       } 
-      else if (firstRequestHeaderByte == 0x80 || firstRequestHeaderByte == 0x81) {
-        // TCP client connected or disconnected
-        /*isWifiRequestClientConnected = (firstRequestHeaderByte == 0x80);   
-         isWifiRequestClientDisconnected = (firstRequestHeaderByte == 0x81); */
+      else if (firstRequestHeaderByte == 0x80) {
+        // TCP client connected
         Serial_readString(input, 1); 
         wifiPortDescriptor = input[14]; 
         Serial_skipBytes(8); 
-        return GB_COMMAND_NONE;
+        return GB_COMMAND_HTTP_CONNECTED;
+
+      } 
+      else if (firstRequestHeaderByte == 0x81) {
+        // TCP client disconnected
+        Serial_readString(input, 1); 
+        wifiPortDescriptor = input[14]; 
+        Serial_skipBytes(8); 
+        return GB_COMMAND_HTTP_DISCONNECTED;
 
       } 
       else if (firstRequestHeaderByte == 0xFF) { 
@@ -302,7 +311,20 @@ public:
     }
     closeConnection(wifiPortDescriptor);
   }
-
+  
+  // WARNING! RAK 410 became mad when 2 parallel connections comes. Like with Chrome and POST request, when RAK response 303.
+  // Connection for POST request closed by Chrome (not by RAK). And during this time Chrome creates new parallel connection for GET
+  // request.
+  static void sendHTTPRedirect(const byte &wifiPortDescriptor, const __FlashStringHelper* data){ 
+    //const __FlashStringHelper* header = F("HTTP/1.1 303 See Other\r\nLocation: "); // DO not use it with RAK 410
+    const __FlashStringHelper* header = F("HTTP/1.1 200 OK (303 doesn't work on RAK 410)\r\nrefresh: 0; url="); 
+    sendWifiFrameStart(wifiPortDescriptor, flashStringLength(header) + flashStringLength(data) + flashStringLength(S_CRLFCRLF));
+    Serial.print(header);
+    Serial.print(data);
+    Serial.print(FS(S_CRLFCRLF));
+    sendWifiFrameStop();
+    closeConnection(wifiPortDescriptor);
+  }
 
   static boolean sendHttpResponseData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
     boolean isSendOK = true;
@@ -467,7 +489,6 @@ private:
     return count;
   }  
 
-
   static size_t Serial_readStringUntil(String& str, size_t length, const char PROGMEM* pstr){      
     char c;
     size_t count = 0;
@@ -482,37 +503,7 @@ private:
       } 
     }
     return count;
-  }  
-
-  /*
-   
-   size_t index = 0;  // maximum target string length is 64k bytes!
-   size_t termIndex = 0;
-   int c;
-   
-   while(Serial_timedRead(c)){
-   
-   if(c != target[index])
-   index = 0; // reset index if any char does not match
-   
-   if( c == target[index]){
-   //////Serial.print("found "); Serial.write(c); Serial.print("index now"); Serial.println(index+1);
-   if(++index >= targetLen){ // return true if all chars in the target match
-   return true;
-   }
-   }
-   
-   if(termLen > 0 && c == terminator[termIndex]){
-   if(++termIndex >= termLen)
-   return false;       // return false if terminate string found before target string
-   }
-   else
-   termIndex = 0;
-   }
-   return false;
-   
-   }
-   */
+  } 
 
   static size_t Serial_readString(String& str, size_t length){
     char buffer[length];
@@ -536,34 +527,6 @@ private:
       count += countInFrame;
     }
     return count;
-  }
-
-  // TODO remove it
-  static byte readByteFromSerialBuffer(boolean &isError){
-    if (Serial.available()){
-      delay(5);
-      return Serial.read();
-    } 
-    else {
-      isError = true;
-      return 0xFF;
-    } 
-  }
-  /*  
-   static boolean appendByteFromSerialBuffer(String &input, byte length = 1){
-   for ( int index = 0; (index < length) && Serial.available() ; index++ ){
-   input += return Serial.read();
-   }
-   return (index) == length; 
-   }
-   */
-  static void skipByteFromSerialBuffer(boolean &isError, byte length = 1){
-    int index = 0;
-    while ((index < length) && Serial.available()){
-      Serial.read();
-      index++;
-    }
-    isError = ((index) == length); 
   }
 
   static void cleanSerialBuffer(){
@@ -761,13 +724,12 @@ private:
     sendWifiFrameStop();
   }
 
-  static void sendWifiFrameStart(const byte portDescriptor, word length){ // 1024 bytes max (Wi-Fi module restriction)   
+  static void sendWifiFrameStart(const byte portDescriptor, word length){ // 1400 bytes max (Wi-Fi module spec restriction)   
     Serial.print(F("at+send_data="));
     Serial.print(portDescriptor);
     Serial.print(',');
     Serial.print(length);
     Serial.print(',');
-
   }
 
   static boolean sendWifiFrameStop(){
@@ -786,6 +748,7 @@ private:
 };
 
 #endif
+
 
 
 

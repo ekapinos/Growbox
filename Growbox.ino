@@ -284,30 +284,44 @@ void serialEvent(){
     GB_SerialHelper::printDirtyEnd();
     return; //Do not handle events during startup
   }
+  // digitalWrite(ERROR_PIN, HIGH);
+  // delay(20);
+  // digitalWrite(ERROR_PIN, LOW);
 
-  /*int freeMemoryonStart = freeMemory();*/
-  g_isWifiResponseError = false;
-  
   String input;   
-  g_wifiPortDescriptor = 0x00;
   String postParams; 
-  
-  g_commandType = GB_SerialHelper::handleSerialEvent(input, g_wifiPortDescriptor, postParams);
-  
-  if (g_commandType == GB_COMMAND_NONE){
-    /* Serial.print(F("serialEvent() free memory on start : "));
-     Serial.print(freeMemoryonStart);
-     Serial.print(F(", now "));
-     printFreeMemory();
-     GB_SerialHelper::printDirtyEnd();*/
 
+  g_commandType = GB_SerialHelper::handleSerialEvent(input, g_wifiPortDescriptor, postParams);
+
+  if (g_commandType == GB_COMMAND_NONE){    
+    return; 
+
+  } 
+  else if (g_commandType == GB_COMMAND_HTTP_CONNECTED){
+//    Serial.print(F("Client connected: "));
+//    Serial.println(g_wifiPortDescriptor);
+//    GB_SerialHelper::printDirtyEnd();
+    return; 
+
+  } 
+  else if (g_commandType == GB_COMMAND_HTTP_DISCONNECTED){
+//    Serial.print(F("Client disconnected: "));
+//    Serial.println(g_wifiPortDescriptor);
+//    GB_SerialHelper::printDirtyEnd();
+    return;  
+
+  } 
+  else if (g_commandType == GB_COMMAND_SERIAL_MONITOR){
     /*
-    Serial.print(F("SERIAL1> input="));
+    GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor); // send 404
+     GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
+     
+     Serial.print(F(" input="));
      GB_PrintDirty::printWithoutCRLF(input);
      Serial.print(FS(S_Next));
      GB_PrintDirty::printHEX(input);
      Serial.println();
-     Serial.print(F("SERIAL2> postParams="));
+     Serial.print(F(" postParams="));
      GB_PrintDirty::printWithoutCRLF(postParams);
      Serial.print(FS(S_Next));
      GB_PrintDirty::printHEX(postParams);
@@ -315,37 +329,21 @@ void serialEvent(){
      GB_SerialHelper::printDirtyEnd();
      */
 
-    return;
-  }
-  /*
-  GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor); // send 404
-  GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
-
-  Serial.print(F("SERIAL1> input="));
-  GB_PrintDirty::printWithoutCRLF(input);
-  Serial.print(FS(S_Next));
-  GB_PrintDirty::printHEX(input);
-  Serial.println();
-  Serial.print(F("SERIAL2> postParams="));
-  GB_PrintDirty::printWithoutCRLF(postParams);
-  Serial.print(FS(S_Next));
-  GB_PrintDirty::printHEX(postParams);
-  Serial.println();
-  GB_SerialHelper::printDirtyEnd();
-  
-  return;
-*/
-  if (g_commandType == GB_COMMAND_HTTP_GET){
-    GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor);
-  }
-
-  executeCommand(input, postParams);
-
-  if (g_commandType == GB_COMMAND_HTTP_GET) {
-    GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
   } 
-  else {     
-    GB_SerialHelper::printDirtyEnd(); // It was command from SerialMonotor 
+  else if (g_commandType == GB_COMMAND_HTTP_GET){
+    if (g_commandType == GB_COMMAND_HTTP_GET) {
+      GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor);
+    }
+
+    executeCommand(input, postParams);
+    
+    if (g_commandType == GB_COMMAND_HTTP_GET) {
+      GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
+    }
+
+  } 
+  else if (GB_COMMAND_HTTP_POST) {
+    GB_SerialHelper::sendHTTPRedirect(g_wifiPortDescriptor, FS(S_url));
   }
 
   if(GB_SerialHelper::useSerialMonitor){ 
@@ -998,6 +996,7 @@ void printSendStorageDump(){
   sendTag(S_tr, HTTP_TAG_CLOSED);
   sendTag(S_table, HTTP_TAG_CLOSED);
 }
+
 
 
 

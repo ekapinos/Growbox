@@ -9,8 +9,6 @@
 boolean GB_SerialHelper::s_restartWifi = false;
 boolean GB_SerialHelper::s_restartWifiIfNoResponseAutomatically = true;
 
-
-
 String GB_SerialHelper::s_wifiSID;
 String GB_SerialHelper::s_wifiPass;
 
