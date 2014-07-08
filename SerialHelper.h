@@ -422,29 +422,6 @@ private:
 
   // WARNING! This is adapted copy of Stream.h, Serial.h, and HardwareSerial.h
   // functionality
-
-  /* 
-   static int Stream_timedRead1(){
-   int c;
-   unsigned long _startMillis = millis();
-   do {
-   c = Serial.read();
-   if (c >= 0) return c;
-   } while(millis() - _startMillis < 1000);
-   return -1;     // -1 indicates timeout
-   }
-   
-   static size_t Stream_readBytes1(char *buffer, size_t length){
-   size_t count = 0;
-   while (count < length) {
-   int c = Stream_timedRead1();
-   if (c < 0) break;
-   *buffer++ = (char)c;
-   count++;
-   }
-   return count;
-   }
-   */
   static boolean Serial_timedRead(char* c){
     unsigned long _startMillis = millis();
     unsigned long _currentMillis;

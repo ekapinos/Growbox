@@ -572,7 +572,7 @@ static void sendHttpOk_Data(const String &input){
     printSendFullLog(true, true, true); // TODO use parameters
   }
   else if (flashStringEquals(input, S_url_storage)){
-    printSendStorageDump(); 
+    sendStorageDump(); 
   }
 
   if (g_isWifiResponseError) return;
@@ -920,7 +920,7 @@ void printStorage(word address, byte sizeOf){
   Serial.println();
 }
 
-void printSendStorageDump(){
+void sendStorageDump(){
   sendTag(S_table, HTTP_TAG_OPEN);
   sendTag(S_tr, HTTP_TAG_OPEN);
   sendTag(S_td, HTTP_TAG_OPEN);
