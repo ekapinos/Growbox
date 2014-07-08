@@ -12,6 +12,6 @@ boolean GB_SerialHelper::s_restartWifiIfNoResponseAutomatically = true;
 String GB_SerialHelper::s_wifiSID;
 String GB_SerialHelper::s_wifiPass;
 
-boolean GB_SerialHelper::s_wifiIsHeaderSended;
+//boolean GB_SerialHelper::s_wifiIsHeaderSended;
 int GB_SerialHelper::s_wifiResponseAutoFlushConut;
 

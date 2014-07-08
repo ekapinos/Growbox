@@ -32,7 +32,7 @@ private:
   static boolean s_restartWifi;
   static boolean s_restartWifiIfNoResponseAutomatically;
 
-  static boolean s_wifiIsHeaderSended;
+ // static boolean s_wifiIsHeaderSended;
   static int s_wifiResponseAutoFlushConut;
 
 public:
@@ -298,17 +298,12 @@ public:
     return GB_COMMAND_NONE;  
   } 
 
-  static void startHTTPResponse(const byte &wifiPortDescriptor){  
-    s_wifiIsHeaderSended = false;
-  }
+  /////////////////////////////////////////////////////////////////////
+  //                           HTTP PROTOCOL                         //
+  /////////////////////////////////////////////////////////////////////
 
-  static void finishHTTPResponse(const byte &wifiPortDescriptor){  
-    if (s_wifiIsHeaderSended){
-      stopHttpFrame();
-    } 
-    else {
-      sendHttpNotFoundHeader(wifiPortDescriptor);
-    }
+  static void sendHttpNotFound(const byte wifiPortDescriptor){ 
+    sendWifiData(wifiPortDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
     closeConnection(wifiPortDescriptor);
   }
   
@@ -326,13 +321,13 @@ public:
     closeConnection(wifiPortDescriptor);
   }
 
-  static boolean sendHttpResponseData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
+  static void sendHttpOK_Header(const byte wifiPortDescriptor){ 
+    sendWifiData(wifiPortDescriptor, F("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n"));
+    startHttpFrame(wifiPortDescriptor);
+  }
+
+  static boolean sendHttpOK_Data(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
     boolean isSendOK = true;
-    if (!s_wifiIsHeaderSended){
-      sendHttpOKHeader(wifiPortDescriptor); 
-      s_wifiIsHeaderSended = true;
-      startHttpFrame(wifiPortDescriptor);
-    } 
     if (s_wifiResponseAutoFlushConut + flashStringLength(data) < WIFI_RESPONSE_FRAME_SIZE){
       s_wifiResponseAutoFlushConut += Serial.print(data);
     } 
@@ -353,16 +348,11 @@ public:
     return isSendOK;
   }  
 
-  static boolean sendHttpResponseData(const byte &wifiPortDescriptor, const String &data){
+  static boolean sendHttpOK_Data(const byte &wifiPortDescriptor, const String &data){
     boolean isSendOK = true;
     if (data.length() == 0){
       return isSendOK;
     }
-    if (!s_wifiIsHeaderSended){
-      sendHttpOKHeader(wifiPortDescriptor); 
-      s_wifiIsHeaderSended = true;
-      startHttpFrame(wifiPortDescriptor);
-    } 
     if (s_wifiResponseAutoFlushConut + data.length() < WIFI_RESPONSE_FRAME_SIZE){
       s_wifiResponseAutoFlushConut += Serial.print(data);
     } 
@@ -382,6 +372,35 @@ public:
     }
     return isSendOK;
   }
+
+/*
+  static void startHTTPResponse(const byte &wifiPortDescriptor){  
+    s_wifiIsHeaderSended = false;
+  }
+*/
+  static void sendHttpOK_PageComplete(const byte &wifiPortDescriptor){  
+    stopHttpFrame();
+    closeConnection(wifiPortDescriptor);
+  }
+
+
+  static void startHttpFrame(const byte &wifiPortDescriptor){
+    sendWifiFrameStart(wifiPortDescriptor, WIFI_RESPONSE_FRAME_SIZE);
+    s_wifiResponseAutoFlushConut = 0;
+  }
+
+  static boolean stopHttpFrame(){
+    if (s_wifiResponseAutoFlushConut > 0){
+      while (s_wifiResponseAutoFlushConut < WIFI_RESPONSE_FRAME_SIZE){
+        s_wifiResponseAutoFlushConut += Serial.write(0x00);
+      }
+    }
+    return sendWifiFrameStop();
+  } 
+
+
+
+
 
 
 private:
@@ -683,32 +702,6 @@ private:
 
     return input;
   }
-
-  /////////////////////////////////////////////////////////////////////
-  //                           HTTP PROTOCOL                         //
-  /////////////////////////////////////////////////////////////////////
-
-  static void sendHttpOKHeader(const byte portDescriptor){ 
-    sendWifiData(portDescriptor, F("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n"));
-  }
-
-  static void sendHttpNotFoundHeader(const byte portDescriptor){ 
-    sendWifiData(portDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
-  }
-
-  static void startHttpFrame(const byte &wifiPortDescriptor){
-    sendWifiFrameStart(wifiPortDescriptor, WIFI_RESPONSE_FRAME_SIZE);
-    s_wifiResponseAutoFlushConut = 0;
-  }
-
-  static boolean stopHttpFrame(){
-    if (s_wifiResponseAutoFlushConut > 0){
-      while (s_wifiResponseAutoFlushConut < WIFI_RESPONSE_FRAME_SIZE){
-        s_wifiResponseAutoFlushConut += Serial.write(0x00);
-      }
-    }
-    return sendWifiFrameStop();
-  } 
 
   /////////////////////////////////////////////////////////////////////
   //                           WIFI PROTOCOL                         //

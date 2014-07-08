@@ -293,65 +293,35 @@ void serialEvent(){
 
   g_commandType = GB_SerialHelper::handleSerialEvent(input, g_wifiPortDescriptor, postParams);
 
-  if (g_commandType == GB_COMMAND_NONE){    
-    return; 
+  switch(g_commandType){
+    case GB_COMMAND_HTTP_POST:
+      GB_SerialHelper::sendHTTPRedirect(g_wifiPortDescriptor, FS(S_url));
+      break;
 
-  } 
-  else if (g_commandType == GB_COMMAND_HTTP_CONNECTED){
-//    Serial.print(F("Client connected: "));
-//    Serial.println(g_wifiPortDescriptor);
-//    GB_SerialHelper::printDirtyEnd();
-    return; 
-
-  } 
-  else if (g_commandType == GB_COMMAND_HTTP_DISCONNECTED){
-//    Serial.print(F("Client disconnected: "));
-//    Serial.println(g_wifiPortDescriptor);
-//    GB_SerialHelper::printDirtyEnd();
-    return;  
-
-  } 
-  else if (g_commandType == GB_COMMAND_SERIAL_MONITOR){
-    /*
-    GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor); // send 404
-     GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
-     
-     Serial.print(F(" input="));
-     GB_PrintDirty::printWithoutCRLF(input);
-     Serial.print(FS(S_Next));
-     GB_PrintDirty::printHEX(input);
-     Serial.println();
-     Serial.print(F(" postParams="));
-     GB_PrintDirty::printWithoutCRLF(postParams);
-     Serial.print(FS(S_Next));
-     GB_PrintDirty::printHEX(postParams);
-     Serial.println();
-     GB_SerialHelper::printDirtyEnd();
-     */
-
-  } 
-  else if (g_commandType == GB_COMMAND_HTTP_GET){
-    if (g_commandType == GB_COMMAND_HTTP_GET) {
-      GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor);
-    }
-
-    executeCommand(input, postParams);
+    case GB_COMMAND_HTTP_GET:
+      if (flashStringEquals(input, S_url) || 
+          flashStringEquals(input, S_url_log) ||
+          flashStringEquals(input, S_url_conf) ||
+          flashStringEquals(input, S_url_storage)){
+              
+        GB_SerialHelper::sendHttpOK_Header(g_wifiPortDescriptor);
+        
+        //GB_SerialHelper::startHTTPResponse(g_wifiPortDescriptor);
+        sendHttpOk_Data(input);
+        GB_SerialHelper::sendHttpOK_PageComplete(g_wifiPortDescriptor);
     
-    if (g_commandType == GB_COMMAND_HTTP_GET) {
-      GB_SerialHelper::finishHTTPResponse(g_wifiPortDescriptor);
-    }
-
-  } 
-  else if (GB_COMMAND_HTTP_POST) {
-    GB_SerialHelper::sendHTTPRedirect(g_wifiPortDescriptor, FS(S_url));
-  }
-
-  if(GB_SerialHelper::useSerialMonitor){ 
-    if (g_isWifiResponseError){
-      Serial.print(FS(S_WIFI));
-      Serial.println(F("Send responce error"));
-      GB_SerialHelper::printDirtyEnd();
-    }
+        if(GB_SerialHelper::useSerialMonitor){ 
+          if (g_isWifiResponseError){
+            Serial.print(FS(S_WIFI));
+            Serial.println(F("Send responce error"));
+            GB_SerialHelper::printDirtyEnd();
+          }
+        }
+      } else {
+        // Unknown resource
+        GB_SerialHelper::sendHttpNotFound(g_wifiPortDescriptor);    
+      }
+      break;
   }
 }
 
@@ -502,7 +472,7 @@ void turnOffFan(){
 
 static void sendData(const __FlashStringHelper* data){
   if (g_commandType == GB_COMMAND_HTTP_GET){
-    if (!GB_SerialHelper::sendHttpResponseData(g_wifiPortDescriptor, data)){
+    if (!GB_SerialHelper::sendHttpOK_Data(g_wifiPortDescriptor, data)){
       g_isWifiResponseError = true;
     }
   } 
@@ -513,7 +483,7 @@ static void sendData(const __FlashStringHelper* data){
 
 static void sendData(const String &data){
   if (g_commandType == GB_COMMAND_HTTP_GET){
-    if (!GB_SerialHelper::sendHttpResponseData(g_wifiPortDescriptor, data)){
+    if (!GB_SerialHelper::sendHttpOK_Data(g_wifiPortDescriptor, data)){
       g_isWifiResponseError = true;
     }
   } 
@@ -576,16 +546,8 @@ static void sendTag(const char PROGMEM* pname, HTTP_TAG type){
   sendData('>');
 }
 
-static void executeCommand(const String &input, const String &postParams){
+static void sendHttpOk_Data(const String &input){
 
-  if (
-  !flashStringEquals(input, S_url) && 
-    !flashStringEquals(input, S_url_log) &&
-    !flashStringEquals(input, S_url_conf) &&
-    !flashStringEquals(input, S_url_storage)
-    ){
-    return;
-  }
   if (g_commandType == GB_COMMAND_HTTP_GET){
     sendTag(S_html, HTTP_TAG_OPEN);    
     sendData(F("<h1>Growbox</h1>"));
