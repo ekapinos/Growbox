@@ -12,7 +12,7 @@ const char S_WIFI_RESPONSE_OK[] PROGMEM  = "OK";
 const char S_WIFI_GET_[] PROGMEM  = "GET /";
 const char S_WIFI_POST_[] PROGMEM  = "POST /"; 
 
-const int WIFI_RESPONSE_FRAME_SIZE = 1400; // 1400 max from spec
+const int WIFI_MAX_SEND_FRAME_SIZE = 1400; // 1400 max from spec
 
 const int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
 
@@ -24,7 +24,6 @@ const int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" comma
 
 class GB_SerialHelper{
 private:
-  static const unsigned long Stream_timeout = 1000; // Like in Stram.h
   
   static String s_wifiSID;
   static String s_wifiPass;// 8-63 char
@@ -32,8 +31,7 @@ private:
   static boolean s_restartWifi;
   static boolean s_restartWifiIfNoResponseAutomatically;
 
- // static boolean s_wifiIsHeaderSended;
-  static int s_wifiResponseAutoFlushConut;
+  static int s_sendWifiDataFrameSize;
 
 public:
 
@@ -94,7 +92,7 @@ public:
     boolean loadWifiConfiguration = false;
     if (checkWifi || s_restartWifi){
       for (int i = 0; i<2; i++){ // Sometimes first command returns ERROR, two attempts
-        showWifiStatus(F("Restarting..."));
+        showWifiMessage(F("Restarting..."));
         cleanSerialBuffer();
         s_restartWifiIfNoResponseAutomatically = false;
         String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
@@ -111,7 +109,7 @@ public:
           break;
         }
         if (useSerialMonitor && input.length() > 0){
-          showWifiStatus(F("Not correct wellcome message: "), false);
+          showWifiMessage(F("Not correct wellcome message: "), false);
           GB_PrintDirty::printWithoutCRLF(input);
           Serial.print(FS(S_Next));
           GB_PrintDirty::printHEX(input); 
@@ -154,24 +152,18 @@ public:
   }
 
   static boolean startWifi(){
-    showWifiStatus(F("Starting..."));
+    showWifiMessage(F("Starting..."));
     boolean isLoaded = startWifiSilent();
     if (isLoaded){
-      showWifiStatus(F("Started"));
+      showWifiMessage(F("Started"));
     } 
     else {
-      showWifiStatus(F("Start failed"));
+      showWifiMessage(F("Start failed"));
       s_restartWifi = true;
     }
   }
 
   static GB_COMMAND_TYPE handleSerialEvent(String &input, byte &wifiPortDescriptor, String &postParams){
-
-    //    int startupFreeMemory = freeMemory();
-    //    int maxFreeMemory = startupFreeMemory;
-
-    // Only easy initiated variables should be here
-    // boolean isReadError = false;
 
     input = String();
     input.reserve(100);
@@ -304,7 +296,7 @@ public:
 
   static void sendHttpNotFound(const byte wifiPortDescriptor){ 
     sendWifiData(wifiPortDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
-    closeConnection(wifiPortDescriptor);
+    sendWifiCloseConnection(wifiPortDescriptor);
   }
   
   // WARNING! RAK 410 became mad when 2 parallel connections comes. Like with Chrome and POST request, when RAK response 303.
@@ -318,30 +310,30 @@ public:
     Serial.print(data);
     Serial.print(FS(S_CRLFCRLF));
     sendWifiFrameStop();
-    closeConnection(wifiPortDescriptor);
+    sendWifiCloseConnection(wifiPortDescriptor);
   }
 
   static void sendHttpOK_Header(const byte wifiPortDescriptor){ 
     sendWifiData(wifiPortDescriptor, F("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n"));
-    startHttpFrame(wifiPortDescriptor);
+    sendWifiDataStart(wifiPortDescriptor);
   }
 
   static boolean sendHttpOK_Data(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
     boolean isSendOK = true;
-    if (s_wifiResponseAutoFlushConut + flashStringLength(data) < WIFI_RESPONSE_FRAME_SIZE){
-      s_wifiResponseAutoFlushConut += Serial.print(data);
+    if (s_sendWifiDataFrameSize + flashStringLength(data) < WIFI_MAX_SEND_FRAME_SIZE){
+      s_sendWifiDataFrameSize += Serial.print(data);
     } 
     else {
       int index = 0;
-      while (s_wifiResponseAutoFlushConut < WIFI_RESPONSE_FRAME_SIZE){
+      while (s_sendWifiDataFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
         char c = flashStringCharAt(data, index++);
-        s_wifiResponseAutoFlushConut += Serial.print(c);
+        s_sendWifiDataFrameSize += Serial.print(c);
       }
-      isSendOK = stopHttpFrame();
-      startHttpFrame(wifiPortDescriptor);   
+      isSendOK = sendWifiDataStop();
+      sendWifiDataStart(wifiPortDescriptor);   
       while (index < flashStringLength(data)){
         char c = flashStringCharAt(data, index++);
-        s_wifiResponseAutoFlushConut += Serial.print(c);
+        s_sendWifiDataFrameSize += Serial.print(c);
       } 
 
     }
@@ -353,176 +345,42 @@ public:
     if (data.length() == 0){
       return isSendOK;
     }
-    if (s_wifiResponseAutoFlushConut + data.length() < WIFI_RESPONSE_FRAME_SIZE){
-      s_wifiResponseAutoFlushConut += Serial.print(data);
+    if (s_sendWifiDataFrameSize + data.length() < WIFI_MAX_SEND_FRAME_SIZE){
+      s_sendWifiDataFrameSize += Serial.print(data);
     } 
     else {
       int index = 0;
-      while (s_wifiResponseAutoFlushConut < WIFI_RESPONSE_FRAME_SIZE){
+      while (s_sendWifiDataFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
         char c = data[index++];
-        s_wifiResponseAutoFlushConut += Serial.print(c);
+        s_sendWifiDataFrameSize += Serial.print(c);
       }
-      isSendOK = stopHttpFrame();
-      startHttpFrame(wifiPortDescriptor); 
+      isSendOK = sendWifiDataStop();
+      sendWifiDataStart(wifiPortDescriptor); 
 
       while (index < data.length()){
         char c = data[index++];
-        s_wifiResponseAutoFlushConut += Serial.print(c);
+        s_sendWifiDataFrameSize += Serial.print(c);
       }      
     }
     return isSendOK;
   }
 
-/*
-  static void startHTTPResponse(const byte &wifiPortDescriptor){  
-    s_wifiIsHeaderSended = false;
-  }
-*/
   static void sendHttpOK_PageComplete(const byte &wifiPortDescriptor){  
-    stopHttpFrame();
-    closeConnection(wifiPortDescriptor);
+    sendWifiDataStop();
+    sendWifiCloseConnection(wifiPortDescriptor);
   }
-
-
-  static void startHttpFrame(const byte &wifiPortDescriptor){
-    sendWifiFrameStart(wifiPortDescriptor, WIFI_RESPONSE_FRAME_SIZE);
-    s_wifiResponseAutoFlushConut = 0;
-  }
-
-  static boolean stopHttpFrame(){
-    if (s_wifiResponseAutoFlushConut > 0){
-      while (s_wifiResponseAutoFlushConut < WIFI_RESPONSE_FRAME_SIZE){
-        s_wifiResponseAutoFlushConut += Serial.write(0x00);
-      }
-    }
-    return sendWifiFrameStop();
-  } 
-
-
-
-
-
 
 private:
 
-  static void showWifiStatus(const __FlashStringHelper* str, boolean newLine = true){ //TODO 
+  static void showWifiMessage(const __FlashStringHelper* str, boolean newLine = true){ //TODO 
     if (useSerialMonitor){
       Serial.print(FS(S_WIFI));
       Serial.print(str);
       if (newLine){  
-        Serial.println();        
-      }
-      printDirtyEnd();
+        Serial.println();
+        printDirtyEnd();        
+      }      
     }
-  }
-
-  /////////////////////////////////////////////////////////////////////
-  //                          SERIAL READ                            //
-  /////////////////////////////////////////////////////////////////////
-
-  // WARNING! This is adapted copy of Stream.h, Serial.h, and HardwareSerial.h
-  // functionality
-  static boolean Serial_timedRead(char* c){
-    unsigned long _startMillis = millis();
-    unsigned long _currentMillis;
-    do {
-      if (Serial.available()){
-        *c = (char) Serial.read();
-        return true;   
-      }
-      _currentMillis = millis();
-    } 
-    while(((_currentMillis - _startMillis) < Stream_timeout) || (_currentMillis < _startMillis));  // Overflow check 
-    //while((_currentMillis - _startMillis) < Stream_timeout); 
-    //while(millis() - _startMillis < Stream_timeout); 
-    return false;     // false indicates timeout
-  }
-
-  static size_t Serial_readBytes(char *buffer, size_t length) {
-    size_t count = 0;
-    while (count < length) {
-      if (!Serial_timedRead(buffer)){
-        break;
-      }
-      buffer++;
-      count++;
-    }
-    return count;
-  }
-
-  static size_t Serial_skipBytes(size_t length) {
-    char c;
-    size_t count = 0;
-    while (count < length) {
-      if (!Serial_timedRead(&c)){
-        break;
-      }
-      count++;
-    }
-    return count;
-  }
-
-  static size_t Serial_skipBytesUntil(size_t length, const char PROGMEM* pstr){   
-    int pstr_length = flashStringLength(pstr);   
-    char matcher[pstr_length];
-
-    char c;
-    size_t count = 0;
-    while (count < length) {
-      if (!Serial_timedRead(&c)){
-        break;
-      }
-      count++;
-
-      for (int i = 1; i < pstr_length; i++){
-        matcher[i-1] = matcher[i];  
-      }
-      matcher[pstr_length-1] = c;
-      if (count >= pstr_length && flashStringEquals(matcher, pstr_length, pstr)){
-        break;
-      } 
-    }
-    return count;
-  }  
-
-  static size_t Serial_readStringUntil(String& str, size_t length, const char PROGMEM* pstr){      
-    char c;
-    size_t count = 0;
-    while (count < length) {
-      if (!Serial_timedRead(&c)){
-        break;
-      }
-      count++;
-      str +=c;
-      if (flashStringEndsWith(str, pstr)){
-        break;
-      } 
-    }
-    return count;
-  } 
-
-  static size_t Serial_readString(String& str, size_t length){
-    char buffer[length];
-    size_t count = Serial_readBytes(buffer, length);
-    str.reserve(str.length() + count);
-    for (size_t i = 0; i < count; i++) {
-      str += buffer[i];  
-    }
-    return count;
-  }
-
-  static size_t Serial_readString(String& str){
-
-    size_t maxFrameLenght = 100; 
-    size_t countInFrame = Serial_readString(str, maxFrameLenght);
-
-    size_t count = countInFrame; 
-
-    while (countInFrame == maxFrameLenght){
-      countInFrame = Serial_readString(str, maxFrameLenght); 
-      count += countInFrame;
-    }
-    return count;
   }
 
   static void cleanSerialBuffer(){
@@ -608,7 +466,7 @@ private:
     else if (flashStringStartsWith(input, S_WIFI_RESPONSE_ERROR) && flashStringEndsWith(input, S_CRLF)){
       if (useSerialMonitor){
         byte errorCode = input[5];
-        showWifiStatus(F("Error "), false);
+        showWifiMessage(F("Error "), false);
         Serial.print(FS(S_0x));
         GB_PrintDirty::printHEX(errorCode, true);
         Serial.println();
@@ -617,7 +475,7 @@ private:
     } 
     else {
       if (useSerialMonitor){
-        showWifiStatus(FS(S_empty), false);
+        showWifiMessage(FS(S_empty), false);
         GB_PrintDirty::printWithoutCRLF(input);
         Serial.print(FS(S_Next));
         GB_PrintDirty::printHEX(input); 
@@ -652,7 +510,7 @@ private:
     }
     /*
      if (useSerialMonitor){
-     showWifiStatus(FS(S_empty), false);
+     showWifiMessage(FS(S_empty), false);
      GB_PrintDirty::printWithoutCRLF(input);
      Serial.print(FS(S_Next));
      GB_PrintDirty::printHEX(input); 
@@ -667,7 +525,7 @@ private:
       }
 
       if (useSerialMonitor){   
-        showWifiStatus(F("No response"), false);
+        showWifiMessage(F("No response"), false);
         if (s_restartWifiIfNoResponseAutomatically){
           Serial.print(F(" (reboot)"));
         } 
@@ -684,16 +542,6 @@ private:
   //                           WIFI PROTOCOL                         //
   /////////////////////////////////////////////////////////////////////
 
-  static void sendWifiData(const byte portDescriptor, const __FlashStringHelper* data){ // INT_MAX (own test) or 1400 bytes max (Wi-Fi spec restriction)
-    int length = flashStringLength(data);
-    if (length == 0){
-      return;
-    }
-    sendWifiFrameStart(portDescriptor, length);
-    Serial.print(data);
-    sendWifiFrameStop();
-  }
-
   static void sendWifiFrameStart(const byte portDescriptor, word length){ // 1400 bytes max (Wi-Fi module spec restriction)   
     Serial.print(F("at+send_data="));
     Serial.print(portDescriptor);
@@ -709,12 +557,36 @@ private:
     return rez;
   }
 
-  static boolean closeConnection(const byte portDescriptor){
+  static void sendWifiData(const byte portDescriptor, const __FlashStringHelper* data){ // INT_MAX (own test) or 1400 bytes max (Wi-Fi spec restriction)
+    int length = flashStringLength(data);
+    if (length == 0){
+      return;
+    }
+    sendWifiFrameStart(portDescriptor, length);
+    Serial.print(data);
+    sendWifiFrameStop();
+  }
+
+  static void sendWifiDataStart(const byte &wifiPortDescriptor){
+    sendWifiFrameStart(wifiPortDescriptor, WIFI_MAX_SEND_FRAME_SIZE);
+    s_sendWifiDataFrameSize = 0;
+  }
+
+  static boolean sendWifiDataStop(){
+    if (s_sendWifiDataFrameSize > 0){
+      while (s_sendWifiDataFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
+        s_sendWifiDataFrameSize += Serial.write(0x00); // Filler 0x00
+      }
+    }
+    return sendWifiFrameStop();
+  } 
+
+  static boolean sendWifiCloseConnection(const byte portDescriptor){
     Serial.print(F("at+cls="));
     Serial.print(portDescriptor);
     return wifiExecuteCommand(); 
   }
-
+  
 };
 
 #endif

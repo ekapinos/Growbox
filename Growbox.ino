@@ -42,7 +42,6 @@ const char S_br[] PROGMEM  = "br";
 const char S_table[] PROGMEM  = "table";
 const char S_tr[] PROGMEM  = "tr";
 const char S_td[] PROGMEM  = "td";
-const char S_b[] PROGMEM  = "b";
 const char S_pre[] PROGMEM  = "pre";
 const char S_html[] PROGMEM  = "html";
 
@@ -534,23 +533,39 @@ static void sendTagButton(const char PROGMEM* url, const __FlashStringHelper* na
   sendData(F("\"/>"));
 }
 
-static void sendTag(const char PROGMEM* pname, HTTP_TAG type){
+static void sendTag_Begin(HTTP_TAG type){
   sendData('<');
   if (type == HTTP_TAG_CLOSED){
     sendData('/');
   }
-  sendData(FS(pname));
+}
+
+static void sendTag_End(HTTP_TAG type){
   if (type == HTTP_TAG_SINGLE){
     sendData('/');
   }
   sendData('>');
 }
 
+static void sendTag(const char PROGMEM* pname, HTTP_TAG type){
+  sendTag_Begin(type);
+  sendData(FS(pname));
+  sendTag_End(type);
+}
+
+static void sendTag(const char tag, HTTP_TAG type){
+  sendTag_Begin(type);
+  sendData(tag);
+  sendTag_End(type);
+}
+
 static void sendHttpOk_Data(const String &input){
 
   if (g_commandType == GB_COMMAND_HTTP_GET){
-    sendTag(S_html, HTTP_TAG_OPEN);    
-    sendData(F("<h1>Growbox</h1>"));
+    sendTag(S_html, HTTP_TAG_OPEN); 
+    sendTag('h', HTTP_TAG_OPEN); 
+    sendData(F("Growbox"));  
+    sendTag('h', HTTP_TAG_CLOSED);
     sendTagButton(S_url, F("Status"));
     sendTagButton(S_url_log, F("Daily log"));
     sendTagButton(S_url_conf, F("Configuration"));
@@ -706,8 +721,6 @@ static void sendBriefStatus(){
 
 static void printSendConfigurationControls(){
   sendData(F("<form action=\"/\" method=\"post\">"));
-
-
   sendData(F("<input type=\"submit\" value=\"Submit\">"));
   sendData(F("</form>"));
 }
@@ -746,14 +759,14 @@ static void sendBootStatus(){
 
 static void sendTimeStatus(){
   sendData(F("Clock: ")); 
-  sendTag(S_b, HTTP_TAG_OPEN);
+  sendTag('b', HTTP_TAG_OPEN);
   if (g_isDayInGrowbox) {
     sendData(F("DAY"));
   } 
   else{
     sendData(F("NIGHT"));
   }
-  sendTag(S_b, HTTP_TAG_CLOSED);
+  sendTag('b', HTTP_TAG_CLOSED);
   sendData(F(" mode, time ")); 
   sendData(now());
   sendData(F(", up time [")); 
@@ -927,9 +940,9 @@ void sendStorageDump(){
   sendTag(S_td, HTTP_TAG_CLOSED);
   for (word i = 0; i < 16 ; i++){
     sendTag(S_td, HTTP_TAG_OPEN);
-    sendTag(S_b, HTTP_TAG_OPEN);
+    sendTag('b', HTTP_TAG_OPEN);
     sendData(GB_PrintDirty::getHEX(i));
-    sendTag(S_b, HTTP_TAG_CLOSED); 
+    sendTag('b', HTTP_TAG_CLOSED); 
     sendTag(S_td, HTTP_TAG_CLOSED);
   }
   sendTag(S_tr, HTTP_TAG_CLOSED);
@@ -943,9 +956,9 @@ void sendStorageDump(){
       }
       sendTag(S_tr, HTTP_TAG_OPEN);
       sendTag(S_td, HTTP_TAG_OPEN);
-      sendTag(S_b, HTTP_TAG_OPEN);
+      sendTag('b', HTTP_TAG_OPEN);
       sendData(GB_PrintDirty::getHEX(i/16));
-      sendTag(S_b, HTTP_TAG_CLOSED);
+      sendTag('b', HTTP_TAG_CLOSED);
       sendTag(S_td, HTTP_TAG_CLOSED);
     }
     sendTag(S_td, HTTP_TAG_OPEN);
