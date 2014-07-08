@@ -3,27 +3,56 @@ Growbox.cpp.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .data         0000003c  00800100  0000790a  0000799e  2**0
+  0 .data         0000003c  00800100  00007c1a  00007cae  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  1 .text         0000790a  00000000  00000000  00000094  2**1
+  1 .text         00007c1a  00000000  00000000  00000094  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .bss          000002a8  0080013c  0080013c  000079da  2**0
+  2 .bss          000002a3  0080013c  0080013c  00007cea  2**0
                   ALLOC
-  3 .debug_aranges 00000f20  00000000  00000000  000079da  2**0
+  3 .debug_aranges 00000ee8  00000000  00000000  00007cea  2**0
                   CONTENTS, READONLY, DEBUGGING
-  4 .debug_pubnames 00002d65  00000000  00000000  000088fa  2**0
+  4 .debug_pubnames 00002bc6  00000000  00000000  00008bd2  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_info   00018a60  00000000  00000000  0000b65f  2**0
+  5 .debug_info   00017f0b  00000000  00000000  0000b798  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 00003c23  00000000  00000000  000240bf  2**0
+  6 .debug_abbrev 00003abe  00000000  00000000  000236a3  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   0000ae95  00000000  00000000  00027ce2  2**0
+  7 .debug_line   0000aed9  00000000  00000000  00027161  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_frame  00001b40  00000000  00000000  00032b78  2**2
+  8 .debug_frame  00001ad0  00000000  00000000  0003203c  2**2
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_str    0000686f  00000000  00000000  000346b8  2**0
+  9 .debug_str    00006906  00000000  00000000  00033b0c  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    00008a6e  00000000  00000000  0003af27  2**0
+ 10 .debug_loc    00008680  00000000  00000000  0003a412  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_ranges 000010d8  00000000  00000000  00043995  2**0
+ 11 .debug_ranges 000010b8  00000000  00000000  00042a92  2**0
+                  CONTENTS, READONLY, DEBUGGING
+
+GrowboxStringsLoader.cpp.elf:     file format elf32-avr
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .data         00000354  00800100  00000c28  00000cbc  2**0
+                  CONTENTS, ALLOC, LOAD, DATA
+  1 .text         00000c28  00000000  00000000  00000094  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  2 .bss          000000b6  00800454  00800454  00001010  2**0
+                  ALLOC
+  3 .debug_aranges 00000548  00000000  00000000  00001010  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  4 .debug_pubnames 00000c05  00000000  00000000  00001558  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  5 .debug_info   000065ad  00000000  00000000  0000215d  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  6 .debug_abbrev 00001263  00000000  00000000  0000870a  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  7 .debug_line   00003423  00000000  00000000  0000996d  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  8 .debug_frame  00000950  00000000  00000000  0000cd90  2**2
+                  CONTENTS, READONLY, DEBUGGING
+  9 .debug_str    00001893  00000000  00000000  0000d6e0  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 10 .debug_loc    00003a20  00000000  00000000  0000ef73  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 11 .debug_ranges 00000510  00000000  00000000  00012993  2**0
                   CONTENTS, READONLY, DEBUGGING

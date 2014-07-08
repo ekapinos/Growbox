@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 echo Coping elf files
-cp /var/folders/sj/0kxybf1d0cq1qrmfxxtqs0gc0000gn/T/build7879803778579705725.tmp/*.elf . 
+cp /var/folders/sj/0kxybf1d0cq1qrmfxxtqs0gc0000gn/T/build3219075149233570549.tmp/*.elf . 
 echo Decompiling starts
 /Applications/Arduino.app/Contents/Resources/Java/hardware/tools/avr/bin/avr-objdump -S *.elf > dump-S.txt
 /Applications/Arduino.app/Contents/Resources/Java/hardware/tools/avr/bin/avr-objdump -D *.elf > dump-D.txt
