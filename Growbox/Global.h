@@ -8,7 +8,6 @@
 #endif
 
 #include <OneWire.h>
-#include "EEPROMStrings.h"
 
 /////////////////////////////////////////////////////////////////////
 //                     HARDWARE CONFIGURATION                      //
@@ -237,8 +236,8 @@ static boolean flashStringEquals(const char* cstr, size_t length, const __FlashS
     unsigned long _startMillis = millis();
     unsigned long _currentMillis;
     do {
-      if (Serial.available()){
-        *c = (char) Serial.read();
+      if (Serial1.available()){
+        *c = (char) Serial1.read();
         return true;   
       }
       _currentMillis = millis();

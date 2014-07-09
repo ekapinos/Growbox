@@ -1,5 +1,5 @@
 
-#include <EEPROM.h>
+//#include <EEPROM.h>
 #include <stdint.h>
 
 // Warning! We need to include all used libraries, 
@@ -253,6 +253,7 @@ void setup() {
       printFreeMemory();
     }
     Serial.println(F("Growbox successfully started"));
+    //Serial.println(F("Growbox successfully started"));
   }
 
   if(GB_SerialHelper::useSerialMonitor){  
@@ -273,7 +274,7 @@ void loop() {
 }
 
 
-void serialEvent(){
+void serialEvent1(){
 
   if(!g_isGrowboxStarted){
     GB_SerialHelper::printDirtyEnd();
@@ -286,6 +287,11 @@ void serialEvent(){
 
   g_commandType = GB_SerialHelper::handleSerialEvent(input, g_wifiPortDescriptor, postParams);
 
+  Serial.print(F("WIFI > input: "));
+  Serial.print(input);
+  Serial.print(F(" post: "));
+  Serial.print(postParams);
+  
   switch(g_commandType){
     case GB_COMMAND_HTTP_POST:
       GB_SerialHelper::sendHTTPRedirect(g_wifiPortDescriptor, FS(S_url));
@@ -795,7 +801,7 @@ static void sendTemperatureStatus(){
 }
 
 static void printSendPinsStatus(){
-  sendData(EEPROMStringLoad(ES_printSendPinsStatus_PinOutputInput)); 
+  sendData(F("Pin OUTPUT INPUT")); 
   sendDataLn();
   for(int i=0; i<=19;i++){
     sendData(' ');
@@ -827,10 +833,10 @@ static void printSendPinsStatus(){
     if (io_status == OUTPUT){
       sendData(FS(S___));
       sendData(dataStatus);
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_OUTPUTOffset));
+      sendData(F("     -   "));
     } 
     else {
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_INPUTOffset));
+      sendData(F("  -     "));
       sendData(inputStatus);
       sendData(FS(S___));
     }
@@ -838,32 +844,32 @@ static void printSendPinsStatus(){
     switch(i){
     case 0: 
     case 1: 
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_ReservedBySerialUSB));
+      sendData(F("Reserved by Serial/USB. Can be used, if Serial/USB won't be connected"));
       break;
     case LIGHT_PIN: 
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_RelayLight));
+      sendData(F("Relay: light on(0)/off(1)"));
       break;
     case FAN_PIN: 
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_RelayFan));
+      sendData(F("Relay: fan on(0)/off(1)"));
       break;
     case FAN_SPEED_PIN: 
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_RelayFanMinMax));
+      sendData(F("Relay: fun max(0)/min(1) speed switch"));
       break;
     case ONE_WIRE_PIN: 
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_1Wire));
+      sendData(F("1-Wire: termometer"));
       break;
     case USE_SERIAL_MONOTOR_PIN: 
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_SerialMonotor));
+      sendData(F("Use serial monitor on(1)/off(0)"));
       break;
     case ERROR_PIN: 
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_ErrorStatus));
+      sendData(F("Error status"));
       break;
     case BREEZE_PIN: 
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_Breeze));
+      sendData(F("Breeze"));
       break;
     case 18: 
     case 19: 
-      sendData(EEPROMStringLoad(ES_printSendPinsStatus_I2C));
+      sendData(F("Reserved by I2C. Can be used, if SCL, SDA pins will be used"));
       break;
     }
     sendDataLn();

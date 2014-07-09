@@ -77,8 +77,12 @@ public:
 
     // Start serial, if we need
     if (!serialInUse && (useSerialMonitor || checkWifi)){
-      Serial.begin(115200);
+      Serial.begin(9600);
       while (!Serial) {
+        ; // wait for serial port to connect. Needed for Leonardo only
+      } 
+      Serial1.begin(115200);
+      while (!Serial1) {
         ; // wait for serial port to connect. Needed for Leonardo only
       } 
       serialInUse = true;
@@ -304,9 +308,9 @@ public:
     //const __FlashStringHelper* header = F("HTTP/1.1 303 See Other\r\nLocation: "); // DO not use it with RAK 410
     const __FlashStringHelper* header = F("HTTP/1.1 200 OK (303 doesn't work on RAK 410)\r\nrefresh: 0; url="); 
     sendWifiFrameStart(wifiPortDescriptor, flashStringLength(header) + flashStringLength(data) + flashStringLength(S_CRLFCRLF));
-    Serial.print(header);
-    Serial.print(data);
-    Serial.print(FS(S_CRLFCRLF));
+    Serial1.print(header);
+    Serial1.print(data);
+    Serial1.print(FS(S_CRLFCRLF));
     sendWifiFrameStop();
     sendWifiCloseConnection(wifiPortDescriptor);
   }
@@ -319,19 +323,19 @@ public:
   static boolean sendHttpOK_Data(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
     boolean isSendOK = true;
     if (s_sendWifiDataFrameSize + flashStringLength(data) < WIFI_MAX_SEND_FRAME_SIZE){
-      s_sendWifiDataFrameSize += Serial.print(data);
+      s_sendWifiDataFrameSize += Serial1.print(data);
     } 
     else {
       int index = 0;
       while (s_sendWifiDataFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
         char c = flashStringCharAt(data, index++);
-        s_sendWifiDataFrameSize += Serial.print(c);
+        s_sendWifiDataFrameSize += Serial1.print(c);
       }
       isSendOK = sendWifiDataStop();
       sendWifiDataStart(wifiPortDescriptor);   
       while (index < flashStringLength(data)){
         char c = flashStringCharAt(data, index++);
-        s_sendWifiDataFrameSize += Serial.print(c);
+        s_sendWifiDataFrameSize += Serial1.print(c);
       } 
 
     }
@@ -344,20 +348,20 @@ public:
       return isSendOK;
     }
     if (s_sendWifiDataFrameSize + data.length() < WIFI_MAX_SEND_FRAME_SIZE){
-      s_sendWifiDataFrameSize += Serial.print(data);
+      s_sendWifiDataFrameSize += Serial1.print(data);
     } 
     else {
       int index = 0;
       while (s_sendWifiDataFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
         char c = data[index++];
-        s_sendWifiDataFrameSize += Serial.print(c);
+        s_sendWifiDataFrameSize += Serial1.print(c);
       }
       isSendOK = sendWifiDataStop();
       sendWifiDataStart(wifiPortDescriptor); 
 
       while (index < data.length()){
         char c = data[index++];
-        s_sendWifiDataFrameSize += Serial.print(c);
+        s_sendWifiDataFrameSize += Serial1.print(c);
       }      
     }
     return isSendOK;
@@ -383,8 +387,8 @@ private:
 
   static void cleanSerialBuffer(){
     delay(10);
-    while (Serial.available()){
-      Serial.read();
+    while (Serial1.available()){
+      Serial1.read();
     }
   }
 
@@ -403,15 +407,15 @@ private:
     boolean isStationMode = (s_wifiSID.length()>0);    
     if (isStationMode){
       if (s_wifiPass.length() > 0){
-        Serial.print(F("at+psk="));
-        Serial.print(s_wifiPass);
+        Serial1.print(F("at+psk="));
+        Serial1.print(s_wifiPass);
         if (!wifiExecuteCommand()){
           return false;
         }
       } 
 
-      Serial.print(F("at+connect="));
-      Serial.print(s_wifiSID);
+      Serial1.print(F("at+connect="));
+      Serial1.print(s_wifiSID);
       if (!wifiExecuteCommand(0, 5000)){
         return false;
       }
@@ -501,17 +505,17 @@ private:
     cleanSerialBuffer();
 
     if (command == 0){
-      Serial.println();
+      Serial1.println();
     } 
     else {
-      Serial.println(command);
+      Serial1.println(command);
     }
 
     String input;
     input.reserve(10);
     unsigned long start = millis();
     while(millis() - start <= maxResponseDeleay){
-      if (Serial.available()){
+      if (Serial1.available()){
         //input += (char) Serial.read(); 
         //input += Serial.readString(); // WARNING! Problems with command at+ipdhcp=0, it returns bytes with minus sign, Error in Serial library
         Serial_readString(input);
@@ -525,11 +529,11 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   static void sendWifiFrameStart(const byte portDescriptor, word length){ // 1400 bytes max (Wi-Fi module spec restriction)   
-    Serial.print(F("at+send_data="));
-    Serial.print(portDescriptor);
-    Serial.print(',');
-    Serial.print(length);
-    Serial.print(',');
+    Serial1.print(F("at+send_data="));
+    Serial1.print(portDescriptor);
+    Serial1.print(',');
+    Serial1.print(length);
+    Serial1.print(',');
   }
 
   static boolean sendWifiFrameStop(){
@@ -545,7 +549,7 @@ private:
       return;
     }
     sendWifiFrameStart(portDescriptor, length);
-    Serial.print(data);
+    Serial1.print(data);
     sendWifiFrameStop();
   }
 
@@ -557,15 +561,15 @@ private:
   static boolean sendWifiDataStop(){
     if (s_sendWifiDataFrameSize > 0){
       while (s_sendWifiDataFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
-        s_sendWifiDataFrameSize += Serial.write(0x00); // Filler 0x00
+        s_sendWifiDataFrameSize += Serial1.write(0x00); // Filler 0x00
       }
     }
     return sendWifiFrameStop();
   } 
 
   static boolean sendWifiCloseConnection(const byte portDescriptor){
-    Serial.print(F("at+cls="));
-    Serial.print(portDescriptor);
+    Serial1.print(F("at+cls="));
+    Serial1.print(portDescriptor);
     return wifiExecuteCommand(); 
   }
   

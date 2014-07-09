@@ -3,56 +3,56 @@ Growbox.cpp.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .data         0000003c  00800100  00007c1a  00007cae  2**0
+  0 .data         0000003c  00800100  00007c26  00007cba  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  1 .text         00007c1a  00000000  00000000  00000094  2**1
+  1 .text         00007c26  00000000  00000000  00000094  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .bss          000002a3  0080013c  0080013c  00007cea  2**0
+  2 .bss          000002a3  0080013c  0080013c  00007cf6  2**0
                   ALLOC
-  3 .debug_aranges 00000ee8  00000000  00000000  00007cea  2**0
+  3 .debug_aranges 00000ee0  00000000  00000000  00007cf6  2**0
                   CONTENTS, READONLY, DEBUGGING
-  4 .debug_pubnames 00002bc6  00000000  00000000  00008bd2  2**0
+  4 .debug_pubnames 00002bc6  00000000  00000000  00008bd6  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_info   00017f0b  00000000  00000000  0000b798  2**0
+  5 .debug_info   0001801a  00000000  00000000  0000b79c  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 00003abe  00000000  00000000  000236a3  2**0
+  6 .debug_abbrev 00003ace  00000000  00000000  000237b6  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   0000aed9  00000000  00000000  00027161  2**0
+  7 .debug_line   0000aeb5  00000000  00000000  00027284  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_frame  00001ad0  00000000  00000000  0003203c  2**2
+  8 .debug_frame  00001ac0  00000000  00000000  0003213c  2**2
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_str    00006906  00000000  00000000  00033b0c  2**0
+  9 .debug_str    00006976  00000000  00000000  00033bfc  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    00008680  00000000  00000000  0003a412  2**0
+ 10 .debug_loc    000086b6  00000000  00000000  0003a572  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_ranges 000010b8  00000000  00000000  00042a92  2**0
+ 11 .debug_ranges 000011a0  00000000  00000000  00042c28  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 GrowboxStringsLoader.cpp.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .data         00000354  00800100  00000c28  00000cbc  2**0
+  0 .data         000003f4  00800100  00001314  000013a8  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  1 .text         00000c28  00000000  00000000  00000094  2**1
+  1 .text         00001314  00000000  00000000  00000094  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .bss          000000b6  00800454  00800454  00001010  2**0
+  2 .bss          000000ba  008004f4  008004f4  0000179c  2**0
                   ALLOC
-  3 .debug_aranges 00000548  00000000  00000000  00001010  2**0
+  3 .debug_aranges 00000548  00000000  00000000  0000179c  2**0
                   CONTENTS, READONLY, DEBUGGING
-  4 .debug_pubnames 00000c05  00000000  00000000  00001558  2**0
+  4 .debug_pubnames 00000c05  00000000  00000000  00001ce4  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_info   000065ad  00000000  00000000  0000215d  2**0
+  5 .debug_info   00006ff7  00000000  00000000  000028e9  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 00001263  00000000  00000000  0000870a  2**0
+  6 .debug_abbrev 00001357  00000000  00000000  000098e0  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   00003423  00000000  00000000  0000996d  2**0
+  7 .debug_line   00003485  00000000  00000000  0000ac37  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_frame  00000950  00000000  00000000  0000cd90  2**2
+  8 .debug_frame  00000950  00000000  00000000  0000e0bc  2**2
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_str    00001893  00000000  00000000  0000d6e0  2**0
+  9 .debug_str    000018a3  00000000  00000000  0000ea0c  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    00003a20  00000000  00000000  0000ef73  2**0
+ 10 .debug_loc    00003a38  00000000  00000000  000102af  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_ranges 00000510  00000000  00000000  00012993  2**0
+ 11 .debug_ranges 00000510  00000000  00000000  00013ce7  2**0
                   CONTENTS, READONLY, DEBUGGING
