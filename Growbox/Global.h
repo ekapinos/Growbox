@@ -101,9 +101,9 @@ const char S_Next [] PROGMEM  = " > ";
 const char S_0x [] PROGMEM  = "0x";
 const char S___ [] PROGMEM  = "  ";
 
-  /////////////////////////////////////////////////////////////////////
-  //                         GLOBAL ENUMS                            //
-  /////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+//                         GLOBAL ENUMS                            //
+/////////////////////////////////////////////////////////////////////
 
 enum HTTP_TAG {
   HTTP_TAG_OPEN, HTTP_TAG_CLOSED, HTTP_TAG_SINGLE
@@ -114,9 +114,9 @@ enum GB_COMMAND_TYPE {
 
 };
 
-  /////////////////////////////////////////////////////////////////////
-  //                         FALASH STRINGS                          //
-  /////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+//                         FALASH STRINGS                          //
+/////////////////////////////////////////////////////////////////////
 
 static int flashStringLength(const char PROGMEM* pstr){ 
   return strlen_P(pstr);
@@ -224,116 +224,6 @@ static boolean flashStringEquals(const char* cstr, size_t length, const __FlashS
   return flashStringEquals(cstr, length, (const char PROGMEM*) fstr);
 }
 
-  /////////////////////////////////////////////////////////////////////
-  //                          SERIAL READ                            //
-  /////////////////////////////////////////////////////////////////////
-
-  static const unsigned long Stream_timeout = 1000; // Like in Stram.h
-
-  // WARNING! This is adapted copy of Stream.h, Serial.h, and HardwareSerial.h
-  // functionality
-  static boolean Serial_timedRead(char* c){
-    unsigned long _startMillis = millis();
-    unsigned long _currentMillis;
-    do {
-      if (Serial1.available()){
-        *c = (char) Serial1.read();
-        return true;   
-      }
-      _currentMillis = millis();
-    } 
-    while(((_currentMillis - _startMillis) < Stream_timeout) || (_currentMillis < _startMillis));  // Overflow check 
-    //while((_currentMillis - _startMillis) < Stream_timeout); 
-    //while(millis() - _startMillis < Stream_timeout); 
-    return false;     // false indicates timeout
-  }
-
-  static size_t Serial_readBytes(char *buffer, size_t length) {
-    size_t count = 0;
-    while (count < length) {
-      if (!Serial_timedRead(buffer)){
-        break;
-      }
-      buffer++;
-      count++;
-    }
-    return count;
-  }
-
-  static size_t Serial_skipBytes(size_t length) {
-    char c;
-    size_t count = 0;
-    while (count < length) {
-      if (!Serial_timedRead(&c)){
-        break;
-      }
-      count++;
-    }
-    return count;
-  }
-
-  static size_t Serial_skipBytesUntil(size_t length, const char PROGMEM* pstr){   
-    int pstr_length = flashStringLength(pstr);   
-    char matcher[pstr_length];
-
-    char c;
-    size_t count = 0;
-    while (count < length) {
-      if (!Serial_timedRead(&c)){
-        break;
-      }
-      count++;
-
-      for (int i = 1; i < pstr_length; i++){
-        matcher[i-1] = matcher[i];  
-      }
-      matcher[pstr_length-1] = c;
-      if (count >= pstr_length && flashStringEquals(matcher, pstr_length, pstr)){
-        break;
-      } 
-    }
-    return count;
-  }  
-
-  static size_t Serial_readStringUntil(String& str, size_t length, const char PROGMEM* pstr){      
-    char c;
-    size_t count = 0;
-    while (count < length) {
-      if (!Serial_timedRead(&c)){
-        break;
-      }
-      count++;
-      str +=c;
-      if (flashStringEndsWith(str, pstr)){
-        break;
-      } 
-    }
-    return count;
-  } 
-
-  static size_t Serial_readString(String& str, size_t length){
-    char buffer[length];
-    size_t count = Serial_readBytes(buffer, length);
-    str.reserve(str.length() + count);
-    for (size_t i = 0; i < count; i++) {
-      str += buffer[i];  
-    }
-    return count;
-  }
-
-  static size_t Serial_readString(String& str){
-
-    size_t maxFrameLenght = 100; 
-    size_t countInFrame = Serial_readString(str, maxFrameLenght);
-
-    size_t count = countInFrame; 
-
-    while (countInFrame == maxFrameLenght){
-      countInFrame = Serial_readString(str, maxFrameLenght); 
-      count += countInFrame;
-    }
-    return count;
-  }
 
 #endif
 

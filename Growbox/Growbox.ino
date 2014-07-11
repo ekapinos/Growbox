@@ -287,10 +287,10 @@ void serialEvent1(){
 
   g_commandType = GB_SerialHelper::handleSerialEvent(input, g_wifiPortDescriptor, postParams);
 
-  Serial.print(F("WIFI > input: "));
-  Serial.print(input);
-  Serial.print(F(" post: "));
-  Serial.print(postParams);
+//  Serial.print(F("WIFI > input: "));
+//  Serial.print(input);
+//  Serial.print(F(" post: "));
+//  Serial.print(postParams);
   
   switch(g_commandType){
     case GB_COMMAND_HTTP_POST:
