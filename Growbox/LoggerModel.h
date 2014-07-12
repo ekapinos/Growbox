@@ -1,5 +1,5 @@
-#ifndef GB_LoggerModel_h
-#define GB_LoggerModel_h
+#ifndef LoggerModel_h
+#define LoggerModel_h
 
 #include "Global.h"
 
@@ -26,7 +26,7 @@ public:
     this->sequenceSize = sequenceSize;
     this->description = description;
   }
-  
+
   static Error* findByIndex(byte sequence, byte sequenceSize){
     Error* currentItemPtr = lastAddedItem;
     while (currentItemPtr != 0){
@@ -41,25 +41,25 @@ public:
   static boolean isInitialized(){
     return (findByIndex(0xFF, 0xFF) == 0);
   }
-  
-  
-void notify() {
-  digitalWrite(ERROR_PIN, LOW);
-  delay(1000);
-  for (int i = sequenceSize-1; i >= 0; i--){
-    digitalWrite(ERROR_PIN, HIGH);
-    if (bitRead(sequence, i)){
-      delay(ERROR_LONG_SIGNAL_MS);
-    } 
-    else {
-      delay(ERROR_SHORT_SIGNAL_MS);
-    } 
+
+
+  void notify() {
     digitalWrite(ERROR_PIN, LOW);
-    delay(ERROR_DELAY_BETWEEN_SIGNALS_MS);
+    delay(1000);
+    for (int i = sequenceSize-1; i >= 0; i--){
+      digitalWrite(ERROR_PIN, HIGH);
+      if (bitRead(sequence, i)){
+        delay(ERROR_LONG_SIGNAL_MS);
+      } 
+      else {
+        delay(ERROR_SHORT_SIGNAL_MS);
+      } 
+      digitalWrite(ERROR_PIN, LOW);
+      delay(ERROR_DELAY_BETWEEN_SIGNALS_MS);
+    }
+    digitalWrite(ERROR_PIN, LOW);
+    delay(1000);
   }
-  digitalWrite(ERROR_PIN, LOW);
-  delay(1000);
-}
 
 };
 
@@ -127,4 +127,5 @@ EVENT_SERIAL_UNKNOWN_COMMAND;
 void initLoggerModel(); // TODO move ?
 
 #endif
+
 

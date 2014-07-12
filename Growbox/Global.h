@@ -9,6 +9,8 @@
 
 #include <OneWire.h>
 
+#include "StringUtils.h"
+
 /////////////////////////////////////////////////////////////////////
 //                     HARDWARE CONFIGURATION                      //
 /////////////////////////////////////////////////////////////////////
@@ -77,29 +79,7 @@ const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 extern OneWire g_oneWirePin;
 extern boolean g_isGrowboxStarted;
-
-
-/////////////////////////////////////////////////////////////////////
-//                         GLOBAL STRINGS                          //
-/////////////////////////////////////////////////////////////////////
-
-#define FS(x) (__FlashStringHelper*)(x)
-
-const char S_empty[] PROGMEM  = "";
-const char S_CRLF[] PROGMEM  = "\r\n";
-const char S_CRLFCRLF[] PROGMEM  = "\r\n\r\n";
-const char S_WIFI[] PROGMEM  = "WIFI> ";
-const char S_connected[] PROGMEM  = " connected";
-const char S_disconnected[] PROGMEM  = " disconnected";
-const char S_enabled[] PROGMEM  = " enabled";
-const char S_disabled[] PROGMEM  = " disabled";
-const char S_Temperature[] PROGMEM  = "Temperature";
-const char S_Free_memory[] PROGMEM  = "Free memory: ";
-const char S_bytes[] PROGMEM  = " bytes";
-const char S_PlusMinus [] PROGMEM  = "+/-";
-const char S_Next [] PROGMEM  = " > ";
-const char S_0x [] PROGMEM  = "0x";
-const char S___ [] PROGMEM  = "  ";
+extern byte g_isDayInGrowbox;
 
 /////////////////////////////////////////////////////////////////////
 //                         GLOBAL ENUMS                            //
@@ -113,117 +93,6 @@ enum GB_COMMAND_TYPE {
   GB_COMMAND_NONE, GB_COMMAND_SERIAL_MONITOR, GB_COMMAND_HTTP_CONNECTED, GB_COMMAND_HTTP_DISCONNECTED, GB_COMMAND_HTTP_GET, GB_COMMAND_HTTP_POST
 
 };
-
-/////////////////////////////////////////////////////////////////////
-//                         FALASH STRINGS                          //
-/////////////////////////////////////////////////////////////////////
-
-static int flashStringLength(const char PROGMEM* pstr){ 
-  return strlen_P(pstr);
-}
-
-static char flashStringCharAt(const char PROGMEM* pstr, int index, boolean checkOverflow = true){ 
-  if (checkOverflow){
-    if (index >= flashStringLength(pstr)){
-      return 0xFF; 
-    }
-  }
-  return pgm_read_byte(pstr+index);
-}
-
-static boolean flashStringEquals(const String &str, const char PROGMEM* pstr){ 
-  int length = flashStringLength(pstr);
-  if (length != str.length()) {
-    return false; 
-  }
-  for (int i = 0; i < length; i++){
-    if (flashStringCharAt(pstr, i, false) != str[i]){
-      return false;
-    }
-  }
-  return true;
-}
-
-static boolean flashStringEquals(const char* cstr, size_t cstr_length, const char PROGMEM* pstr){ 
-  if (cstr_length != flashStringLength(pstr)){
-    return false;
-  }
-  return (strncmp_P(cstr, pstr, cstr_length) == 0); // check this method
-}
-
-static boolean flashStringStartsWith(const String &str, const char PROGMEM* pstr){ 
-  int length = flashStringLength(pstr);
-  if (length > str.length()) {
-    return false; 
-  }
-  for (int i = 0; i < length; i++){
-    if (flashStringCharAt(pstr, i, false) != str[i]){
-      return false;
-    }
-  }
-  return true; 
-}
-
-static boolean flashStringStartsWith(const char* cstr, size_t cstr_length, const char PROGMEM* pstr){ 
-  int length = flashStringLength(pstr);
-  if (length > cstr_length) {
-    return false; 
-  }
-  for (int i = 0; i < length; i++){
-    if (flashStringCharAt(pstr, i, false) != cstr[i]){
-      return false;
-    }
-  }
-  return true; 
-}
-
-static boolean flashStringEndsWith(const String &str, const char PROGMEM* pstr){ 
-  int length = flashStringLength(pstr);
-  if (length > str.length()) {
-    return false; 
-  }
-  int strOffset = str.length() - length;
-  for (int i = 0; i < length; i++){
-    if (flashStringCharAt(pstr, i, false) != str[strOffset+i]){
-      return false;
-    }
-  }
-  return true; 
-}
-
-static String flashStringLoad(const char PROGMEM* pstr){
-  int length = flashStringLength(pstr);
-
-  String str;
-  str.reserve(length);
-  for (int i = 0; i< length; i++){
-    str += flashStringCharAt(pstr, i, false);
-  }
-  return str; 
-}
-
-static String flashStringLoad(const __FlashStringHelper* fstr){ 
-  return flashStringLoad((const char PROGMEM*) fstr);
-}
-static boolean flashStringStartsWith(const String &str, const __FlashStringHelper* fstr){
-  return flashStringStartsWith(str, (const char PROGMEM*) fstr);
-}
-static boolean flashStringStartsWith(const char* cstr, size_t cstr_length, const __FlashStringHelper* fstr){ 
-  return flashStringStartsWith(cstr, cstr_length, (const char PROGMEM*) fstr); 
-}
-static boolean flashStringEquals(const String &str, const __FlashStringHelper* fstr){
-  return flashStringEquals(str, (const char PROGMEM*) fstr); 
-}
-static int flashStringLength(const __FlashStringHelper* fstr){ 
-  return flashStringLength((const char PROGMEM *) fstr);
-}
-static char flashStringCharAt(const __FlashStringHelper* fstr, int index){ 
-  return flashStringCharAt((const char PROGMEM*) fstr, index);
-}
-static boolean flashStringEquals(const char* cstr, size_t length, const __FlashStringHelper* fstr){   
-  return flashStringEquals(cstr, length, (const char PROGMEM*) fstr);
-}
-
 
 #endif
 

@@ -23,33 +23,7 @@
 #include "Controller.h"
 #include "Thermometer.h"
 #include "SerialHelper.h"
-
-/////////////////////////////////////////////////////////////////////
-//                        GLOBAL VARIABLES                         //
-/////////////////////////////////////////////////////////////////////
-
-byte g_isDayInGrowbox = -1;
-
-// HTTP response supplemental 
-GB_COMMAND_TYPE g_commandType = GB_COMMAND_NONE; 
-byte g_wifiPortDescriptor = 0xFF;
-byte g_isWifiResponseError = false;  
-
-/////////////////////////////////////////////////////////////////////
-//                           HTML CONSTS                           //
-/////////////////////////////////////////////////////////////////////
-const char S_hr[] PROGMEM  = "hr";
-const char S_br[] PROGMEM  = "br";
-const char S_table[] PROGMEM  = "table";
-const char S_tr[] PROGMEM  = "tr";
-const char S_td[] PROGMEM  = "td";
-const char S_pre[] PROGMEM  = "pre";
-const char S_html[] PROGMEM  = "html";
-
-const char S_url[] PROGMEM  = "/";
-const char S_url_log[] PROGMEM  = "/log";
-const char S_url_conf[] PROGMEM  = "/conf";
-const char S_url_storage[] PROGMEM  = "/storage";
+#include "WebServer.h"
 
 /////////////////////////////////////////////////////////////////////
 //                              STATUS                             //
@@ -57,10 +31,10 @@ const char S_url_storage[] PROGMEM  = "/storage";
 
 boolean isDayInGrowbox(){
   if(timeStatus() == timeNeedsSync){
-    GB_Logger::logError(ERROR_TIMER_NEEDS_SYNC);
+    GB_LOGGER.logError(ERROR_TIMER_NEEDS_SYNC);
   } 
   else {
-    GB_Logger::stopLogError(ERROR_TIMER_NEEDS_SYNC);
+    GB_LOGGER.stopLogError(ERROR_TIMER_NEEDS_SYNC);
   }
 
   int currentHour = hour();
@@ -177,7 +151,7 @@ void setup() {
     while(true) delay(5000);
   }
 
-  GB_Controller::checkFreeMemory();
+  GB_CONTROLLER.checkFreeMemory();
 
   if(GB_SerialHelper::useSerialMonitor){ 
     printStatusOnBoot(F("clock"));
@@ -187,12 +161,12 @@ void setup() {
   // Configure clock
   setSyncProvider(RTC.get);   // the function to get the time from the RTC
   while(timeStatus() == timeNotSet || 2014<year() || year()>2020) { // ... and check it
-    GB_Logger::logError(ERROR_TIMER_NOT_SET);
+    GB_LOGGER.logError(ERROR_TIMER_NOT_SET);
     setSyncProvider(RTC.get); // try to refresh clock
   }
-  GB_Logger::stopLogError(ERROR_TIMER_NOT_SET); 
+  GB_LOGGER.stopLogError(ERROR_TIMER_NOT_SET); 
 
-  GB_Controller::checkFreeMemory();
+  GB_CONTROLLER.checkFreeMemory();
 
   if(GB_SerialHelper::useSerialMonitor){ 
     printStatusOnBoot(F("termometer"));
@@ -205,7 +179,7 @@ void setup() {
     delay(1000);
   }
 
-  GB_Controller::checkFreeMemory();
+  GB_CONTROLLER.checkFreeMemory();
 
   if(GB_SerialHelper::useSerialMonitor){ 
     printStatusOnBoot(F("storage"));
@@ -219,10 +193,10 @@ void setup() {
 
   // Now we can use logger
   if (itWasRestart){
-    GB_Logger::logEvent(EVENT_RESTART);
+    GB_LOGGER.logEvent(EVENT_RESTART);
   } 
   else {
-    GB_Logger::logEvent(EVENT_FIRST_START_UP);
+    GB_LOGGER.logEvent(EVENT_FIRST_START_UP);
   }
 
   // Log current temeperature
@@ -261,7 +235,7 @@ void setup() {
   }
 
   if (GB_SerialHelper::useSerialWifi){ 
-    GB_SerialHelper::setWifiConfiguration(flashStringLoad(F("Hell")), flashStringLoad(F("flat65router"))); 
+    GB_SerialHelper::setWifiConfiguration(StringUtils::flashStringLoad(F("Hell")), StringUtils::flashStringLoad(F("flat65router"))); 
     GB_SerialHelper::startWifi();
   }
 
@@ -277,51 +251,11 @@ void loop() {
 void serialEvent1(){
 
   if(!g_isGrowboxStarted){
-    GB_SerialHelper::printDirtyEnd();
-    // Do not handle events during startup
+    // We will not handle external events during startup
     return;
   }
 
-  String input;   
-  String postParams; 
-
-  g_commandType = GB_SerialHelper::handleSerialEvent(input, g_wifiPortDescriptor, postParams);
-
-//  Serial.print(F("WIFI > input: "));
-//  Serial.print(input);
-//  Serial.print(F(" post: "));
-//  Serial.print(postParams);
-  
-  switch(g_commandType){
-    case GB_COMMAND_HTTP_POST:
-      GB_SerialHelper::sendHTTPRedirect(g_wifiPortDescriptor, FS(S_url));
-      break;
-
-    case GB_COMMAND_HTTP_GET:
-      if (flashStringEquals(input, S_url) || 
-          flashStringEquals(input, S_url_log) ||
-          flashStringEquals(input, S_url_conf) ||
-          flashStringEquals(input, S_url_storage)){
-              
-        GB_SerialHelper::sendHttpOK_Header(g_wifiPortDescriptor);
-        
-        generateHttpResponsePage(input);
-        
-        GB_SerialHelper::sendHttpOK_PageComplete(g_wifiPortDescriptor);
-    
-        if(GB_SerialHelper::useSerialMonitor){ 
-          if (g_isWifiResponseError){
-            Serial.print(FS(S_WIFI));
-            Serial.println(F("Send responce error"));
-            GB_SerialHelper::printDirtyEnd();
-          }
-        }
-      } else {
-        // Unknown resource
-        GB_SerialHelper::sendHttpNotFound(g_wifiPortDescriptor);    
-      }
-      break;
-  }
+  webServer.handleSerialEvent();
 }
 
 
@@ -331,14 +265,14 @@ void serialEvent1(){
 
 void updateGrowboxState() {
 
-  GB_Controller::checkFreeMemory();
+  GB_CONTROLLER.checkFreeMemory();
 
   float temperature = GB_Thermometer::getTemperature();
 
   if (temperature >= TEMPERATURE_CRITICAL){
     turnOffLight();
     turnOnFan(FAN_SPEED_MAX);
-    GB_Logger::logError(ERROR_TERMOMETER_CRITICAL_VALUE);
+    GB_LOGGER.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
   } 
   else if (g_isDayInGrowbox) {
     // Day mode
@@ -383,7 +317,7 @@ void switchToDayMode(){
     return;
   }
   g_isDayInGrowbox = true;
-  GB_Logger::logEvent(EVENT_MODE_DAY);
+  GB_LOGGER.logEvent(EVENT_MODE_DAY);
 
   updateGrowboxState();
 }
@@ -393,7 +327,7 @@ void switchToNightMode(){
     return;
   }
   g_isDayInGrowbox = false;
-  GB_Logger::logEvent(EVENT_MODE_NIGHT);
+  GB_LOGGER.logEvent(EVENT_MODE_NIGHT);
 
   updateGrowboxState();
 }
@@ -428,7 +362,7 @@ void turnOnLight(){
     return;
   }
   digitalWrite(LIGHT_PIN, RELAY_ON);
-  GB_Logger::logEvent(EVENT_LIGHT_ON);
+  GB_LOGGER.logEvent(EVENT_LIGHT_ON);
 }
 
 void turnOffLight(){
@@ -436,7 +370,7 @@ void turnOffLight(){
     return;
   }
   digitalWrite(LIGHT_PIN, RELAY_OFF);  
-  GB_Logger::logEvent(EVENT_LIGHT_OFF);
+  GB_LOGGER.logEvent(EVENT_LIGHT_OFF);
 }
 
 void turnOnFan(int speed){
@@ -447,10 +381,10 @@ void turnOnFan(int speed){
   digitalWrite(FAN_PIN, RELAY_ON);
 
   if (speed == FAN_SPEED_MIN){
-    GB_Logger::logEvent(EVENT_FAN_ON_MIN);
+    GB_LOGGER.logEvent(EVENT_FAN_ON_MIN);
   } 
   else {
-    GB_Logger::logEvent(EVENT_FAN_ON_MAX);
+    GB_LOGGER.logEvent(EVENT_FAN_ON_MAX);
   }
 }
 
@@ -460,513 +394,9 @@ void turnOffFan(){
   }
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
-  GB_Logger::logEvent(EVENT_FAN_OFF);
+  GB_LOGGER.logEvent(EVENT_FAN_OFF);
 }
 
-/////////////////////////////////////////////////////////////////////
-//                     HTTP SUPPLEMENTAL COMMANDS                  //
-/////////////////////////////////////////////////////////////////////
-
-static void sendData(const __FlashStringHelper* data){
-  if (g_commandType == GB_COMMAND_HTTP_GET){
-    if (!GB_SerialHelper::sendHttpOK_Data(g_wifiPortDescriptor, data)){
-      g_isWifiResponseError = true;
-    }
-  } 
-  else {
-    Serial.print(data); 
-  }
-}
-
-static void sendData(const String &data){
-  if (g_commandType == GB_COMMAND_HTTP_GET){
-    if (!GB_SerialHelper::sendHttpOK_Data(g_wifiPortDescriptor, data)){
-      g_isWifiResponseError = true;
-    }
-  } 
-  else {
-    Serial.print(data); 
-  }
-}
-
-static void sendDataLn(){
-  sendData(FS(S_CRLF));
-}
-
-/// TODO optimize it
-static void sendData(int data){
-  String str; 
-  str += data;
-  sendData(str);
-}
-
-static void sendData(word data){
-  String str; 
-  str += data;
-  sendData(str);
-}
-
-static void sendData(char data){
-  String str; 
-  str += data;
-  sendData(str);
-}
-
-static void sendData(float data){
-  String str = GB_PrintDirty::floatToString(data);
-  sendData(str);
-}
-
-static void sendData(time_t data){
-  String str = GB_PrintDirty::getTimeString(data);
-  sendData(str);
-}
-
-
-static void sendTagButton(const char PROGMEM* url, const __FlashStringHelper* name){
-  sendData(F("<input type=\"button\" onclick=\"document.location='"));
-  sendData(FS(url));
-  sendData(F("'\" value=\""));
-  sendData(name);
-  sendData(F("\"/>"));
-}
-
-static void sendTag_Begin(HTTP_TAG type){
-  sendData('<');
-  if (type == HTTP_TAG_CLOSED){
-    sendData('/');
-  }
-}
-
-static void sendTag_End(HTTP_TAG type){
-  if (type == HTTP_TAG_SINGLE){
-    sendData('/');
-  }
-  sendData('>');
-}
-
-static void sendTag(const char PROGMEM* pname, HTTP_TAG type){
-  sendTag_Begin(type);
-  sendData(FS(pname));
-  sendTag_End(type);
-}
-
-static void sendTag(const char tag, HTTP_TAG type){
-  sendTag_Begin(type);
-  sendData(tag);
-  sendTag_End(type);
-}
-
-static void generateHttpResponsePage(const String &input){
-
-  if (g_commandType == GB_COMMAND_HTTP_GET){
-    sendTag(S_html, HTTP_TAG_OPEN); 
-    sendTag('h', HTTP_TAG_OPEN); 
-    sendData(F("Growbox"));  
-    sendTag('h', HTTP_TAG_CLOSED);
-    sendTagButton(S_url, F("Status"));
-    sendTagButton(S_url_log, F("Daily log"));
-    sendTagButton(S_url_conf, F("Configuration"));
-    sendTagButton(S_url_storage, F("Storage dump"));
-    sendTag(S_hr, HTTP_TAG_SINGLE);
-    sendTag(S_pre, HTTP_TAG_OPEN);
-    sendBriefStatus();
-    sendTag(S_pre, HTTP_TAG_CLOSED);
-  }
-
-  sendTag(S_pre, HTTP_TAG_OPEN);
-  if (flashStringEquals(input, S_url)){
-    printSendPinsStatus();   
-  } 
-  else if (flashStringEquals(input, S_url_conf)){
-    printSendConfigurationControls(); 
-  } 
-  else if (flashStringEquals(input, S_url_log)){
-    printSendFullLog(true, true, true); // TODO use parameters
-  }
-  else if (flashStringEquals(input, S_url_storage)){
-    sendStorageDump(); 
-  }
-
-  if (g_isWifiResponseError) return;
-
-  sendTag(S_pre, HTTP_TAG_CLOSED);
-  sendTag(S_html, HTTP_TAG_CLOSED);
-  /*
-  // read the incoming byte:
-   char firstChar = 0, secondChar = 0; 
-   firstChar = input[0];
-   if (input.length() > 1){
-   secondChar = input[1];
-   }
-   
-   Serial.print(F("COMMAND>"));
-   Serial.print(firstChar);
-   if (secondChar != 0){
-   Serial.print(secondChar);
-   }
-   Serial.println();
-   
-   boolean printEvents = true; // can't put in switch, Arduino bug
-   boolean printErrors = true;
-   boolean printTemperature = true;
-   
-   switch(firstChar){
-   case 's':
-   printprintSendFullStatus(); 
-   break;  
-   
-   case 'l':
-   switch(secondChar){
-   case 'c': 
-   Serial.println(F("Stored log records cleaned"));
-   GB_StorageHelper::resetStoredLog();
-   break;
-   case 'e':
-   Serial.println(F("Logger store enabled"));
-   GB_StorageHelper::setStoreLogRecordsEnabled(true);
-   break;
-   case 'd':
-   Serial.println(F("Logger store disabled"));
-   GB_StorageHelper::setStoreLogRecordsEnabled(false);
-   break;
-   case 't': 
-   printErrors = printEvents = false;
-   break;
-   case 'r': 
-   printEvents = printTemperature = false;
-   break;
-   case 'v': 
-   printTemperature = printErrors = false;
-   break;
-   } 
-   if ((secondChar != 'c') && (secondChar != 'e') && (secondChar != 'd')){
-   GB_Logger::printFullLog(printEvents,  printErrors,  printTemperature );
-   }
-   break; 
-   
-   case 'b': 
-   switch(secondChar){
-   case 'c': 
-   Serial.println(F("Cleaning boot record"));
-   
-   GB_StorageHelper::resetFirmware();
-   Serial.println(F("Magic number corrupted, reseting"));
-   
-   Serial.println('5');
-   delay(1000);
-   Serial.println('4');
-   delay(1000);
-   Serial.println('3');
-   delay(1000);
-   Serial.println('2');
-   delay(1000);
-   Serial.println('1');
-   delay(1000);
-   Serial.println(F("Rebooting..."));
-   GB_Controller::rebootController();
-   break;
-   } 
-   
-   Serial.println(F("Currnet boot record"));
-   Serial.print(F("-Memory : ")); 
-   {// TODO compilator madness
-   BootRecord bootRecord = GB_StorageHelper::getBootRecord();
-   GB_PrintDirty::printRAM(&bootRecord, sizeof(BootRecord));
-   Serial.println();
-   }
-   Serial.print(F("-Storage: ")); 
-   printSendStorage(0, sizeof(BootRecord));
-   
-   break;  
-   
-   case 'm':    
-   switch(secondChar){
-   case '0': 
-   GB_Storage::fillStorage(0x00); 
-   break; 
-   case 'a': 
-   GB_Storage::fillStorage(0xAA); 
-   break; 
-   case 'f': 
-   GB_Storage::fillStorage(0xFF); 
-   break; 
-   case 'i': 
-   GB_Storage::fillStorageIncremental(); 
-   break; 
-   }
-   printSendStorage();
-   break; 
-   case 'r':        
-   Serial.println(F("Rebooting..."));
-   GB_Controller::rebootController();
-   break; 
-   default: 
-   GB_Logger::logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
-   }
-   */
-
-}
-
-static void sendBriefStatus(){
-  sendFreeMemory();
-  sendBootStatus();
-  sendTimeStatus();
-  sendTemperatureStatus();  
-  sendTag(S_hr, HTTP_TAG_SINGLE); 
-}
-
-
-static void printSendConfigurationControls(){
-  sendData(F("<form action=\"/\" method=\"post\">"));
-  sendData(F("<input type=\"submit\" value=\"Submit\">"));
-  sendData(F("</form>"));
-}
-
-void sendFreeMemory(){  
-  sendData(FS(S_Free_memory));
-  //sendTab_B(HTTP_TAG_OPEN);
-  sendData(freeMemory()); 
-  sendData(FS(S_bytes));
-  sendDataLn();
-}
-
-// private:
-
-static void sendBootStatus(){
-  sendData(F("Controller: startup: ")); 
-  sendData(GB_StorageHelper::getLastStartupTimeStamp());
-  sendData(F(", first startup: ")); 
-  sendData(GB_StorageHelper::getFirstStartupTimeStamp());
-  sendData(F("\r\nLogger:"));
-  if (GB_StorageHelper::isStoreLogRecordsEnabled()){
-    sendData(FS(S_enabled));
-  } 
-  else {
-    sendData(FS(S_disabled));
-  }
-  sendData(F(", records "));
-  sendData(GB_StorageHelper::getLogRecordsCount());
-  sendData('/');
-  sendData(GB_StorageHelper::LOG_CAPACITY);
-  if (GB_StorageHelper::isLogOverflow()){
-    sendData(F(", overflow"));
-  } 
-  sendDataLn();
-}
-
-static void sendTimeStatus(){
-  sendData(F("Clock: ")); 
-  sendTag('b', HTTP_TAG_OPEN);
-  if (g_isDayInGrowbox) {
-    sendData(F("DAY"));
-  } 
-  else{
-    sendData(F("NIGHT"));
-  }
-  sendTag('b', HTTP_TAG_CLOSED);
-  sendData(F(" mode, time ")); 
-  sendData(now());
-  sendData(F(", up time [")); 
-  sendData(UP_HOUR); 
-  sendData(F(":00], down time ["));
-  sendData(DOWN_HOUR);
-  sendData(F(":00]\r\n"));
-}
-
-static void sendTemperatureStatus(){
-  float workingTemperature, statisticsTemperature;
-  int statisticsCount;
-  GB_Thermometer::getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
-
-  sendData(FS(S_Temperature)); 
-  sendData(F(": current ")); 
-  sendData(workingTemperature);
-  sendData(F(", next ")); 
-  sendData(statisticsTemperature);
-  sendData(F(" (count ")); 
-  sendData(statisticsCount);
-
-  sendData(F("), day "));
-  sendData(TEMPERATURE_DAY);
-  sendData(FS(S_PlusMinus));
-  sendData(TEMPERATURE_DELTA);
-  sendData(F(", night "));
-  sendData(TEMPERATURE_NIGHT);
-  sendData(FS(S_PlusMinus));
-  sendData(2*TEMPERATURE_DELTA);
-  sendData(F(", critical "));
-  sendData(TEMPERATURE_CRITICAL);
-  sendDataLn();
-}
-
-static void printSendPinsStatus(){
-  sendData(F("Pin OUTPUT INPUT")); 
-  sendDataLn();
-  for(int i=0; i<=19;i++){
-    sendData(' ');
-    if (i>=14){
-      sendData('A');
-      sendData(i-14);
-    } 
-    else { 
-      sendData(GB_PrintDirty::getFixedDigitsString(i, 2));
-    }
-    sendData(FS(S___)); 
-
-    boolean io_status, dataStatus, inputStatus;
-    if (i<=7){ 
-      io_status = bitRead(DDRD, i);
-      dataStatus = bitRead(PORTD, i);
-      inputStatus = bitRead(PIND, i);
-    }    
-    else if (i <= 13){
-      io_status = bitRead(DDRB, i-8);
-      dataStatus = bitRead(PORTB, i-8);
-      inputStatus = bitRead(PINB, i-8);
-    }
-    else {
-      io_status = bitRead(DDRC, i-14);
-      dataStatus = bitRead(PORTC, i-14);
-      inputStatus = bitRead(PINC, i-14);
-    }
-    if (io_status == OUTPUT){
-      sendData(FS(S___));
-      sendData(dataStatus);
-      sendData(F("     -   "));
-    } 
-    else {
-      sendData(F("  -     "));
-      sendData(inputStatus);
-      sendData(FS(S___));
-    }
-
-    switch(i){
-    case 0: 
-    case 1: 
-      sendData(F("Reserved by Serial/USB. Can be used, if Serial/USB won't be connected"));
-      break;
-    case LIGHT_PIN: 
-      sendData(F("Relay: light on(0)/off(1)"));
-      break;
-    case FAN_PIN: 
-      sendData(F("Relay: fan on(0)/off(1)"));
-      break;
-    case FAN_SPEED_PIN: 
-      sendData(F("Relay: fun max(0)/min(1) speed switch"));
-      break;
-    case ONE_WIRE_PIN: 
-      sendData(F("1-Wire: termometer"));
-      break;
-    case USE_SERIAL_MONOTOR_PIN: 
-      sendData(F("Use serial monitor on(1)/off(0)"));
-      break;
-    case ERROR_PIN: 
-      sendData(F("Error status"));
-      break;
-    case BREEZE_PIN: 
-      sendData(F("Breeze"));
-      break;
-    case 18: 
-    case 19: 
-      sendData(F("Reserved by I2C. Can be used, if SCL, SDA pins will be used"));
-      break;
-    }
-    sendDataLn();
-  }
-}
-
-
-static void printSendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
-  LogRecord logRecord;
-  boolean isEmpty = true;
-  sendTag(S_table, HTTP_TAG_OPEN);
-  for (int i = 0; i < GB_Logger::getLogRecordsCount(); i++){
-
-    logRecord = GB_Logger::getLogRecordByIndex(i);
-    if (!printEvents && GB_Logger::isEvent(logRecord)){
-      continue;
-    }
-    if (!printErrors && GB_Logger::isError(logRecord)){
-      continue;
-    }
-    if (!printTemperature && GB_Logger::isTemperature(logRecord)){
-      continue;
-    }
-
-    sendTag(S_tr, HTTP_TAG_OPEN);
-    sendTag(S_td, HTTP_TAG_OPEN);
-    sendData(i+1);
-    sendTag(S_td, HTTP_TAG_CLOSED);
-    sendTag(S_td, HTTP_TAG_OPEN);
-    sendData(GB_PrintDirty::getTimeString(logRecord.timeStamp));    
-    sendTag(S_td, HTTP_TAG_CLOSED);
-    sendTag(S_td, HTTP_TAG_OPEN);
-    sendData(GB_PrintDirty::getHEX(logRecord.data, true));
-    sendTag(S_td, HTTP_TAG_CLOSED);
-    sendTag(S_td, HTTP_TAG_OPEN);
-    sendData(GB_Logger::getLogRecordDescription(logRecord));
-    sendData(GB_Logger::getLogRecordSuffix(logRecord));
-    sendTag(S_td, HTTP_TAG_CLOSED);
-    //sendDataLn();
-    sendTag(S_tr, HTTP_TAG_CLOSED);
-    isEmpty = false;
-
-    if (g_isWifiResponseError) return;
-
-  }
-  sendTag(S_table, HTTP_TAG_CLOSED);
-  if (isEmpty){
-    sendData(F("Log empty"));
-  }
-}
-
-// TODO garbage?
-void printStorage(word address, byte sizeOf){
-  byte buffer[sizeOf];
-  GB_Storage::read(address, buffer, sizeOf);
-  GB_PrintDirty::printRAM(buffer, sizeOf);
-  Serial.println();
-}
-
-void sendStorageDump(){
-  sendTag(S_table, HTTP_TAG_OPEN);
-  sendTag(S_tr, HTTP_TAG_OPEN);
-  sendTag(S_td, HTTP_TAG_OPEN);
-  sendTag(S_td, HTTP_TAG_CLOSED);
-  for (word i = 0; i < 16 ; i++){
-    sendTag(S_td, HTTP_TAG_OPEN);
-    sendTag('b', HTTP_TAG_OPEN);
-    sendData(GB_PrintDirty::getHEX(i));
-    sendTag('b', HTTP_TAG_CLOSED); 
-    sendTag(S_td, HTTP_TAG_CLOSED);
-  }
-  sendTag(S_tr, HTTP_TAG_CLOSED);
-
-  for (word i = 0; i < GB_Storage::CAPACITY ; i++){
-    byte value = GB_Storage::read(i);
-
-    if (i% 16 ==0){
-      if (i>0){
-        sendTag(S_tr, HTTP_TAG_CLOSED);
-      }
-      sendTag(S_tr, HTTP_TAG_OPEN);
-      sendTag(S_td, HTTP_TAG_OPEN);
-      sendTag('b', HTTP_TAG_OPEN);
-      sendData(GB_PrintDirty::getHEX(i/16));
-      sendTag('b', HTTP_TAG_CLOSED);
-      sendTag(S_td, HTTP_TAG_CLOSED);
-    }
-    sendTag(S_td, HTTP_TAG_OPEN);
-    sendData(GB_PrintDirty::getHEX(value));
-    sendTag(S_td, HTTP_TAG_CLOSED);
-
-    if (g_isWifiResponseError) return;
-
-  }
-  sendTag(S_tr, HTTP_TAG_CLOSED);
-  sendTag(S_table, HTTP_TAG_CLOSED);
-}
 
 
 

@@ -4,3 +4,4 @@
 OneWire g_oneWirePin(ONE_WIRE_PIN);
 
 boolean g_isGrowboxStarted = false;
+byte g_isDayInGrowbox = -1;

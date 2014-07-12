@@ -1,8 +1,8 @@
 #ifndef GB_StorageHelper_h
 #define GB_StorageHelper_h
 
-#include "Global.h"
-#include "Storage.h"
+#include "GB_Global.h"
+#include "AT24C32_EEPROM.h"
 #include "StorageModel.h"
 
 #define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
@@ -11,7 +11,7 @@ class GB_StorageHelper{
 
 public:
 
-  static const word LOG_CAPACITY = ((GB_Storage::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord));
+  static const word LOG_CAPACITY = ((AT24C32_EEPROM_Class::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord));
 
 private:
   static const word LOG_RECORD_OVERFLOW_OFFSET = LOG_CAPACITY * sizeof(LogRecord);
@@ -24,10 +24,10 @@ public:
 
   static boolean start(){
 
-    GB_Storage::read(0, &bootRecord, sizeof(BootRecord));
+    AT24C32_EEPROM.read(0, &bootRecord, sizeof(BootRecord));
     if (isBootRecordCorrect()){
       bootRecord.lastStartupTimeStamp = now();      
-      GB_Storage::write(OFFSETOF(BootRecord, lastStartupTimeStamp), &(bootRecord.lastStartupTimeStamp), sizeof(bootRecord.lastStartupTimeStamp));      
+      AT24C32_EEPROM.write(OFFSETOF(BootRecord, lastStartupTimeStamp), &(bootRecord.lastStartupTimeStamp), sizeof(bootRecord.lastStartupTimeStamp));      
       return true;   
     } 
     else {
@@ -42,7 +42,7 @@ public:
       }
       bootRecord.last_magic = MAGIC_NUMBER;
 
-      GB_Storage::write(0, &bootRecord, sizeof(BootRecord));
+      AT24C32_EEPROM.write(0, &bootRecord, sizeof(BootRecord));
 
       return false; 
     }
@@ -50,7 +50,7 @@ public:
 
   static void setStoreLogRecordsEnabled(boolean flag){
     bootRecord.boolPreferencies.isLoggerEnabled = flag;
-    GB_Storage::write(OFFSETOF(BootRecord, boolPreferencies), &(bootRecord.boolPreferencies), sizeof(bootRecord.boolPreferencies)); 
+    AT24C32_EEPROM.write(OFFSETOF(BootRecord, boolPreferencies), &(bootRecord.boolPreferencies), sizeof(bootRecord.boolPreferencies)); 
   }
   static boolean isStoreLogRecordsEnabled(){
     return bootRecord.boolPreferencies.isLoggerEnabled; 
@@ -68,11 +68,11 @@ public:
   /////////////////////////////////////////////////////////////////////
 
   static boolean storeLogRecord(LogRecord &logRecord){ 
-    boolean storeLog = g_isGrowboxStarted && isBootRecordCorrect() && bootRecord.boolPreferencies.isLoggerEnabled && GB_Storage::isPresent(); // TODO check in another places
+    boolean storeLog = g_isGrowboxStarted && isBootRecordCorrect() && bootRecord.boolPreferencies.isLoggerEnabled && AT24C32_EEPROM.isPresent(); // TODO check in another places
     if (!storeLog){
       return false;
     }
-    GB_Storage::write(bootRecord.nextLogRecordAddress, &logRecord, sizeof(LogRecord));
+    AT24C32_EEPROM.write(bootRecord.nextLogRecordAddress, &logRecord, sizeof(LogRecord));
     increaseLogPointer();
     return true;
   }
@@ -107,7 +107,7 @@ public:
     }
     //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
     word address = sizeof(BootRecord) + logRecordOffset; 
-    GB_Storage::read(address, &logRecord, sizeof(LogRecord));  
+    AT24C32_EEPROM.read(address, &logRecord, sizeof(LogRecord));  
     return true;
   }
 
@@ -117,15 +117,15 @@ public:
 
   static void resetFirmware(){
     bootRecord.first_magic = 0;
-    GB_Storage::write(0, &bootRecord, sizeof(BootRecord));
+    AT24C32_EEPROM.write(0, &bootRecord, sizeof(BootRecord));
   }
 
   static void resetStoredLog(){
     bootRecord.nextLogRecordAddress = sizeof(BootRecord);
-    GB_Storage::write(OFFSETOF(BootRecord, nextLogRecordAddress), &(bootRecord.nextLogRecordAddress), sizeof(bootRecord.nextLogRecordAddress)); 
+    AT24C32_EEPROM.write(OFFSETOF(BootRecord, nextLogRecordAddress), &(bootRecord.nextLogRecordAddress), sizeof(bootRecord.nextLogRecordAddress)); 
 
     bootRecord.boolPreferencies.isLogOverflow = false;
-    GB_Storage::write(OFFSETOF(BootRecord, boolPreferencies), &(bootRecord.boolPreferencies), sizeof(bootRecord.boolPreferencies));
+    AT24C32_EEPROM.write(OFFSETOF(BootRecord, boolPreferencies), &(bootRecord.boolPreferencies), sizeof(bootRecord.boolPreferencies));
   }
 
   static BootRecord getBootRecord(){
@@ -144,10 +144,10 @@ private :
       bootRecord.nextLogRecordAddress = sizeof(BootRecord);
       if (!bootRecord.boolPreferencies.isLogOverflow){
         bootRecord.boolPreferencies.isLogOverflow = true;
-        GB_Storage::write(OFFSETOF(BootRecord, boolPreferencies), &(bootRecord.boolPreferencies), sizeof(bootRecord.boolPreferencies)); 
+        AT24C32_EEPROM.write(OFFSETOF(BootRecord, boolPreferencies), &(bootRecord.boolPreferencies), sizeof(bootRecord.boolPreferencies)); 
       }
     }
-    GB_Storage::write(OFFSETOF(BootRecord, nextLogRecordAddress), &(bootRecord.nextLogRecordAddress), sizeof(bootRecord.nextLogRecordAddress)); 
+    AT24C32_EEPROM.write(OFFSETOF(BootRecord, nextLogRecordAddress), &(bootRecord.nextLogRecordAddress), sizeof(bootRecord.nextLogRecordAddress)); 
   }
 
 };

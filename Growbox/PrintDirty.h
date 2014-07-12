@@ -1,6 +1,8 @@
 #ifndef GB_PrintDirty_h
 #define GB_PrintDirty_h
 
+#include "StringUtils.h"
+
 class GB_PrintDirty {
 public:
 
@@ -20,7 +22,7 @@ public:
       out = String('0') + out;
     }
     if (addPrefix){
-      out = flashStringLoad(S_0x) + out;
+      out = StringUtils::flashStringLoad(S_0x) + out;
     }
     return out;
   }
