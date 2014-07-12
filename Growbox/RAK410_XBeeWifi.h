@@ -4,24 +4,15 @@
 #include "Global.h"
 #include "PrintUtils.h"
 
-/////////////////////////////////////////////////////////////////////
-//                        GLOBAL VARIABLES                         //
-/////////////////////////////////////////////////////////////////////
-
-const char S_WIFI_RESPONSE_WELLCOME[] PROGMEM  = "Welcome to RAK410\r\n";
-const char S_WIFI_RESPONSE_ERROR[] PROGMEM  = "ERROR";
-const char S_WIFI_RESPONSE_OK[] PROGMEM  = "OK";
-const char S_WIFI_GET_[] PROGMEM  = "GET /";
-const char S_WIFI_POST_[] PROGMEM  = "POST /"; 
-
 
 class RAK410_XBeeWifiClass{
+  
 private:
 
   static const int WIFI_MAX_SEND_FRAME_SIZE = 1400; // 1400 max from spec
 
   static const int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
-   static const unsigned long Stream_timeout = 1000; // Like in Stram.h
+  static const unsigned long Stream_timeout = 1000; // Like in Stram.h
 
 
   String s_wifiSID;
@@ -33,6 +24,15 @@ private:
   int s_sendWifiDataFrameSize;
 
 public:
+
+enum RequestType {
+  RAK410_XBEEWIFI_REQUEST_TYPE_NONE,
+  RAK410_XBEEWIFI_REQUEST_TYPE_CLIENT_CONNECTED,
+  RAK410_XBEEWIFI_REQUEST_TYPE_CLIENT_DISCONNECTED,
+  RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET,
+  RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST
+
+};
 
   /*volatile*/  boolean useSerialWifi;
 
@@ -53,51 +53,39 @@ public:
 
   void cleanSerialBuffer();
 
-private:
-  void showWifiMessage(const __FlashStringHelper* str, boolean newLine = true);
-
-  /////////////////////////////////////////////////////////////////////
-  //                             Wi-FI DEVICE                        //
-  /////////////////////////////////////////////////////////////////////
-
-  boolean startWifiSilent();
-
-  boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
-  String wifiExecuteRawCommand(const __FlashStringHelper* command, int maxResponseDeleay);
-  
-public:
-  /////////////////////////////////////////////////////////////////////
+ 
+   /////////////////////////////////////////////////////////////////////
   //                           WIFI PROTOCOL                         //
   /////////////////////////////////////////////////////////////////////
 
+  RequestType handleSerialEvent(byte &wifiPortDescriptor, String &input, String &postParams);
+
   void sendWifiFrameStart(const byte portDescriptor, word length);
-
   void sendWifiFrameData(const __FlashStringHelper* data);
-
   boolean sendWifiFrameStop();
 
   void sendWifiData(const byte portDescriptor, const __FlashStringHelper* data);
 
   void sendWifiDataStart(const byte &wifiPortDescriptor);
 
-
-
-
-
   boolean sendWifiAutoFrameData(const byte &wifiPortDescriptor, const __FlashStringHelper* data); 
-
   boolean sendWifiAutoFrameData(const byte &wifiPortDescriptor, const String &data);
-
-
-
-
-
-
 
   boolean sendWifiDataStop();
 
   boolean sendWifiCloseConnection(const byte portDescriptor);
 
+
+private:
+  void showWifiMessage(const __FlashStringHelper* str, boolean newLine = true);
+
+  boolean startWifiSilent();
+
+  boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
+  String wifiExecuteRawCommand(const __FlashStringHelper* command, int maxResponseDeleay);
+  
+
+private:
   /////////////////////////////////////////////////////////////////////
   //                          SERIAL READ                            //
   /////////////////////////////////////////////////////////////////////
@@ -106,7 +94,6 @@ public:
   // functionality
   boolean Serial_timedRead(char* c);
 
-public:
   size_t Serial_readBytes(char *buffer, size_t length);
 
   size_t Serial_skipBytes(size_t length);

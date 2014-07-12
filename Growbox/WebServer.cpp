@@ -1,11 +1,14 @@
 #include "WebServer.h"
 
+#include "RAK410_XBeeWifi.h" 
+
 void WebServerClass::handleSerialEvent(){
 
   String input;   
   String postParams; 
 
-  c_commandType = WebServerClass::handleSerialEvent(input, c_wifiPortDescriptor, postParams);
+  // HTTP response supplemental   
+  RAK410_XBeeWifiClass::RequestType c_commandType = RAK410_XBeeWifi.handleSerialEvent(c_wifiPortDescriptor, input, postParams);
 
   //  Serial.print(F("WIFI > input: "));
   //  Serial.print(input);
@@ -13,11 +16,11 @@ void WebServerClass::handleSerialEvent(){
   //  Serial.print(postParams);
 
   switch(c_commandType){
-  case GB_COMMAND_HTTP_POST:
+  case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST:
     sendHTTPRedirect(c_wifiPortDescriptor, FS(S_url));
     break;
 
-  case GB_COMMAND_HTTP_GET:
+  case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
     if (StringUtils::flashStringEquals(input, S_url) || 
       StringUtils::flashStringEquals(input, S_url_log) ||
       StringUtils::flashStringEquals(input, S_url_conf) ||
@@ -44,133 +47,6 @@ void WebServerClass::handleSerialEvent(){
   }
 }
 
-
-GB_COMMAND_TYPE WebServerClass::handleSerialEvent(String &input, byte &wifiPortDescriptor, String &postParams){
-
-  input = String();
-  input.reserve(100);
-  wifiPortDescriptor = 0xFF;
-  postParams = String();
-
-  RAK410_XBeeWifi.Serial_readString(input, 13); // "at+recv_data="
-
-  if (!StringUtils::flashStringEquals(input, F("at+recv_data="))){
-    // Read data from serial manager
-    RAK410_XBeeWifi.Serial_readString(input); // at first we should read, after manipulate  
-
-    if (StringUtils::flashStringStartsWith(input, S_WIFI_RESPONSE_WELLCOME) || StringUtils::flashStringStartsWith(input, S_WIFI_RESPONSE_ERROR)){
-      RAK410_XBeeWifi.checkSerial(); // manual restart, or wrong state of Wi-Fi
-      return GB_COMMAND_NONE;
-    }
-
-    return GB_COMMAND_SERIAL_MONITOR;
-  } 
-  else {
-    // WARNING! We need to do it quick. Standart serial buffer capacity only 64 bytes
-    RAK410_XBeeWifi.Serial_readString(input, 1); // ends with '\r', cause '\n' will be removed
-    byte firstRequestHeaderByte = input[13]; //
-
-    if (firstRequestHeaderByte <= 0x07) {        
-      // Data Received Successfully
-      wifiPortDescriptor = firstRequestHeaderByte; 
-
-      RAK410_XBeeWifi.Serial_readString(input, 8);  // get full request header
-
-      byte lowByteDataLength = input[20];
-      byte highByteDataLength = input[21];
-      word dataLength = (((word)highByteDataLength) << 8) + lowByteDataLength;
-
-      // Check HTTP type 
-      input = String();
-      input.reserve(100);
-      dataLength -= RAK410_XBeeWifi.Serial_readStringUntil(input, dataLength, S_CRLF);
-
-      boolean isGet = StringUtils::flashStringStartsWith(input, S_WIFI_GET_);
-      boolean isPost = StringUtils::flashStringStartsWith(input, S_WIFI_POST_);
-
-      if ((isGet || isPost) && StringUtils::flashStringEndsWith(input, S_CRLF)){
-
-        int firstIndex;
-        if (isGet){  
-          firstIndex = StringUtils::flashStringLength(S_WIFI_GET_) - 1;
-        } 
-        else {
-          firstIndex = StringUtils::flashStringLength(S_WIFI_POST_) - 1;
-        }
-        int lastIndex = input.indexOf(' ', firstIndex);
-        if (lastIndex == -1){
-          lastIndex = input.length()-2; // \r\n
-        }
-        input = input.substring(firstIndex, lastIndex);             
-
-        if (isGet) {
-          // We are not interested in this information
-          RAK410_XBeeWifi.Serial_skipBytes(dataLength); 
-          RAK410_XBeeWifi.Serial_skipBytes(2); // remove end mark 
-          return GB_COMMAND_HTTP_GET;
-        } 
-        else {
-          // Post
-          //word dataLength0 = dataLength;
-          dataLength -= RAK410_XBeeWifi.Serial_skipBytesUntil(dataLength, S_CRLFCRLF); // skip HTTP header
-          //word dataLength1 = dataLength;
-          dataLength -= RAK410_XBeeWifi.Serial_readStringUntil(postParams, dataLength, S_CRLF); // read HTTP data;
-          // word dataLength2 = dataLength;           
-          RAK410_XBeeWifi.Serial_skipBytes(dataLength); // skip remaned endings
-
-          if (StringUtils::flashStringEndsWith(postParams, S_CRLF)){
-            postParams = postParams.substring(0, input.length()-2);   
-          }
-          /*
-            postParams += "dataLength0=";
-           postParams += dataLength0;
-           postParams += ", dataLength1=";
-           postParams += dataLength1;
-           postParams += ", dataLength2=";
-           postParams += dataLength2;
-           */
-          RAK410_XBeeWifi.Serial_skipBytes(2); // remove end mark 
-          return GB_COMMAND_HTTP_POST; 
-        }
-      } 
-      else {
-        // Unknown HTTP request type
-        RAK410_XBeeWifi.Serial_skipBytes(dataLength); // remove all data
-        RAK410_XBeeWifi.Serial_skipBytes(2); // remove end mark 
-        return GB_COMMAND_NONE;
-      }
-
-    } 
-    else if (firstRequestHeaderByte == 0x80) {
-      // TCP client connected
-      RAK410_XBeeWifi.Serial_readString(input, 1); 
-      wifiPortDescriptor = input[14]; 
-      RAK410_XBeeWifi.Serial_skipBytes(8); 
-      return GB_COMMAND_HTTP_CONNECTED;
-
-    } 
-    else if (firstRequestHeaderByte == 0x81) {
-      // TCP client disconnected
-      RAK410_XBeeWifi.Serial_readString(input, 1); 
-      wifiPortDescriptor = input[14]; 
-      RAK410_XBeeWifi.Serial_skipBytes(8); 
-      return GB_COMMAND_HTTP_DISCONNECTED;
-
-    } 
-    else if (firstRequestHeaderByte == 0xFF) { 
-      // Data received Failed
-      RAK410_XBeeWifi.Serial_skipBytes(2); // remove end mark and exit quick
-      return GB_COMMAND_NONE;
-
-    } 
-    else {
-      // Unknown packet and it size
-      RAK410_XBeeWifi.cleanSerialBuffer();
-      return GB_COMMAND_NONE;   
-    }
-  }
-  return GB_COMMAND_NONE;  
-} 
 
 /////////////////////////////////////////////////////////////////////
 //                           HTTP PROTOCOL                         //
@@ -227,25 +103,16 @@ void WebServerClass::showWifiMessage(const __FlashStringHelper* str, boolean new
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendData(const __FlashStringHelper* data){
-  if (c_commandType == GB_COMMAND_HTTP_GET){
     if (!RAK410_XBeeWifi.sendWifiAutoFrameData(c_wifiPortDescriptor, data)){
       c_isWifiResponseError = true;
     }
   } 
-  else {
-    Serial.print(data); 
-  }
-}
+
 
 void WebServerClass::sendData(const String &data){
-  if (c_commandType == GB_COMMAND_HTTP_GET){
     if (!RAK410_XBeeWifi.sendWifiAutoFrameData(c_wifiPortDescriptor, data)){
       c_isWifiResponseError = true;
     }
-  } 
-  else {
-    Serial.print(data); 
-  }
 }
 
 void WebServerClass::sendDataLn(){
@@ -318,7 +185,7 @@ void WebServerClass::sendTag(const char tag, HTTP_TAG type){
 
 void WebServerClass::generateHttpResponsePage(const String &input){
 
-  if (c_commandType == GB_COMMAND_HTTP_GET){
+
     sendTag(S_html, HTTP_TAG_OPEN); 
     sendTag(S_h1, HTTP_TAG_OPEN); 
     sendData(F("Growbox"));  
@@ -331,7 +198,6 @@ void WebServerClass::generateHttpResponsePage(const String &input){
     sendTag(S_pre, HTTP_TAG_OPEN);
     sendBriefStatus();
     sendTag(S_pre, HTTP_TAG_CLOSED);
-  }
 
   sendTag(S_pre, HTTP_TAG_OPEN);
   if (StringUtils::flashStringEquals(input, S_url)){

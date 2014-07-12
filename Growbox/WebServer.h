@@ -5,12 +5,17 @@
 
 #include "Global.h"
 #include "StorageHelper.h" 
-#include "RAK410_XBeeWifi.h" 
 #include "Thermometer.h" 
 
 /////////////////////////////////////////////////////////////////////
 //                           HTML CONSTS                           //
 /////////////////////////////////////////////////////////////////////
+
+
+enum HTTP_TAG {
+  HTTP_TAG_OPEN, HTTP_TAG_CLOSED, HTTP_TAG_SINGLE
+};
+
 const char S_hr[] PROGMEM  = "hr";
 const char S_br[] PROGMEM  = "br";
 const char S_table[] PROGMEM  = "table";
@@ -27,8 +32,6 @@ const char S_url_storage[] PROGMEM  = "/storage";
 
 class WebServerClass{
 private:  
-  // HTTP response supplemental   
-  GB_COMMAND_TYPE c_commandType;
 
   byte c_wifiPortDescriptor;
   byte c_isWifiResponseError;
@@ -40,8 +43,6 @@ public:
 private:
 
   static void showWifiMessage(const __FlashStringHelper* str, boolean newLine = true);
- 
-  GB_COMMAND_TYPE handleSerialEvent(String &input, byte &wifiPortDescriptor, String &postParams);
 
   /////////////////////////////////////////////////////////////////////
   //                           HTTP PROTOCOL                         //

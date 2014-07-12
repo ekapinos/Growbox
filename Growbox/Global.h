@@ -83,19 +83,6 @@ extern byte g_isDayInGrowbox;
 extern boolean g_useSerialMonitor;
 
 /////////////////////////////////////////////////////////////////////
-//                         GLOBAL ENUMS                            //
-/////////////////////////////////////////////////////////////////////
-
-enum HTTP_TAG {
-  HTTP_TAG_OPEN, HTTP_TAG_CLOSED, HTTP_TAG_SINGLE
-};
-
-enum GB_COMMAND_TYPE {
-  GB_COMMAND_NONE, GB_COMMAND_SERIAL_MONITOR, GB_COMMAND_HTTP_CONNECTED, GB_COMMAND_HTTP_DISCONNECTED, GB_COMMAND_HTTP_GET, GB_COMMAND_HTTP_POST
-
-};
-
-/////////////////////////////////////////////////////////////////////
 //                         GLOBAL STRINGS                          //
 /////////////////////////////////////////////////////////////////////
 

@@ -16,50 +16,15 @@ public:
   const __FlashStringHelper* description; // FLASH
   boolean isStored; // should be stored in Log only once, but notification should repeated
 
-    Error() : 
-  nextError(lastAddedItem), sequence(0xFF), sequenceSize(0xFF), isStored(false) {
-    lastAddedItem = this;
-  }
+  Error();
 
-  void init(byte sequence, byte sequenceSize, const __FlashStringHelper* description) {
-    this->sequence = sequence;
-    this->sequenceSize = sequenceSize;
-    this->description = description;
-  }
+  void init(byte sequence, byte sequenceSize, const __FlashStringHelper* description) ;
 
-  static Error* findByIndex(byte sequence, byte sequenceSize){
-    Error* currentItemPtr = lastAddedItem;
-    while (currentItemPtr != 0){
-      if (currentItemPtr->sequence == sequence && currentItemPtr->sequenceSize == sequenceSize) {
-        return currentItemPtr;
-      }
-      currentItemPtr = (Error*)currentItemPtr->nextError;
-    }
-    return 0;
-  }
+  static Error* findByIndex(byte sequence, byte sequenceSize);
 
-  static boolean isInitialized(){
-    return (findByIndex(0xFF, 0xFF) == 0);
-  }
+  static boolean isInitialized();
 
-
-  void notify() {
-    digitalWrite(ERROR_PIN, LOW);
-    delay(1000);
-    for (int i = sequenceSize-1; i >= 0; i--){
-      digitalWrite(ERROR_PIN, HIGH);
-      if (bitRead(sequence, i)){
-        delay(ERROR_LONG_SIGNAL_MS);
-      } 
-      else {
-        delay(ERROR_SHORT_SIGNAL_MS);
-      } 
-      digitalWrite(ERROR_PIN, LOW);
-      delay(ERROR_DELAY_BETWEEN_SIGNALS_MS);
-    }
-    digitalWrite(ERROR_PIN, LOW);
-    delay(1000);
-  }
+  void notify() ;
 
 };
 
@@ -72,35 +37,13 @@ public:
   byte index;
   const __FlashStringHelper* description; // FLASH
 
-  Event() : 
-  nextEvent(lastAddedEvent), index(0xFF) {
-    lastAddedEvent = this;
-  }
+  Event();
 
-  void init(byte index, const __FlashStringHelper* description) {
-    this->index = index;
-    this->description = description;
-  }
+  void init(byte index, const __FlashStringHelper* description) ;
 
-  static Event* findByIndex(byte index){
-    //Serial.print("search ev: ");    
-    //Serial.println(index);
-    // Serial.print("lastAddedEvent ev: ");
-    //Serial.println(lastAddedEvent->description);
-    Event* currentItemPtr = lastAddedEvent;
-    while (currentItemPtr != 0){
-      //Serial.println(currentItemPtr->description);
-      if (currentItemPtr->index == index) {
-        return currentItemPtr;
-      }
-      currentItemPtr = (Event*)currentItemPtr->nextEvent;
-    }
-    return 0;
-  }
+  static Event* findByIndex(byte index);
 
-  static boolean isInitialized(){
-    return (findByIndex(0xFF) == 0);
-  }
+  static boolean isInitialized();
 
 };
 
@@ -127,5 +70,6 @@ EVENT_SERIAL_UNKNOWN_COMMAND;
 void initLoggerModel(); // TODO move ?
 
 #endif
+
 
 

@@ -1,7 +1,82 @@
 #include "LoggerModel.h"
 
+
 Error* Error::lastAddedItem = 0;
+
+Error::Error() : 
+nextError(lastAddedItem), sequence(0xFF), sequenceSize(0xFF), isStored(false) {
+  lastAddedItem = this;
+}
+
+void Error::init(byte sequence, byte sequenceSize, const __FlashStringHelper* description) {
+  this->sequence = sequence;
+  this->sequenceSize = sequenceSize;
+  this->description = description;
+}
+
+Error* Error::findByIndex(byte sequence, byte sequenceSize){
+  Error* currentItemPtr = lastAddedItem;
+  while (currentItemPtr != 0){
+    if (currentItemPtr->sequence == sequence && currentItemPtr->sequenceSize == sequenceSize) {
+      return currentItemPtr;
+    }
+    currentItemPtr = (Error*)currentItemPtr->nextError;
+  }
+  return 0;
+}
+
+boolean Error::isInitialized(){
+  return (findByIndex(0xFF, 0xFF) == 0);
+}
+
+
+void Error::notify() {
+  digitalWrite(ERROR_PIN, LOW);
+  delay(1000);
+  for (int i = sequenceSize-1; i >= 0; i--){
+    digitalWrite(ERROR_PIN, HIGH);
+    if (bitRead(sequence, i)){
+      delay(ERROR_LONG_SIGNAL_MS);
+    } 
+    else {
+      delay(ERROR_SHORT_SIGNAL_MS);
+    } 
+    digitalWrite(ERROR_PIN, LOW);
+    delay(ERROR_DELAY_BETWEEN_SIGNALS_MS);
+  }
+  digitalWrite(ERROR_PIN, LOW);
+  delay(1000);
+}
+
+
 Event* Event::lastAddedEvent = 0;
+
+Event::Event() : 
+nextEvent(lastAddedEvent), index(0xFF) {
+  lastAddedEvent = this;
+}
+
+void  Event::init(byte index, const __FlashStringHelper* description) {
+  this->index = index;
+  this->description = description;
+}
+
+Event* Event::findByIndex(byte index){
+  Event* currentItemPtr = lastAddedEvent;
+  while (currentItemPtr != 0){
+    //Serial.println(currentItemPtr->description);
+    if (currentItemPtr->index == index) {
+      return currentItemPtr;
+    }
+    currentItemPtr = (Event*)currentItemPtr->nextEvent;
+  }
+  return 0;
+}
+
+boolean  Event::isInitialized(){
+  return (findByIndex(0xFF) == 0);
+}
+
 
 Error 
 ERROR_TIMER_NOT_SET,
@@ -31,7 +106,7 @@ EVENT_FAN_ON_MAX,
 EVENT_SERIAL_UNKNOWN_COMMAND;
 
 void initLoggerModel(){
-  
+
   // Use F macro to reduce requirements to memory. We can't use F macro in constructors.
   ERROR_TIMER_NOT_SET.init(B00, 2, F("Error: Timer not set"));
   ERROR_TIMER_NEEDS_SYNC.init(B001, 3, F("Error: Timer needs sync"));
@@ -51,4 +126,5 @@ void initLoggerModel(){
   EVENT_FAN_ON_MAX.init(9, F("FAN turned ON MAX speed")),
   EVENT_SERIAL_UNKNOWN_COMMAND.init(10, F("Unknown serial command"));
 }
+
 
