@@ -129,7 +129,7 @@ String StringUtils::getHEX(byte number, boolean addPrefix){
     out = String('0') + out;
   }
   if (addPrefix){
-    out = StringUtils::flashStringLoad(S_0x) + out;
+    out = StringUtils::flashStringLoad(F("0x")) + out;
   }
   return out;
 }

@@ -10,29 +10,6 @@
 #include <Time.h> 
 
 /////////////////////////////////////////////////////////////////////
-//                         GLOBAL STRINGS                          //
-/////////////////////////////////////////////////////////////////////
-
-#define FS(x) (__FlashStringHelper*)(x)
-
-const char S_empty[] PROGMEM  = "";
-const char S___ [] PROGMEM  = "  ";
-const char S_CRLF[] PROGMEM  = "\r\n";
-const char S_CRLFCRLF[] PROGMEM  = "\r\n\r\n";
-const char S_WIFI[] PROGMEM  = "WIFI> ";
-const char S_connected[] PROGMEM  = " connected";
-const char S_disconnected[] PROGMEM  = " disconnected";
-const char S_enabled[] PROGMEM  = " enabled";
-const char S_disabled[] PROGMEM  = " disabled";
-const char S_Temperature[] PROGMEM  = "Temperature";
-const char S_Free_memory[] PROGMEM  = "Free memory: ";
-const char S_bytes[] PROGMEM  = " bytes";
-const char S_PlusMinus [] PROGMEM  = "+/-";
-const char S_Next [] PROGMEM  = " > ";
-const char S_0x [] PROGMEM  = "0x";
-
-
-/////////////////////////////////////////////////////////////////////
 //                         FALASH STRINGS                          //
 /////////////////////////////////////////////////////////////////////
 

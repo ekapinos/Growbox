@@ -54,12 +54,8 @@ boolean isDayInGrowbox(){
 }
 
 
-/////////////////////////////////////////////////////////////////////
-//                                MAIN                             //
-/////////////////////////////////////////////////////////////////////
-
-static void printStatusOnBoot(const __FlashStringHelper* str){ //TODO 
-  if (RAK410_XBeeWifi.useSerialMonitor){
+void printStatusOnBoot(const __FlashStringHelper* str){ //TODO 
+  if (g_useSerialMonitor){
     Serial.print(F("Checking "));
     Serial.print(str);
     Serial.println(F("..."));
@@ -67,19 +63,17 @@ static void printStatusOnBoot(const __FlashStringHelper* str){ //TODO
   }
 }
 
-static void printFatalErrorOnBoot(const __FlashStringHelper* str){ //TODO 
-  if (RAK410_XBeeWifi.useSerialMonitor){
+void printFatalErrorOnBoot(const __FlashStringHelper* str){ //TODO 
+  if (g_useSerialMonitor){
     Serial.print(F("Fatal error: "));
     Serial.println(str);
     //RAK410_XBeeWifi.printDirtyEnd();
   }
 }
 
-void printFreeMemory(){  
-  Serial.print(FS(S_Free_memory));
-  Serial.print(freeMemory()); 
-  Serial.println(FS(S_bytes));
-}
+/////////////////////////////////////////////////////////////////////
+//                                MAIN                             //
+/////////////////////////////////////////////////////////////////////
 
 // the setup routine runs once when you press reset:
 void setup() {                
@@ -108,25 +102,26 @@ void setup() {
   // We need to check Wi-Fi before use print to SerialMonitor
   int controllerFreeMemoryBeforeBoot = freeMemory();
 
-  RAK410_XBeeWifi.checkSerial(true, true);
+  GB_Controller.updateSerialMonitorStatus();
+  RAK410_XBeeWifi.checkSerial();
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
-  if(RAK410_XBeeWifi.useSerialMonitor){
-    printFreeMemory();
+  if(g_useSerialMonitor){
+    PrintUtils::printFreeMemory();
     printStatusOnBoot(F("software configuration"));
     //RAK410_XBeeWifi.printDirtyEnd();
   }
 
   initLoggerModel();
   if (!Error::isInitialized()){
-    if(RAK410_XBeeWifi.useSerialMonitor){ 
+    if(g_useSerialMonitor){ 
       printFatalErrorOnBoot(F("not all Errors initialized"));
       //RAK410_XBeeWifi.printDirtyEnd();
     }
     while(true) delay(5000);  
   }
   if (!Event::isInitialized()){
-    if(RAK410_XBeeWifi.useSerialMonitor){ 
+    if(g_useSerialMonitor){ 
       printFatalErrorOnBoot(F("not all Events initialized"));
       //RAK410_XBeeWifi.printDirtyEnd();
     }
@@ -135,7 +130,7 @@ void setup() {
 
   if (BOOT_RECORD_SIZE != sizeof(BootRecord)){
     digitalWrite(ERROR_PIN, HIGH);
-    if(RAK410_XBeeWifi.useSerialMonitor){ 
+    if(g_useSerialMonitor){ 
       printFatalErrorOnBoot(F("wrong BootRecord size"));
       //RAK410_XBeeWifi.printDirtyEnd();
     }
@@ -144,7 +139,7 @@ void setup() {
 
   if (LOG_RECORD_SIZE != sizeof(LogRecord)){
     digitalWrite(ERROR_PIN, HIGH);
-    if(RAK410_XBeeWifi.useSerialMonitor){ 
+    if(g_useSerialMonitor){ 
       printFatalErrorOnBoot(F("wrong LogRecord size"));
       //RAK410_XBeeWifi.printDirtyEnd();
     }
@@ -153,7 +148,7 @@ void setup() {
 
   GB_Controller.checkFreeMemory();
 
-  if(RAK410_XBeeWifi.useSerialMonitor){ 
+  if(g_useSerialMonitor){ 
     printStatusOnBoot(F("clock"));
     //RAK410_XBeeWifi.printDirtyEnd();
   }
@@ -168,7 +163,7 @@ void setup() {
 
   GB_Controller.checkFreeMemory();
 
-  if(RAK410_XBeeWifi.useSerialMonitor){ 
+  if(g_useSerialMonitor){ 
     printStatusOnBoot(F("termometer"));
     //RAK410_XBeeWifi.printDirtyEnd();
   }
@@ -181,7 +176,7 @@ void setup() {
 
   GB_Controller.checkFreeMemory();
 
-  if(RAK410_XBeeWifi.useSerialMonitor){ 
+  if(g_useSerialMonitor){ 
     printStatusOnBoot(F("storage"));
     //RAK410_XBeeWifi.printDirtyEnd();
   }
@@ -222,12 +217,11 @@ void setup() {
   Alarm.alarmRepeat(UP_HOUR, 00, 00, switchToDayMode);      // repeat once every day
   Alarm.alarmRepeat(DOWN_HOUR, 00, 00, switchToNightMode);  // repeat once every day
 
-  if(RAK410_XBeeWifi.useSerialMonitor){ 
+  if(g_useSerialMonitor){ 
     if (controllerFreeMemoryBeforeBoot != freeMemory()){
-      printFreeMemory();
+      PrintUtils::printFreeMemory();
     }
     Serial.println(F("Growbox successfully started"));
-    //Serial.println(F("Growbox successfully started"));
   }
 
   if (RAK410_XBeeWifi.useSerialWifi){ 
@@ -243,7 +237,7 @@ void loop() {
   Alarm.delay(0); 
 }
 
-
+// RAK 410 is connected to Serial-1
 void serialEvent1(){
 
   if(!g_isGrowboxStarted){
@@ -251,7 +245,7 @@ void serialEvent1(){
     return;
   }
 
-  GB_WEB_SERVER.handleSerialEvent();
+  GB_WebServer.handleSerialEvent();
 }
 
 
@@ -341,7 +335,7 @@ void updateWiFiStatus(){ // should return void
 }
 
 void updateSerialMonitorStatus(){ // should return void
-  RAK410_XBeeWifi.updateSerialMonitorStatus(); 
+  GB_Controller.updateSerialMonitorStatus(); 
 }
 
 void updateBreezeStatus() {

@@ -49,7 +49,7 @@ const float TEMPERATURE_DELTA = 3.0;   // +/-(3-4) Ok
 const byte RELAY_ON = LOW, RELAY_OFF = HIGH;
 
 // Serial consts
-const byte SERIAL_ON = HIGH, SERIAL_OFF = LOW;
+const byte SERIAL_MONITOR_ON = HIGH, SERIAL_MONITOR_OFF = LOW;
 
 // Fun speed
 const byte FAN_SPEED_MIN = RELAY_OFF;
@@ -80,6 +80,7 @@ const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
 extern OneWire g_oneWirePin;
 extern boolean g_isGrowboxStarted;
 extern byte g_isDayInGrowbox;
+extern boolean g_useSerialMonitor;
 
 /////////////////////////////////////////////////////////////////////
 //                         GLOBAL ENUMS                            //
@@ -93,6 +94,27 @@ enum GB_COMMAND_TYPE {
   GB_COMMAND_NONE, GB_COMMAND_SERIAL_MONITOR, GB_COMMAND_HTTP_CONNECTED, GB_COMMAND_HTTP_DISCONNECTED, GB_COMMAND_HTTP_GET, GB_COMMAND_HTTP_POST
 
 };
+
+/////////////////////////////////////////////////////////////////////
+//                         GLOBAL STRINGS                          //
+/////////////////////////////////////////////////////////////////////
+
+#define FS(x) (__FlashStringHelper*)(x)
+
+const char S_empty[] PROGMEM  = "";
+const char S___ [] PROGMEM  = "  ";
+const char S_CRLF[] PROGMEM  = "\r\n";
+const char S_CRLFCRLF[] PROGMEM  = "\r\n\r\n";
+const char S_WIFI[] PROGMEM  = "WIFI> ";
+const char S_connected[] PROGMEM  = " connected";
+const char S_disconnected[] PROGMEM  = " disconnected";
+const char S_enabled[] PROGMEM  = " enabled";
+const char S_disabled[] PROGMEM  = " disabled";
+const char S_Temperature[] PROGMEM  = "Temperature";
+const char S_Free_memory[] PROGMEM  = "Free memory: ";
+const char S_bytes[] PROGMEM  = " bytes";
+const char S_PlusMinus [] PROGMEM  = "+/-";
+const char S_Next [] PROGMEM  = " > ";
 
 #endif
 

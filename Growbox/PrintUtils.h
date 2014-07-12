@@ -1,19 +1,25 @@
 #ifndef PrintUtils_h
 #define PrintUtils_h
 
+#include <MemoryFree.h>
+
+#include "Global.h"
 #include "StringUtils.h"
 
 namespace PrintUtils {
-
+  
   void printHEX(const String &input);
 
   void printWithoutCRLF(const String &input);
 
   void printRAM(void *ptr, byte sizeOf);
 
+  void printFreeMemory();  
+
 };
 
 #endif
+
 
 
 

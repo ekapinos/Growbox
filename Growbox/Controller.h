@@ -11,6 +11,8 @@ public:
 
   // discover memory overflow errors in the arduino C++ code
   void checkFreeMemory();
+  
+  void updateSerialMonitorStatus();
 
 };
 

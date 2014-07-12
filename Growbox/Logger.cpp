@@ -126,7 +126,7 @@ boolean LoggerClass::isTemperature(const LogRecord &logRecord){
 //private:
 
 void LoggerClass::printDirtyLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean isStored, const byte temperature){
-  if (!RAK410_XBeeWifi.useSerialMonitor) {
+  if (!g_useSerialMonitor) {
     return;
   }
   Serial.print(F("LOG> ")); 

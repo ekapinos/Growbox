@@ -32,6 +32,12 @@ void PrintUtils::printRAM(void *ptr, byte sizeOf){
   }
 }
 
+void PrintUtils::printFreeMemory(){  
+  Serial.print(FS(S_Free_memory));
+  Serial.print(freeMemory()); 
+  Serial.println(FS(S_bytes));
+}
+
 
 
 
