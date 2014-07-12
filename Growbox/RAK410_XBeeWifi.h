@@ -1,10 +1,8 @@
-#ifndef GB_SerialHelper_h
-#define GB_SerialHelper_h
-
-#include <Time.h>
+#ifndef RAK410_XBeeWifi_h
+#define RAK410_XBeeWifi_h
 
 #include "Global.h"
-#include "PrintDirty.h"
+#include "PrintUtils.h"
 
 const char S_WIFI_RESPONSE_WELLCOME[] PROGMEM  = "Welcome to RAK410\r\n";
 const char S_WIFI_RESPONSE_ERROR[] PROGMEM  = "ERROR";
@@ -22,50 +20,48 @@ const int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" comma
 //                        GLOBAL VARIABLES                         //
 /////////////////////////////////////////////////////////////////////
 
-class GB_SerialHelper{
+class RAK410_XBeeWifiClass{
 private:
   
-  static String s_wifiSID;
-  static String s_wifiPass;// 8-63 char
+   String s_wifiSID;
+   String s_wifiPass;// 8-63 char
 
-  static boolean s_restartWifi;
-  static boolean s_restartWifiIfNoResponseAutomatically;
+   boolean s_restartWifi;
+   boolean s_restartWifiIfNoResponseAutomatically;
 
-  static int s_sendWifiDataFrameSize;
+   int s_sendWifiDataFrameSize;
 
 public:
 
+   /*volatile*/ boolean useSerialMonitor;
+   /*volatile*/ boolean useSerialWifi;
+
+
+  RAK410_XBeeWifiClass(): useSerialMonitor(false), useSerialWifi (false), s_restartWifi(false),s_restartWifiIfNoResponseAutomatically(true) {
+  }
+  
   /////////////////////////////////////////////////////////////////////
   //                             STARTUP                             //
   /////////////////////////////////////////////////////////////////////
 
-  static /*volatile*/ boolean useSerialMonitor;
-  static /*volatile*/ boolean useSerialWifi;
 
-
-  static void printDirtyEnd(){
-    if (useSerialWifi) {
-      cleanSerialBuffer();
-    }
-  }
-
-  static void setWifiConfiguration(const String& _s_wifiSID, const String& _s_wifiPass){
+   void setWifiConfiguration(const String& _s_wifiSID, const String& _s_wifiPass){
     s_wifiSID = _s_wifiSID;
     s_wifiPass = _s_wifiPass;
   }
 
-  static void updateWiFiStatus(){
+   void updateWiFiStatus(){
     if (s_restartWifi){
       checkSerial(false, true);
     }
     //wifiExecuteCommand(F("at+con_status"));
   }
 
-  static void updateSerialMonitorStatus(){
+   void updateSerialMonitorStatus(){
     checkSerial(true, false); // not interruption cause Serial print problems
   }
 
-  static void checkSerial(boolean checkSerialMonitor, boolean checkWifi){
+   void checkSerial(boolean checkSerialMonitor, boolean checkWifi){
 
     boolean oldUseSerialMonitor  = useSerialMonitor;
     boolean oldUseSerialWifi     = useSerialWifi;
@@ -112,11 +108,10 @@ public:
         }
         if (useSerialMonitor && input.length() > 0){
           showWifiMessage(F("Not correct wellcome message: "), false);
-          GB_PrintDirty::printWithoutCRLF(input);
+          PrintUtils::printWithoutCRLF(input);
           Serial.print(FS(S_Next));
-          GB_PrintDirty::printHEX(input); 
+          PrintUtils::printHEX(input); 
           Serial.println();
-          printDirtyEnd();
         }
       }
     }
@@ -129,7 +124,6 @@ public:
       else {
         Serial.println(FS(S_disabled));
       }
-      printDirtyEnd();
     }
     if (useSerialWifi != oldUseSerialWifi && (useSerialMonitor || (useSerialMonitor != oldUseSerialMonitor ))){
       if(useSerialWifi){ 
@@ -139,7 +133,6 @@ public:
       else {
         Serial.println(FS(S_disconnected));
       }
-      printDirtyEnd();
     }
 
     // Close Serial connection if nessesary
@@ -153,7 +146,7 @@ public:
     }
   }
 
-  static boolean startWifi(){
+   boolean startWifi(){
     showWifiMessage(F("Starting..."));
     boolean isLoaded = startWifiSilent();
     if (isLoaded){
@@ -165,7 +158,7 @@ public:
     }
   }
 
-  static void cleanSerialBuffer(){
+   void cleanSerialBuffer(){
     delay(10);
     while (Serial1.available()){
       Serial1.read();
@@ -173,13 +166,12 @@ public:
   }
 
 private:
-  static void showWifiMessage(const __FlashStringHelper* str, boolean newLine = true){ //TODO 
+   void showWifiMessage(const __FlashStringHelper* str, boolean newLine = true){ //TODO 
     if (useSerialMonitor){
       Serial.print(FS(S_WIFI));
       Serial.print(str);
       if (newLine){  
         Serial.println();
-        printDirtyEnd();        
       }      
     }
   }
@@ -188,7 +180,7 @@ private:
   //                             Wi-FI DEVICE                        //
   /////////////////////////////////////////////////////////////////////
 
-  static boolean startWifiSilent(){
+   boolean startWifiSilent(){
 
     cleanSerialBuffer();
 
@@ -225,8 +217,8 @@ private:
         return false;
       }  
 
-      // at+ipstatic=<ip>,<mask>,<gateway>,<dns server1>(0 is valid),<dns server2>(0 is valid)\r\n
-      if (!wifiExecuteCommand(F("at+ipstatic=192.168.0.1,255.255.0.0,0.0.0.0,0,0"))){
+      // at+ip=<ip>,<mask>,<gateway>,<dns server1>(0 is valid),<dns server2>(0 is valid)\r\n
+      if (!wifiExecuteCommand(F("at+ip=192.168.0.1,255.255.0.0,0.0.0.0,0,0"))){
         return false;
       }
 
@@ -249,7 +241,7 @@ private:
     return true;
   }
 
-  static boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY){   
+   boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY){   
     String input = wifiExecuteRawCommand(command, maxResponseDeleay);
     if (input.length() == 0){
       if (s_restartWifiIfNoResponseAutomatically){
@@ -262,7 +254,6 @@ private:
           Serial.print(F(" (reboot)"));
         } 
         Serial.println();
-        printDirtyEnd();
       }
       // Nothing to do
     } 
@@ -273,26 +264,24 @@ private:
       if (useSerialMonitor){
         byte errorCode = input[5];
         showWifiMessage(F("Error "), false);
-        Serial.print(GB_PrintDirty::getHEX(errorCode, true));
+        Serial.print(StringUtils::getHEX(errorCode, true));
         Serial.println();
-        printDirtyEnd();
       }      
     } 
     else {
       if (useSerialMonitor){
         showWifiMessage(FS(S_empty), false);
-        GB_PrintDirty::printWithoutCRLF(input);
+        PrintUtils::printWithoutCRLF(input);
         Serial.print(FS(S_Next));
-        GB_PrintDirty::printHEX(input); 
+        PrintUtils::printHEX(input); 
         Serial.println();
-        printDirtyEnd();
       }
     }
 
     return false;
   }
 
-  static String wifiExecuteRawCommand(const __FlashStringHelper* command, int maxResponseDeleay){
+   String wifiExecuteRawCommand(const __FlashStringHelper* command, int maxResponseDeleay){
 
     cleanSerialBuffer();
 
@@ -324,7 +313,7 @@ public:
   //                           WIFI PROTOCOL                         //
   /////////////////////////////////////////////////////////////////////
 
-  static void sendWifiFrameStart(const byte portDescriptor, word length){ // 1400 bytes max (Wi-Fi module spec restriction)   
+   void sendWifiFrameStart(const byte portDescriptor, word length){ // 1400 bytes max (Wi-Fi module spec restriction)   
     Serial1.print(F("at+send_data="));
     Serial1.print(portDescriptor);
     Serial1.print(',');
@@ -332,18 +321,18 @@ public:
     Serial1.print(',');
   }
 
-  static void sendWifiFrameData(const __FlashStringHelper* data){
+   void sendWifiFrameData(const __FlashStringHelper* data){
     Serial1.print(data);
   }
   
-  static boolean sendWifiFrameStop(){
+   boolean sendWifiFrameStop(){
     s_restartWifiIfNoResponseAutomatically = false;
     boolean rez = wifiExecuteCommand();
     s_restartWifiIfNoResponseAutomatically = true;
     return rez;
   }
 
-  static void sendWifiData(const byte portDescriptor, const __FlashStringHelper* data){ // INT_MAX (own test) or 1400 bytes max (Wi-Fi spec restriction)
+   void sendWifiData(const byte portDescriptor, const __FlashStringHelper* data){ // INT_MAX (own test) or 1400 bytes max (Wi-Fi spec restriction)
     int length = StringUtils::flashStringLength(data);
     if (length == 0){
       return;
@@ -353,7 +342,7 @@ public:
     sendWifiFrameStop();
   }
 
-  static void sendWifiDataStart(const byte &wifiPortDescriptor){
+   void sendWifiDataStart(const byte &wifiPortDescriptor){
     sendWifiFrameStart(wifiPortDescriptor, WIFI_MAX_SEND_FRAME_SIZE);
     s_sendWifiDataFrameSize = 0;
   }
@@ -362,7 +351,7 @@ public:
 
 
 
-  static boolean sendWifiAutoFrameData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
+   boolean sendWifiAutoFrameData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
     boolean isSendOK = true;
     if (s_sendWifiDataFrameSize + StringUtils::flashStringLength(data) < WIFI_MAX_SEND_FRAME_SIZE){
       s_sendWifiDataFrameSize += Serial1.print(data);
@@ -374,7 +363,7 @@ public:
         s_sendWifiDataFrameSize += Serial1.print(c);
       }
       isSendOK = sendWifiDataStop();
-      GB_SerialHelper::sendWifiDataStart(wifiPortDescriptor);   
+      sendWifiDataStart(wifiPortDescriptor);   
       while (index < StringUtils::flashStringLength(data)){
         char c = StringUtils::flashStringCharAt(data, index++);
         s_sendWifiDataFrameSize += Serial1.print(c);
@@ -384,7 +373,7 @@ public:
     return isSendOK;
   }  
 
-  static boolean sendWifiAutoFrameData(const byte &wifiPortDescriptor, const String &data){
+   boolean sendWifiAutoFrameData(const byte &wifiPortDescriptor, const String &data){
     boolean isSendOK = true;
     if (data.length() == 0){
       return isSendOK;
@@ -415,7 +404,7 @@ public:
 
 
 
-  static boolean sendWifiDataStop(){
+   boolean sendWifiDataStop(){
     if (s_sendWifiDataFrameSize > 0){
       while (s_sendWifiDataFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
         s_sendWifiDataFrameSize += Serial1.write(0x00); // Filler 0x00
@@ -424,7 +413,7 @@ public:
     return sendWifiFrameStop();
   } 
 
-  static boolean sendWifiCloseConnection(const byte portDescriptor){
+   boolean sendWifiCloseConnection(const byte portDescriptor){
     Serial1.print(F("at+cls="));
     Serial1.print(portDescriptor);
     return wifiExecuteCommand(); 
@@ -437,7 +426,7 @@ public:
 
   // WARNING! This is adapted copy of Stream.h, Serial.h, and HardwareSerial.h
   // functionality
-  static boolean Serial_timedRead(char* c){
+   boolean Serial_timedRead(char* c){
     unsigned long _startMillis = millis();
     unsigned long _currentMillis;
     do {
@@ -454,7 +443,7 @@ public:
   }
   
 public:
-  static size_t Serial_readBytes(char *buffer, size_t length) {
+   size_t Serial_readBytes(char *buffer, size_t length) {
     size_t count = 0;
     while (count < length) {
       if (!Serial_timedRead(buffer)){
@@ -466,7 +455,7 @@ public:
     return count;
   }
 
-  static size_t Serial_skipBytes(size_t length) {
+   size_t Serial_skipBytes(size_t length) {
     char c;
     size_t count = 0;
     while (count < length) {
@@ -478,7 +467,7 @@ public:
     return count;
   }
 
-  static size_t Serial_skipBytesUntil(size_t length, const char PROGMEM* pstr){   
+   size_t Serial_skipBytesUntil(size_t length, const char PROGMEM* pstr){   
     int pstr_length = StringUtils::flashStringLength(pstr);   
     char matcher[pstr_length];
 
@@ -501,7 +490,7 @@ public:
     return count;
   }  
 
-  static size_t Serial_readStringUntil(String& str, size_t length, const char PROGMEM* pstr){      
+   size_t Serial_readStringUntil(String& str, size_t length, const char PROGMEM* pstr){      
     char c;
     size_t count = 0;
     while (count < length) {
@@ -517,7 +506,7 @@ public:
     return count;
   } 
 
-  static size_t Serial_readString(String& str, size_t length){
+   size_t Serial_readString(String& str, size_t length){
     char buffer[length];
     size_t count = Serial_readBytes(buffer, length);
     str.reserve(str.length() + count);
@@ -527,7 +516,7 @@ public:
     return count;
   }
 
-  static size_t Serial_readString(String& str){
+   size_t Serial_readString(String& str){
 
     size_t maxFrameLenght = 100; 
     size_t countInFrame = Serial_readString(str, maxFrameLenght);
@@ -543,6 +532,8 @@ public:
 
   
 };
+
+extern RAK410_XBeeWifiClass RAK410_XBeeWifi;
 
 #endif
 

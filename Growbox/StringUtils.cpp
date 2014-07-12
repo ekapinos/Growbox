@@ -113,5 +113,65 @@ boolean StringUtils::flashStringEquals(const char* cstr, size_t length, const __
 
 
 
+String StringUtils::getFixedDigitsString(const int number, const byte numberOfDigits){
+  String out;
+  for (int i = 0; i< numberOfDigits; i++){
+    out +='0';
+  }
+  out += number;
+  return out.substring(out.length()-numberOfDigits);
+}
+
+String StringUtils::getHEX(byte number, boolean addPrefix){
+  String out(number, HEX);
+  out.toUpperCase();
+  if(number < 0x10){
+    out = String('0') + out;
+  }
+  if (addPrefix){
+    out = StringUtils::flashStringLoad(S_0x) + out;
+  }
+  return out;
+}
+
+String StringUtils::floatToString(float number){
+  String out;
+
+  int temp = number*100;
+  int whole = temp/100;
+  int fract = temp%100;
+
+  out += whole;
+  out += '.';
+  out += getFixedDigitsString(temp,2);
+  return out;
+}
+
+
+String StringUtils::getTimeString(time_t time){
+  String out;
+
+  tmElements_t tm;
+  breakTime(time, tm);
+
+  out += '[';
+  out += getFixedDigitsString(tm.Hour, 2);
+  out += ':';
+  out += getFixedDigitsString(tm.Minute, 2);
+  out += ':';
+  out += getFixedDigitsString(tm.Second, 2);
+  out += ' ';
+  out += getFixedDigitsString(tm.Day, 2);
+  out +='.';
+  out += getFixedDigitsString(tm.Month, 2);
+  out += '.';
+  out += getFixedDigitsString(tmYearToCalendar(tm.Year), 4); 
+  out += ']';
+  return out;
+} 
+
+
+
+
 
 

@@ -38,7 +38,7 @@ private:
 
 };
 
-extern LoggerClass GB_LOGGER;
+extern LoggerClass GB_Logger;
 
 #endif
 

@@ -5,7 +5,7 @@
 
 #include "Global.h"
 #include "StorageHelper.h" 
-#include "SerialHelper.h" 
+#include "RAK410_XBeeWifi.h" 
 #include "Thermometer.h" 
 
 /////////////////////////////////////////////////////////////////////
@@ -25,7 +25,7 @@ const char S_url_log[] PROGMEM  = "/log";
 const char S_url_conf[] PROGMEM  = "/conf";
 const char S_url_storage[] PROGMEM  = "/storage";
 
-class GB_WebServer{
+class WebServerClass{
 private:  
   // HTTP response supplemental   
   GB_COMMAND_TYPE c_commandType;
@@ -34,7 +34,7 @@ private:
   byte c_isWifiResponseError;
 
 public:  
-  GB_WebServer() : 
+  WebServerClass() : 
   c_commandType(GB_COMMAND_NONE), c_wifiPortDescriptor(0xFF), c_isWifiResponseError(false){
   }
 
@@ -68,11 +68,10 @@ public:
 
         sendHttpOK_PageComplete(c_wifiPortDescriptor);
 
-        if(GB_SerialHelper::useSerialMonitor){ 
+        if(RAK410_XBeeWifi.useSerialMonitor){ 
           if (c_isWifiResponseError){
             Serial.print(FS(S_WIFI));
             Serial.println(F("Send responce error"));
-            GB_SerialHelper::printDirtyEnd();
           }
         }
       } 
@@ -93,14 +92,14 @@ private:
     wifiPortDescriptor = 0xFF;
     postParams = String();
 
-    GB_SerialHelper::Serial_readString(input, 13); // "at+recv_data="
+    RAK410_XBeeWifi.Serial_readString(input, 13); // "at+recv_data="
 
     if (!StringUtils::flashStringEquals(input, F("at+recv_data="))){
       // Read data from serial manager
-      GB_SerialHelper::Serial_readString(input); // at first we should read, after manipulate  
+      RAK410_XBeeWifi.Serial_readString(input); // at first we should read, after manipulate  
 
       if (StringUtils::flashStringStartsWith(input, S_WIFI_RESPONSE_WELLCOME) || StringUtils::flashStringStartsWith(input, S_WIFI_RESPONSE_ERROR)){
-        GB_SerialHelper::checkSerial(false, true); // manual restart, or wrong state of Wi-Fi
+        RAK410_XBeeWifi.checkSerial(false, true); // manual restart, or wrong state of Wi-Fi
         return GB_COMMAND_NONE;
       }
 
@@ -108,14 +107,14 @@ private:
     } 
     else {
       // WARNING! We need to do it quick. Standart serial buffer capacity only 64 bytes
-      GB_SerialHelper::Serial_readString(input, 1); // ends with '\r', cause '\n' will be removed
+      RAK410_XBeeWifi.Serial_readString(input, 1); // ends with '\r', cause '\n' will be removed
       byte firstRequestHeaderByte = input[13]; //
       
       if (firstRequestHeaderByte <= 0x07) {        
         // Data Received Successfully
         wifiPortDescriptor = firstRequestHeaderByte; 
     
-        GB_SerialHelper::Serial_readString(input, 8);  // get full request header
+        RAK410_XBeeWifi.Serial_readString(input, 8);  // get full request header
 
         byte lowByteDataLength = input[20];
         byte highByteDataLength = input[21];
@@ -124,7 +123,7 @@ private:
         // Check HTTP type 
         input = String();
         input.reserve(100);
-        dataLength -= GB_SerialHelper::Serial_readStringUntil(input, dataLength, S_CRLF);
+        dataLength -= RAK410_XBeeWifi.Serial_readStringUntil(input, dataLength, S_CRLF);
 
         boolean isGet = StringUtils::flashStringStartsWith(input, S_WIFI_GET_);
         boolean isPost = StringUtils::flashStringStartsWith(input, S_WIFI_POST_);
@@ -146,18 +145,18 @@ private:
 
           if (isGet) {
             // We are not interested in this information
-            GB_SerialHelper::Serial_skipBytes(dataLength); 
-            GB_SerialHelper::Serial_skipBytes(2); // remove end mark 
+            RAK410_XBeeWifi.Serial_skipBytes(dataLength); 
+            RAK410_XBeeWifi.Serial_skipBytes(2); // remove end mark 
             return GB_COMMAND_HTTP_GET;
           } 
           else {
             // Post
             //word dataLength0 = dataLength;
-            dataLength -= GB_SerialHelper::Serial_skipBytesUntil(dataLength, S_CRLFCRLF); // skip HTTP header
+            dataLength -= RAK410_XBeeWifi.Serial_skipBytesUntil(dataLength, S_CRLFCRLF); // skip HTTP header
             //word dataLength1 = dataLength;
-            dataLength -= GB_SerialHelper::Serial_readStringUntil(postParams, dataLength, S_CRLF); // read HTTP data;
+            dataLength -= RAK410_XBeeWifi.Serial_readStringUntil(postParams, dataLength, S_CRLF); // read HTTP data;
             // word dataLength2 = dataLength;           
-            GB_SerialHelper::Serial_skipBytes(dataLength); // skip remaned endings
+            RAK410_XBeeWifi.Serial_skipBytes(dataLength); // skip remaned endings
 
             if (StringUtils::flashStringEndsWith(postParams, S_CRLF)){
               postParams = postParams.substring(0, input.length()-2);   
@@ -170,43 +169,43 @@ private:
              postParams += ", dataLength2=";
              postParams += dataLength2;
              */
-            GB_SerialHelper::Serial_skipBytes(2); // remove end mark 
+            RAK410_XBeeWifi.Serial_skipBytes(2); // remove end mark 
             return GB_COMMAND_HTTP_POST; 
           }
         } 
         else {
           // Unknown HTTP request type
-          GB_SerialHelper::Serial_skipBytes(dataLength); // remove all data
-          GB_SerialHelper::Serial_skipBytes(2); // remove end mark 
+          RAK410_XBeeWifi.Serial_skipBytes(dataLength); // remove all data
+          RAK410_XBeeWifi.Serial_skipBytes(2); // remove end mark 
           return GB_COMMAND_NONE;
         }
 
       } 
       else if (firstRequestHeaderByte == 0x80) {
         // TCP client connected
-        GB_SerialHelper::Serial_readString(input, 1); 
+        RAK410_XBeeWifi.Serial_readString(input, 1); 
         wifiPortDescriptor = input[14]; 
-        GB_SerialHelper::Serial_skipBytes(8); 
+        RAK410_XBeeWifi.Serial_skipBytes(8); 
         return GB_COMMAND_HTTP_CONNECTED;
 
       } 
       else if (firstRequestHeaderByte == 0x81) {
         // TCP client disconnected
-        GB_SerialHelper::Serial_readString(input, 1); 
+        RAK410_XBeeWifi.Serial_readString(input, 1); 
         wifiPortDescriptor = input[14]; 
-        GB_SerialHelper::Serial_skipBytes(8); 
+        RAK410_XBeeWifi.Serial_skipBytes(8); 
         return GB_COMMAND_HTTP_DISCONNECTED;
 
       } 
       else if (firstRequestHeaderByte == 0xFF) { 
         // Data received Failed
-        GB_SerialHelper::Serial_skipBytes(2); // remove end mark and exit quick
+        RAK410_XBeeWifi.Serial_skipBytes(2); // remove end mark and exit quick
         return GB_COMMAND_NONE;
 
       } 
       else {
         // Unknown packet and it size
-        GB_SerialHelper::cleanSerialBuffer();
+        RAK410_XBeeWifi.cleanSerialBuffer();
         return GB_COMMAND_NONE;   
       }
     }
@@ -218,8 +217,8 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   static void sendHttpNotFound(const byte wifiPortDescriptor){ 
-    GB_SerialHelper::sendWifiData(wifiPortDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
-    GB_SerialHelper::sendWifiCloseConnection(wifiPortDescriptor);
+    RAK410_XBeeWifi.sendWifiData(wifiPortDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
+    RAK410_XBeeWifi.sendWifiCloseConnection(wifiPortDescriptor);
   }
   
   // WARNING! RAK 410 became mad when 2 parallel connections comes. Like with Chrome and POST request, when RAK response 303.
@@ -229,31 +228,31 @@ private:
     //const __FlashStringHelper* header = F("HTTP/1.1 303 See Other\r\nLocation: "); // DO not use it with RAK 410
     const __FlashStringHelper* header = F("HTTP/1.1 200 OK (303 doesn't work on RAK 410)\r\nrefresh: 0; url="); 
     
-    GB_SerialHelper::sendWifiFrameStart(wifiPortDescriptor, StringUtils::flashStringLength(header) + StringUtils::flashStringLength(data) + StringUtils::flashStringLength(S_CRLFCRLF));
+    RAK410_XBeeWifi.sendWifiFrameStart(wifiPortDescriptor, StringUtils::flashStringLength(header) + StringUtils::flashStringLength(data) + StringUtils::flashStringLength(S_CRLFCRLF));
     
-    GB_SerialHelper::sendWifiFrameData(header);
-    GB_SerialHelper::sendWifiFrameData(data);
-    GB_SerialHelper::sendWifiFrameData(FS(S_CRLFCRLF));
+    RAK410_XBeeWifi.sendWifiFrameData(header);
+    RAK410_XBeeWifi.sendWifiFrameData(data);
+    RAK410_XBeeWifi.sendWifiFrameData(FS(S_CRLFCRLF));
     
-    GB_SerialHelper::sendWifiFrameStop();
+    RAK410_XBeeWifi.sendWifiFrameStop();
     
-    GB_SerialHelper::sendWifiCloseConnection(wifiPortDescriptor);
+    RAK410_XBeeWifi.sendWifiCloseConnection(wifiPortDescriptor);
   }
 
   static void sendHttpOK_Header(const byte wifiPortDescriptor){ 
-    GB_SerialHelper::sendWifiData(wifiPortDescriptor, F("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n"));
-    GB_SerialHelper::sendWifiDataStart(wifiPortDescriptor);
+    RAK410_XBeeWifi.sendWifiData(wifiPortDescriptor, F("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n"));
+    RAK410_XBeeWifi.sendWifiDataStart(wifiPortDescriptor);
   }
 
   static void sendHttpOK_PageComplete(const byte &wifiPortDescriptor){  
-    GB_SerialHelper::sendWifiDataStop();
-    GB_SerialHelper::sendWifiCloseConnection(wifiPortDescriptor);
+    RAK410_XBeeWifi.sendWifiDataStop();
+    RAK410_XBeeWifi.sendWifiCloseConnection(wifiPortDescriptor);
   }
 
 
 
   static void showWifiMessage(const __FlashStringHelper* str, boolean newLine = true){ //TODO 
-    if (GB_SerialHelper::useSerialMonitor){
+    if (RAK410_XBeeWifi.useSerialMonitor){
       Serial.print(FS(S_WIFI));
       Serial.print(str);
       if (newLine){  
@@ -269,7 +268,7 @@ private:
 
   void sendData(const __FlashStringHelper* data){
     if (c_commandType == GB_COMMAND_HTTP_GET){
-      if (!GB_SerialHelper::sendWifiAutoFrameData(c_wifiPortDescriptor, data)){
+      if (!RAK410_XBeeWifi.sendWifiAutoFrameData(c_wifiPortDescriptor, data)){
         c_isWifiResponseError = true;
       }
     } 
@@ -280,7 +279,7 @@ private:
 
   void sendData(const String &data){
     if (c_commandType == GB_COMMAND_HTTP_GET){
-      if (!GB_SerialHelper::sendWifiAutoFrameData(c_wifiPortDescriptor, data)){
+      if (!RAK410_XBeeWifi.sendWifiAutoFrameData(c_wifiPortDescriptor, data)){
         c_isWifiResponseError = true;
       }
     } 
@@ -313,12 +312,12 @@ private:
   }
 
   void sendData(float data){
-    String str = GB_PrintDirty::floatToString(data);
+    String str = StringUtils::floatToString(data);
     sendData(str);
   }
 
   void sendData(time_t data){
-    String str = GB_PrintDirty::getTimeString(data);
+    String str = StringUtils::getTimeString(data);
     sendData(str);
   }
 
@@ -376,7 +375,7 @@ private:
 
     sendTag(S_pre, HTTP_TAG_OPEN);
     if (StringUtils::flashStringEquals(input, S_url)){
-      printSendPinsStatus();   
+      sendPinsStatus();   
     } 
     else if (StringUtils::flashStringEquals(input, S_url_conf)){
       printSendConfigurationControls(); 
@@ -441,7 +440,7 @@ private:
      break;
      } 
      if ((secondChar != 'c') && (secondChar != 'e') && (secondChar != 'd')){
-     GB_LOGGER.printFullLog(printEvents,  printErrors,  printTemperature );
+     GB_Logger.printFullLog(printEvents,  printErrors,  printTemperature );
      }
      break; 
      
@@ -472,7 +471,7 @@ private:
      Serial.print(F("-Memory : ")); 
      {// TODO compilator madness
      BootRecord bootRecord = GB_StorageHelper::getBootRecord();
-     GB_PrintDirty::printRAM(&bootRecord, sizeof(BootRecord));
+     GB_PrintUtils.printRAM(&bootRecord, sizeof(BootRecord));
      Serial.println();
      }
      Serial.print(F("-Storage: ")); 
@@ -502,7 +501,7 @@ private:
      GB_Controller::rebootController();
      break; 
      default: 
-     GB_LOGGER.logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
+     GB_Logger.logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
      }
      */
 
@@ -600,7 +599,7 @@ private:
     sendDataLn();
   }
 
-  void printSendPinsStatus(){
+  void sendPinsStatus(){
     sendData(F("Pin OUTPUT INPUT")); 
     sendDataLn();
     for(int i=0; i<=19;i++){
@@ -610,7 +609,7 @@ private:
         sendData(i-14);
       } 
       else { 
-        sendData(GB_PrintDirty::getFixedDigitsString(i, 2));
+        sendData(StringUtils::getFixedDigitsString(i, 2));
       }
       sendData(FS(S___)); 
 
@@ -681,16 +680,16 @@ private:
     LogRecord logRecord;
     boolean isEmpty = true;
     sendTag(S_table, HTTP_TAG_OPEN);
-    for (int i = 0; i < GB_LOGGER.getLogRecordsCount(); i++){
+    for (int i = 0; i < GB_Logger.getLogRecordsCount(); i++){
 
-      logRecord = GB_LOGGER.getLogRecordByIndex(i);
-      if (!printEvents && GB_LOGGER.isEvent(logRecord)){
+      logRecord = GB_Logger.getLogRecordByIndex(i);
+      if (!printEvents && GB_Logger.isEvent(logRecord)){
         continue;
       }
-      if (!printErrors && GB_LOGGER.isError(logRecord)){
+      if (!printErrors && GB_Logger.isError(logRecord)){
         continue;
       }
-      if (!printTemperature && GB_LOGGER.isTemperature(logRecord)){
+      if (!printTemperature && GB_Logger.isTemperature(logRecord)){
         continue;
       }
 
@@ -699,14 +698,14 @@ private:
       sendData(i+1);
       sendTag(S_td, HTTP_TAG_CLOSED);
       sendTag(S_td, HTTP_TAG_OPEN);
-      sendData(GB_PrintDirty::getTimeString(logRecord.timeStamp));    
+      sendData(StringUtils::getTimeString(logRecord.timeStamp));    
       sendTag(S_td, HTTP_TAG_CLOSED);
       sendTag(S_td, HTTP_TAG_OPEN);
-      sendData(GB_PrintDirty::getHEX(logRecord.data, true));
+      sendData(StringUtils::getHEX(logRecord.data, true));
       sendTag(S_td, HTTP_TAG_CLOSED);
       sendTag(S_td, HTTP_TAG_OPEN);
-      sendData(GB_LOGGER.getLogRecordDescription(logRecord));
-      sendData(GB_LOGGER.getLogRecordSuffix(logRecord));
+      sendData(GB_Logger.getLogRecordDescription(logRecord));
+      sendData(GB_Logger.getLogRecordSuffix(logRecord));
       sendTag(S_td, HTTP_TAG_CLOSED);
       //sendDataLn();
       sendTag(S_tr, HTTP_TAG_CLOSED);
@@ -725,7 +724,7 @@ private:
   void printStorage(word address, byte sizeOf){
     byte buffer[sizeOf];
     AT24C32_EEPROM.read(address, buffer, sizeOf);
-    GB_PrintDirty::printRAM(buffer, sizeOf);
+    PrintUtils::printRAM(buffer, sizeOf);
     Serial.println();
   }
 
@@ -737,7 +736,7 @@ private:
     for (word i = 0; i < 16 ; i++){
       sendTag(S_td, HTTP_TAG_OPEN);
       sendTag('b', HTTP_TAG_OPEN);
-      sendData(GB_PrintDirty::getHEX(i));
+      sendData(StringUtils::getHEX(i));
       sendTag('b', HTTP_TAG_CLOSED); 
       sendTag(S_td, HTTP_TAG_CLOSED);
     }
@@ -753,12 +752,12 @@ private:
         sendTag(S_tr, HTTP_TAG_OPEN);
         sendTag(S_td, HTTP_TAG_OPEN);
         sendTag('b', HTTP_TAG_OPEN);
-        sendData(GB_PrintDirty::getHEX(i/16));
+        sendData(StringUtils::getHEX(i/16));
         sendTag('b', HTTP_TAG_CLOSED);
         sendTag(S_td, HTTP_TAG_CLOSED);
       }
       sendTag(S_td, HTTP_TAG_OPEN);
-      sendData(GB_PrintDirty::getHEX(value));
+      sendData(StringUtils::getHEX(value));
       sendTag(S_td, HTTP_TAG_CLOSED);
 
       if (c_isWifiResponseError) return;
@@ -770,7 +769,8 @@ private:
 
 };
 
-extern GB_WebServer webServer;
+extern WebServerClass GB_WEB_SERVER;
+
 #endif
 
 

@@ -22,10 +22,10 @@ public:
   static void start(){
     dallasTemperature.begin();
     while(dallasTemperature.getDeviceCount() == 0){
-      GB_LOGGER.logError(ERROR_TERMOMETER_DISCONNECTED);
+      GB_Logger.logError(ERROR_TERMOMETER_DISCONNECTED);
       dallasTemperature.begin();
     }  
-    GB_LOGGER.stopLogError(ERROR_TERMOMETER_DISCONNECTED);
+    GB_Logger.stopLogError(ERROR_TERMOMETER_DISCONNECTED);
 
     dallasTemperature.getAddress(oneWireAddress, 0); // search for devices on the bus and assign based on an index.
   }
@@ -34,14 +34,14 @@ public:
   static boolean updateStatistics(){
 
     if(!dallasTemperature.requestTemperaturesByAddress(oneWireAddress)){
-      GB_LOGGER.logError(ERROR_TERMOMETER_DISCONNECTED);
+      GB_Logger.logError(ERROR_TERMOMETER_DISCONNECTED);
       return false;
     };
 
     float freshTemperature = dallasTemperature.getTempC(oneWireAddress);
 
     if ((int)freshTemperature == 0){
-      GB_LOGGER.logError(ERROR_TERMOMETER_ZERO_VALUE);  
+      GB_Logger.logError(ERROR_TERMOMETER_ZERO_VALUE);  
       return false;
     }
 
@@ -49,8 +49,8 @@ public:
     statisticsTemperatureCount++;
 
     boolean forceLog = 
-      GB_LOGGER.stopLogError(ERROR_TERMOMETER_ZERO_VALUE) |
-      GB_LOGGER.stopLogError(ERROR_TERMOMETER_DISCONNECTED); 
+      GB_Logger.stopLogError(ERROR_TERMOMETER_ZERO_VALUE) |
+      GB_Logger.stopLogError(ERROR_TERMOMETER_DISCONNECTED); 
     if (forceLog) {
       getTemperature(true);
     }
@@ -70,7 +70,7 @@ public:
     float freshTemperature = statisticsTemperatureSumm/statisticsTemperatureCount;
 
     if (((int)freshTemperature != (int)workingTemperature) || forceLog) {          
-      GB_LOGGER.logTemperature((byte)freshTemperature);
+      GB_Logger.logTemperature((byte)freshTemperature);
     }
 
     workingTemperature = freshTemperature;

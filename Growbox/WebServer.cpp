@@ -1,6 +1,5 @@
 #include "WebServer.h"
 
-
-GB_WebServer webServer;
+WebServerClass GB_WEB_SERVER;
 
 

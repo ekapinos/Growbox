@@ -14,7 +14,7 @@ public:
 
 };
 
-extern ControllerClass GB_CONTROLLER;
+extern ControllerClass GB_Controller;
 
 #endif
 

@@ -10,11 +10,11 @@ void ControllerClass::rebootController() {
 
 void ControllerClass::checkFreeMemory(){
   if(freeMemory() < 200){ 
-    GB_LOGGER.logError(ERROR_MEMORY_LOW);   
+    GB_Logger.logError(ERROR_MEMORY_LOW);   
   } 
   else {
-    GB_LOGGER.stopLogError(ERROR_MEMORY_LOW); 
+    GB_Logger.stopLogError(ERROR_MEMORY_LOW); 
   }
 }
 
-ControllerClass GB_CONTROLLER;
+ControllerClass GB_Controller;

@@ -7,6 +7,7 @@
 #include <WProgram.h> 
 #endif
 
+#include <Time.h> 
 
 /////////////////////////////////////////////////////////////////////
 //                         GLOBAL STRINGS                          //
@@ -37,7 +38,7 @@ const char S_0x [] PROGMEM  = "0x";
 
 namespace StringUtils {
   int flashStringLength(const char PROGMEM* pstr);
-  
+
   char flashStringCharAt(const char PROGMEM* pstr, int index, boolean checkOverflow = true);
   boolean flashStringEquals(const String &str, const char PROGMEM* pstr);
   boolean flashStringEquals(const char* cstr, size_t cstr_length, const char PROGMEM* pstr);
@@ -53,8 +54,15 @@ namespace StringUtils {
   int flashStringLength(const __FlashStringHelper* fstr);
   char flashStringCharAt(const __FlashStringHelper* fstr, int index);
   boolean flashStringEquals(const char* cstr, size_t length, const __FlashStringHelper* fstr);
+
+  String getFixedDigitsString(const int number, const byte numberOfDigits);
+  String getHEX(byte number, boolean addPrefix = false);
+  String floatToString(float number);
+  String getTimeString(time_t time);
+
 }
 
 #endif
+
 
 

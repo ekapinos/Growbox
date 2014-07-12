@@ -1,7 +1,7 @@
 #ifndef GB_StorageHelper_h
 #define GB_StorageHelper_h
 
-#include "GB_Global.h"
+#include "Global.h"
 #include "AT24C32_EEPROM.h"
 #include "StorageModel.h"
 

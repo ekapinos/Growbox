@@ -1,7 +1,7 @@
 #include "Logger.h"
 
 #include "StorageHelper.h"
-#include "SerialHelper.h"
+#include "RAK410_XBeeWifi.h"
 
 
 // Normal event uses uses format [00DDDDDD]
@@ -11,7 +11,6 @@ void LoggerClass::logEvent(Event &event){
   LogRecord logRecord(event.index);
   boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
   printDirtyLogRecord(logRecord, event.description, isStored);
-  GB_SerialHelper::printDirtyEnd();
 }
 
 // Error events uses format [01SSDDDD] 
@@ -26,7 +25,6 @@ void LoggerClass::logError(Error &error){
     isStoredNow = true;
   } 
   printDirtyLogRecord(logRecord, error.description, isStoredNow);
-  GB_SerialHelper::printDirtyEnd();
   error.isStored = true;   
   error.notify();
 }
@@ -45,7 +43,6 @@ void LoggerClass::logTemperature(byte temperature){
   LogRecord logRecord(B11000000|temperature);
   boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
   printDirtyLogRecord(logRecord, FS(S_Temperature), isStored, temperature);
-  GB_SerialHelper::printDirtyEnd();
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -64,9 +61,9 @@ LogRecord LoggerClass::getLogRecordByIndex(int index){
 
 String LoggerClass::getLogRecordPrefix(const LogRecord &logRecord){        
   String out;
-  out += GB_PrintDirty::getTimeString(logRecord.timeStamp);
+  out += StringUtils::getTimeString(logRecord.timeStamp);
   out += ' '; 
-  out += GB_PrintDirty::getHEX(logRecord.data, true);
+  out += StringUtils::getHEX(logRecord.data, true);
   out += ' '; 
   return out;
 }
@@ -129,7 +126,7 @@ boolean LoggerClass::isTemperature(const LogRecord &logRecord){
 //private:
 
 void LoggerClass::printDirtyLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean isStored, const byte temperature){
-  if (!GB_SerialHelper::useSerialMonitor) {
+  if (!RAK410_XBeeWifi.useSerialMonitor) {
     return;
   }
   Serial.print(F("LOG> ")); 
@@ -143,5 +140,5 @@ void LoggerClass::printDirtyLogRecord(const LogRecord &logRecord, const __FlashS
   Serial.println();      
 }
 
-LoggerClass GB_LOGGER;
+LoggerClass GB_Logger;
 

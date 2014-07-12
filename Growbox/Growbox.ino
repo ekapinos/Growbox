@@ -22,7 +22,7 @@
 #include "Global.h"
 #include "Controller.h"
 #include "Thermometer.h"
-#include "SerialHelper.h"
+#include "RAK410_XBeeWifi.h"
 #include "WebServer.h"
 
 /////////////////////////////////////////////////////////////////////
@@ -31,10 +31,10 @@
 
 boolean isDayInGrowbox(){
   if(timeStatus() == timeNeedsSync){
-    GB_LOGGER.logError(ERROR_TIMER_NEEDS_SYNC);
+    GB_Logger.logError(ERROR_TIMER_NEEDS_SYNC);
   } 
   else {
-    GB_LOGGER.stopLogError(ERROR_TIMER_NEEDS_SYNC);
+    GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
   }
 
   int currentHour = hour();
@@ -59,19 +59,19 @@ boolean isDayInGrowbox(){
 /////////////////////////////////////////////////////////////////////
 
 static void printStatusOnBoot(const __FlashStringHelper* str){ //TODO 
-  if (GB_SerialHelper::useSerialMonitor){
+  if (RAK410_XBeeWifi.useSerialMonitor){
     Serial.print(F("Checking "));
     Serial.print(str);
     Serial.println(F("..."));
-    //GB_SerialHelper::printDirtyEnd();
+    //RAK410_XBeeWifi.printDirtyEnd();
   }
 }
 
 static void printFatalErrorOnBoot(const __FlashStringHelper* str){ //TODO 
-  if (GB_SerialHelper::useSerialMonitor){
+  if (RAK410_XBeeWifi.useSerialMonitor){
     Serial.print(F("Fatal error: "));
     Serial.println(str);
-    //GB_SerialHelper::printDirtyEnd();
+    //RAK410_XBeeWifi.printDirtyEnd();
   }
 }
 
@@ -108,69 +108,69 @@ void setup() {
   // We need to check Wi-Fi before use print to SerialMonitor
   int controllerFreeMemoryBeforeBoot = freeMemory();
 
-  GB_SerialHelper::checkSerial(true, true);
+  RAK410_XBeeWifi.checkSerial(true, true);
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
-  if(GB_SerialHelper::useSerialMonitor){
+  if(RAK410_XBeeWifi.useSerialMonitor){
     printFreeMemory();
     printStatusOnBoot(F("software configuration"));
-    //GB_SerialHelper::printDirtyEnd();
+    //RAK410_XBeeWifi.printDirtyEnd();
   }
 
   initLoggerModel();
   if (!Error::isInitialized()){
-    if(GB_SerialHelper::useSerialMonitor){ 
+    if(RAK410_XBeeWifi.useSerialMonitor){ 
       printFatalErrorOnBoot(F("not all Errors initialized"));
-      //GB_SerialHelper::printDirtyEnd();
+      //RAK410_XBeeWifi.printDirtyEnd();
     }
     while(true) delay(5000);  
   }
   if (!Event::isInitialized()){
-    if(GB_SerialHelper::GB_SerialHelper::useSerialMonitor){ 
+    if(RAK410_XBeeWifi.useSerialMonitor){ 
       printFatalErrorOnBoot(F("not all Events initialized"));
-      //GB_SerialHelper::printDirtyEnd();
+      //RAK410_XBeeWifi.printDirtyEnd();
     }
     while(true) delay(5000);  
   }
 
   if (BOOT_RECORD_SIZE != sizeof(BootRecord)){
     digitalWrite(ERROR_PIN, HIGH);
-    if(GB_SerialHelper::useSerialMonitor){ 
+    if(RAK410_XBeeWifi.useSerialMonitor){ 
       printFatalErrorOnBoot(F("wrong BootRecord size"));
-      //GB_SerialHelper::printDirtyEnd();
+      //RAK410_XBeeWifi.printDirtyEnd();
     }
     while(true) delay(5000);
   }
 
   if (LOG_RECORD_SIZE != sizeof(LogRecord)){
     digitalWrite(ERROR_PIN, HIGH);
-    if(GB_SerialHelper::useSerialMonitor){ 
+    if(RAK410_XBeeWifi.useSerialMonitor){ 
       printFatalErrorOnBoot(F("wrong LogRecord size"));
-      //GB_SerialHelper::printDirtyEnd();
+      //RAK410_XBeeWifi.printDirtyEnd();
     }
     while(true) delay(5000);
   }
 
-  GB_CONTROLLER.checkFreeMemory();
+  GB_Controller.checkFreeMemory();
 
-  if(GB_SerialHelper::useSerialMonitor){ 
+  if(RAK410_XBeeWifi.useSerialMonitor){ 
     printStatusOnBoot(F("clock"));
-    //GB_SerialHelper::printDirtyEnd();
+    //RAK410_XBeeWifi.printDirtyEnd();
   }
 
   // Configure clock
   setSyncProvider(RTC.get);   // the function to get the time from the RTC
   while(timeStatus() == timeNotSet || 2014<year() || year()>2020) { // ... and check it
-    GB_LOGGER.logError(ERROR_TIMER_NOT_SET);
+    GB_Logger.logError(ERROR_TIMER_NOT_SET);
     setSyncProvider(RTC.get); // try to refresh clock
   }
-  GB_LOGGER.stopLogError(ERROR_TIMER_NOT_SET); 
+  GB_Logger.stopLogError(ERROR_TIMER_NOT_SET); 
 
-  GB_CONTROLLER.checkFreeMemory();
+  GB_Controller.checkFreeMemory();
 
-  if(GB_SerialHelper::useSerialMonitor){ 
+  if(RAK410_XBeeWifi.useSerialMonitor){ 
     printStatusOnBoot(F("termometer"));
-    //GB_SerialHelper::printDirtyEnd();
+    //RAK410_XBeeWifi.printDirtyEnd();
   }
 
   // Configure termometer
@@ -179,11 +179,11 @@ void setup() {
     delay(1000);
   }
 
-  GB_CONTROLLER.checkFreeMemory();
+  GB_Controller.checkFreeMemory();
 
-  if(GB_SerialHelper::useSerialMonitor){ 
+  if(RAK410_XBeeWifi.useSerialMonitor){ 
     printStatusOnBoot(F("storage"));
-    //GB_SerialHelper::printDirtyEnd();
+    //RAK410_XBeeWifi.printDirtyEnd();
   }
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
@@ -193,10 +193,10 @@ void setup() {
 
   // Now we can use logger
   if (itWasRestart){
-    GB_LOGGER.logEvent(EVENT_RESTART);
+    GB_Logger.logEvent(EVENT_RESTART);
   } 
   else {
-    GB_LOGGER.logEvent(EVENT_FIRST_START_UP);
+    GB_Logger.logEvent(EVENT_FIRST_START_UP);
   }
 
   // Log current temeperature
@@ -222,7 +222,7 @@ void setup() {
   Alarm.alarmRepeat(UP_HOUR, 00, 00, switchToDayMode);      // repeat once every day
   Alarm.alarmRepeat(DOWN_HOUR, 00, 00, switchToNightMode);  // repeat once every day
 
-  if(GB_SerialHelper::useSerialMonitor){ 
+  if(RAK410_XBeeWifi.useSerialMonitor){ 
     if (controllerFreeMemoryBeforeBoot != freeMemory()){
       printFreeMemory();
     }
@@ -230,13 +230,9 @@ void setup() {
     //Serial.println(F("Growbox successfully started"));
   }
 
-  if(GB_SerialHelper::useSerialMonitor){  
-    GB_SerialHelper::printDirtyEnd();
-  }
-
-  if (GB_SerialHelper::useSerialWifi){ 
-    GB_SerialHelper::setWifiConfiguration(StringUtils::flashStringLoad(F("Hell")), StringUtils::flashStringLoad(F("flat65router"))); 
-    GB_SerialHelper::startWifi();
+  if (RAK410_XBeeWifi.useSerialWifi){ 
+    RAK410_XBeeWifi.setWifiConfiguration(StringUtils::flashStringLoad(F("Hell")), StringUtils::flashStringLoad(F("flat65router"))); 
+    RAK410_XBeeWifi.startWifi();
   }
 
 }
@@ -255,7 +251,7 @@ void serialEvent1(){
     return;
   }
 
-  webServer.handleSerialEvent();
+  GB_WEB_SERVER.handleSerialEvent();
 }
 
 
@@ -265,14 +261,14 @@ void serialEvent1(){
 
 void updateGrowboxState() {
 
-  GB_CONTROLLER.checkFreeMemory();
+  GB_Controller.checkFreeMemory();
 
   float temperature = GB_Thermometer::getTemperature();
 
   if (temperature >= TEMPERATURE_CRITICAL){
     turnOffLight();
     turnOnFan(FAN_SPEED_MAX);
-    GB_LOGGER.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
+    GB_Logger.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
   } 
   else if (g_isDayInGrowbox) {
     // Day mode
@@ -317,7 +313,7 @@ void switchToDayMode(){
     return;
   }
   g_isDayInGrowbox = true;
-  GB_LOGGER.logEvent(EVENT_MODE_DAY);
+  GB_Logger.logEvent(EVENT_MODE_DAY);
 
   updateGrowboxState();
 }
@@ -327,7 +323,7 @@ void switchToNightMode(){
     return;
   }
   g_isDayInGrowbox = false;
-  GB_LOGGER.logEvent(EVENT_MODE_NIGHT);
+  GB_Logger.logEvent(EVENT_MODE_NIGHT);
 
   updateGrowboxState();
 }
@@ -341,11 +337,11 @@ void updateThermometerStatistics(){ // should return void
 }
 
 void updateWiFiStatus(){ // should return void
-  GB_SerialHelper::updateWiFiStatus(); 
+  RAK410_XBeeWifi.updateWiFiStatus(); 
 }
 
 void updateSerialMonitorStatus(){ // should return void
-  GB_SerialHelper::updateSerialMonitorStatus(); 
+  RAK410_XBeeWifi.updateSerialMonitorStatus(); 
 }
 
 void updateBreezeStatus() {
@@ -362,7 +358,7 @@ void turnOnLight(){
     return;
   }
   digitalWrite(LIGHT_PIN, RELAY_ON);
-  GB_LOGGER.logEvent(EVENT_LIGHT_ON);
+  GB_Logger.logEvent(EVENT_LIGHT_ON);
 }
 
 void turnOffLight(){
@@ -370,7 +366,7 @@ void turnOffLight(){
     return;
   }
   digitalWrite(LIGHT_PIN, RELAY_OFF);  
-  GB_LOGGER.logEvent(EVENT_LIGHT_OFF);
+  GB_Logger.logEvent(EVENT_LIGHT_OFF);
 }
 
 void turnOnFan(int speed){
@@ -381,10 +377,10 @@ void turnOnFan(int speed){
   digitalWrite(FAN_PIN, RELAY_ON);
 
   if (speed == FAN_SPEED_MIN){
-    GB_LOGGER.logEvent(EVENT_FAN_ON_MIN);
+    GB_Logger.logEvent(EVENT_FAN_ON_MIN);
   } 
   else {
-    GB_LOGGER.logEvent(EVENT_FAN_ON_MAX);
+    GB_Logger.logEvent(EVENT_FAN_ON_MAX);
   }
 }
 
@@ -394,7 +390,7 @@ void turnOffFan(){
   }
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
-  GB_LOGGER.logEvent(EVENT_FAN_OFF);
+  GB_Logger.logEvent(EVENT_FAN_OFF);
 }
 
 
