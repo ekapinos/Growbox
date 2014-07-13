@@ -34,8 +34,7 @@ void WebServerClass::handleSerialEvent(){
 
       if(g_useSerialMonitor){ 
         if (c_isWifiResponseError){
-          Serial.print(FS(S_WIFI));
-          Serial.println(F("Send responce error"));
+          showWebMessage(F("Send responce error"));
         }
       }
     } 
@@ -53,8 +52,8 @@ void WebServerClass::handleSerialEvent(){
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendHttpNotFound(const byte wifiPortDescriptor){ 
-  RAK410_XBeeWifi.sendWifiData(wifiPortDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
-  RAK410_XBeeWifi.sendWifiCloseConnection(wifiPortDescriptor);
+  RAK410_XBeeWifi.sendFixedSizeData(wifiPortDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
+  RAK410_XBeeWifi.sendCloseConnection(wifiPortDescriptor);
 }
 
 // WARNING! RAK 410 became mad when 2 parallel connections comes. Like with Chrome and POST request, when RAK response 303.
@@ -64,32 +63,32 @@ void WebServerClass::sendHTTPRedirect(const byte &wifiPortDescriptor, const __Fl
   //const __FlashStringHelper* header = F("HTTP/1.1 303 See Other\r\nLocation: "); // DO not use it with RAK 410
   const __FlashStringHelper* header = F("HTTP/1.1 200 OK (303 doesn't work on RAK 410)\r\nrefresh: 0; url="); 
 
-  RAK410_XBeeWifi.sendWifiFrameStart(wifiPortDescriptor, StringUtils::flashStringLength(header) + StringUtils::flashStringLength(data) + StringUtils::flashStringLength(S_CRLFCRLF));
+  RAK410_XBeeWifi.sendFixedSizeFrameStart(wifiPortDescriptor, StringUtils::flashStringLength(header) + StringUtils::flashStringLength(data) + StringUtils::flashStringLength(S_CRLFCRLF));
 
-  RAK410_XBeeWifi.sendWifiFrameData(header);
-  RAK410_XBeeWifi.sendWifiFrameData(data);
-  RAK410_XBeeWifi.sendWifiFrameData(FS(S_CRLFCRLF));
+  RAK410_XBeeWifi.sendFixedSizeFrameData(header);
+  RAK410_XBeeWifi.sendFixedSizeFrameData(data);
+  RAK410_XBeeWifi.sendFixedSizeFrameData(FS(S_CRLFCRLF));
 
-  RAK410_XBeeWifi.sendWifiFrameStop();
+  RAK410_XBeeWifi.sendFixedSizeFrameStop();
 
-  RAK410_XBeeWifi.sendWifiCloseConnection(wifiPortDescriptor);
+  RAK410_XBeeWifi.sendCloseConnection(wifiPortDescriptor);
 }
 
 void WebServerClass::sendHttpOK_Header(const byte wifiPortDescriptor){ 
-  RAK410_XBeeWifi.sendWifiData(wifiPortDescriptor, F("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n"));
-  RAK410_XBeeWifi.sendWifiDataStart(wifiPortDescriptor);
+  RAK410_XBeeWifi.sendFixedSizeData(wifiPortDescriptor, F("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n"));
+  RAK410_XBeeWifi.sendAutoSizeFrameStart(wifiPortDescriptor);
 }
 
 void WebServerClass::sendHttpOK_PageComplete(const byte &wifiPortDescriptor){  
-  RAK410_XBeeWifi.sendWifiDataStop();
-  RAK410_XBeeWifi.sendWifiCloseConnection(wifiPortDescriptor);
+  RAK410_XBeeWifi.sendAutoSizeFrameStop();
+  RAK410_XBeeWifi.sendCloseConnection(wifiPortDescriptor);
 }
 
 
 
-void WebServerClass::showWifiMessage(const __FlashStringHelper* str, boolean newLine){ //TODO 
+void WebServerClass::showWebMessage(const __FlashStringHelper* str, boolean newLine){ //TODO 
   if (g_useSerialMonitor){
-    Serial.print(FS(S_WIFI));
+    Serial.print(FS("WEB> "));
     Serial.print(str);
     if (newLine){  
       Serial.println();    
@@ -103,14 +102,14 @@ void WebServerClass::showWifiMessage(const __FlashStringHelper* str, boolean new
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendData(const __FlashStringHelper* data){
-    if (!RAK410_XBeeWifi.sendWifiAutoFrameData(c_wifiPortDescriptor, data)){
+    if (!RAK410_XBeeWifi.sendAutoSizeFrameData(c_wifiPortDescriptor, data)){
       c_isWifiResponseError = true;
     }
   } 
 
 
 void WebServerClass::sendData(const String &data){
-    if (!RAK410_XBeeWifi.sendWifiAutoFrameData(c_wifiPortDescriptor, data)){
+    if (!RAK410_XBeeWifi.sendAutoSizeFrameData(c_wifiPortDescriptor, data)){
       c_isWifiResponseError = true;
     }
 }
@@ -245,15 +244,15 @@ void WebServerClass::generateHttpResponsePage(const String &input){
    switch(secondChar){
    case 'c': 
    Serial.println(F("Stored log records cleaned"));
-   GB_StorageHelper::resetStoredLog();
+   GB_StorageHelper.resetStoredLog();
    break;
    case 'e':
    Serial.println(F("Logger store enabled"));
-   GB_StorageHelper::setStoreLogRecordsEnabled(true);
+   GB_StorageHelper.setStoreLogRecordsEnabled(true);
    break;
    case 'd':
    Serial.println(F("Logger store disabled"));
-   GB_StorageHelper::setStoreLogRecordsEnabled(false);
+   GB_StorageHelper.setStoreLogRecordsEnabled(false);
    break;
    case 't': 
    printErrors = printEvents = false;
@@ -275,7 +274,7 @@ void WebServerClass::generateHttpResponsePage(const String &input){
    case 'c': 
    Serial.println(F("Cleaning boot record"));
    
-   GB_StorageHelper::resetFirmware();
+   GB_StorageHelper.resetFirmware();
    Serial.println(F("Magic number corrupted, reseting"));
    
    Serial.println('5');
@@ -296,7 +295,7 @@ void WebServerClass::generateHttpResponsePage(const String &input){
    Serial.println(F("Currnet boot record"));
    Serial.print(F("-Memory : ")); 
    {// TODO compilator madness
-   BootRecord bootRecord = GB_StorageHelper::getBootRecord();
+   BootRecord bootRecord = GB_StorageHelper.getBootRecord();
    GB_PrintUtils.printRAM(&bootRecord, sizeof(BootRecord));
    Serial.println();
    }
@@ -360,21 +359,21 @@ void WebServerClass::sendFreeMemory(){
 
 void WebServerClass::sendBootStatus(){
   sendData(F("Controller: startup: ")); 
-  sendData(GB_StorageHelper::getLastStartupTimeStamp());
+  sendData(GB_StorageHelper.getLastStartupTimeStamp());
   sendData(F(", first startup: ")); 
-  sendData(GB_StorageHelper::getFirstStartupTimeStamp());
-  sendData(F("\r\nLogger:"));
-  if (GB_StorageHelper::isStoreLogRecordsEnabled()){
-    sendData(FS(S_enabled));
+  sendData(GB_StorageHelper.getFirstStartupTimeStamp());
+  sendData(F("\r\nLogger: "));
+  if (GB_StorageHelper.isStoreLogRecordsEnabled()){
+    sendData(FS(S_Enabled));
   } 
   else {
-    sendData(FS(S_disabled));
+    sendData(FS(S_Disabled));
   }
   sendData(F(", records "));
-  sendData(GB_StorageHelper::getLogRecordsCount());
+  sendData(GB_StorageHelper.getLogRecordsCount());
   sendData('/');
-  sendData(GB_StorageHelper::LOG_CAPACITY);
-  if (GB_StorageHelper::isLogOverflow()){
+  sendData(GB_StorageHelper.LOG_CAPACITY);
+  if (GB_StorageHelper.isLogOverflow()){
     sendData(F(", overflow"));
   } 
   sendDataLn();

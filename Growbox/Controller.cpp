@@ -30,11 +30,11 @@ void ControllerClass::updateSerialMonitorStatus(){
       while (!Serial) {
         ; // wait for serial port to connect. Needed for Leonardo only
       } 
-      Serial.print(F("Serial monitor:"));
-      Serial.println(FS(S_enabled)); // shows when useSerialMonitor=false
+      Serial.print(F("Serial monitor: "));
+      Serial.println(FS(S_Enabled)); // shows when useSerialMonitor=false
     } 
     else {
-      Serial.println(FS(S_disabled));
+      Serial.println(FS(S_Disabled));
       Serial.end();
     }
   } 

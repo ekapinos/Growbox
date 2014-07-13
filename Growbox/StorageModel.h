@@ -1,7 +1,8 @@
-#ifndef GB_StorageModel_h
-#define GB_StorageModel_h
+#ifndef StorageModel_h
+#define StorageModel_h
 
 #include <Time.h>
+#include "Global.h"
 
 const word MAGIC_NUMBER = 0xAA55;
 

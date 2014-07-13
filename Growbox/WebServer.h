@@ -42,7 +42,7 @@ public:
 
 private:
 
-  static void showWifiMessage(const __FlashStringHelper* str, boolean newLine = true);
+  static void showWebMessage(const __FlashStringHelper* str, boolean newLine = true);
 
   /////////////////////////////////////////////////////////////////////
   //                           HTTP PROTOCOL                         //

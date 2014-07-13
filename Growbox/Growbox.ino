@@ -59,7 +59,6 @@ void printStatusOnBoot(const __FlashStringHelper* str){ //TODO
     Serial.print(F("Checking "));
     Serial.print(str);
     Serial.println(F("..."));
-    //RAK410_XBeeWifi.printDirtyEnd();
   }
 }
 
@@ -67,8 +66,13 @@ void printFatalErrorOnBoot(const __FlashStringHelper* str){ //TODO
   if (g_useSerialMonitor){
     Serial.print(F("Fatal error: "));
     Serial.println(str);
-    //RAK410_XBeeWifi.printDirtyEnd();
   }
+}
+
+void printFreeMemory(){  
+  Serial.print(FS(S_Free_memory));
+  Serial.print(freeMemory()); 
+  Serial.println(FS(S_bytes));
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -107,7 +111,7 @@ void setup() {
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
   if(g_useSerialMonitor){
-    PrintUtils::printFreeMemory();
+    printFreeMemory();
     printStatusOnBoot(F("software configuration"));
     //RAK410_XBeeWifi.printDirtyEnd();
   }
@@ -182,7 +186,7 @@ void setup() {
   }
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
-  boolean itWasRestart = GB_StorageHelper::start();
+  boolean itWasRestart = GB_StorageHelper.start();
 
   g_isGrowboxStarted = true;
 
@@ -219,14 +223,14 @@ void setup() {
 
   if(g_useSerialMonitor){ 
     if (controllerFreeMemoryBeforeBoot != freeMemory()){
-      PrintUtils::printFreeMemory();
+      printFreeMemory();
     }
     Serial.println(F("Growbox successfully started"));
   }
 
   if (RAK410_XBeeWifi.isPresent()){ 
-    RAK410_XBeeWifi.setWifiConfiguration(StringUtils::flashStringLoad(F("Hell")), StringUtils::flashStringLoad(F("flat65router"))); 
-    RAK410_XBeeWifi.startWifi();
+    RAK410_XBeeWifi.setConnectionParameters(StringUtils::flashStringLoad(F("Hell")), StringUtils::flashStringLoad(F("flat65router"))); 
+    RAK410_XBeeWifi.startupWebServer();
   }
 
 }

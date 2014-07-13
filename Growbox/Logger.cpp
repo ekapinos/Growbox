@@ -1,7 +1,10 @@
 #include "Logger.h"
 
 #include "StorageHelper.h"
-#include "RAK410_XBeeWifi.h"
+
+/////////////////////////////////////////////////////////////////////
+//                             APPEND                              //
+/////////////////////////////////////////////////////////////////////
 
 
 // Normal event uses uses format [00DDDDDD]
@@ -9,8 +12,8 @@
 //   DDDDDD - event identificator
 void LoggerClass::logEvent(Event &event){
   LogRecord logRecord(event.index);
-  boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
-  printDirtyLogRecord(logRecord, event.description, isStored);
+  boolean isStored = GB_StorageHelper.storeLogRecord(logRecord);
+  printLogRecordToSerialMonotior(logRecord, event.description, isStored);
 }
 
 // Error events uses format [01SSDDDD] 
@@ -21,10 +24,10 @@ void LoggerClass::logError(Error &error){
   LogRecord logRecord(B01000000|(B00000011 | error.sequenceSize-1)<<4 | (B00001111 & error.sequence));
   boolean isStoredNow = false;
   if(!error.isStored){
-    error.isStored = GB_StorageHelper::storeLogRecord(logRecord);
+    error.isStored = GB_StorageHelper.storeLogRecord(logRecord);
     isStoredNow = true;
   } 
-  printDirtyLogRecord(logRecord, error.description, isStoredNow);
+  printLogRecordToSerialMonotior(logRecord, error.description, isStoredNow);
   error.isStored = true;   
   error.notify();
 }
@@ -41,23 +44,27 @@ boolean LoggerClass::stopLogError(Error &error){
 //   TTTTTT - temperature [0..2^6] = [0..64]
 void LoggerClass::logTemperature(byte temperature){
   LogRecord logRecord(B11000000|temperature);
-  boolean isStored = GB_StorageHelper::storeLogRecord(logRecord);
-  printDirtyLogRecord(logRecord, FS(S_Temperature), isStored, temperature);
+  boolean isStored = GB_StorageHelper.storeLogRecord(logRecord);
+  printLogRecordToSerialMonotior(logRecord, FS(S_Temperature), isStored, temperature);
 }
 
 /////////////////////////////////////////////////////////////////////
-//                        GROWBOX COMMANDS                         //
+//                               READ                              //
 /////////////////////////////////////////////////////////////////////
 
 int LoggerClass::getLogRecordsCount(){
-  return GB_StorageHelper::getLogRecordsCount();
+  return GB_StorageHelper.getLogRecordsCount();
 }  
 
 LogRecord LoggerClass::getLogRecordByIndex(int index){
   LogRecord logRecord;
-  GB_StorageHelper::getLogRecordByIndex(index, logRecord);
+  GB_StorageHelper.getLogRecordByIndex(index, logRecord);
   return logRecord;
 }
+
+/////////////////////////////////////////////////////////////////////
+//                              CHECK                              //
+/////////////////////////////////////////////////////////////////////
 
 String LoggerClass::getLogRecordPrefix(const LogRecord &logRecord){        
   String out;
@@ -71,7 +78,7 @@ String LoggerClass::getLogRecordPrefix(const LogRecord &logRecord){
 const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRecord) {
   byte data = (logRecord.data & B00111111);   
   if (isEvent(logRecord)){
-    Event* foundItemPtr = Event::findByIndex(data);
+    Event* foundItemPtr = Event::findByKey(data);
     if (foundItemPtr == 0){
       return F("Unknown event");
     } 
@@ -85,7 +92,7 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
   else if (isError(logRecord)){    
     byte sequence = (data & B00001111); 
     byte sequenceSize = (data & B00110000)>>4; 
-    Error* foundItemPtr = Error::findByIndex(sequence, sequenceSize);
+    Error* foundItemPtr = Error::findByKey(sequence, sequenceSize);
     if (foundItemPtr == 0){
       return F("Unknown error");
     } 
@@ -125,7 +132,7 @@ boolean LoggerClass::isTemperature(const LogRecord &logRecord){
 
 //private:
 
-void LoggerClass::printDirtyLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean isStored, const byte temperature){
+void LoggerClass::printLogRecordToSerialMonotior(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean isStored, const byte temperature){
   if (!g_useSerialMonitor) {
     return;
   }
@@ -141,4 +148,5 @@ void LoggerClass::printDirtyLogRecord(const LogRecord &logRecord, const __FlashS
 }
 
 LoggerClass GB_Logger;
+
 

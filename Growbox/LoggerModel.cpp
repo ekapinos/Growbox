@@ -1,11 +1,66 @@
 #include "LoggerModel.h"
 
+/////////////////////////////////////////////////////////////////////
+//                            COLLECTIONS                          //
+/////////////////////////////////////////////////////////////////////
 
-Error* Error::lastAddedItem = 0;
+// Iterator
+
+template <class T> 
+Iterator<T>::Iterator(Node<T>* currentNode): 
+currentNode(currentNode){
+}
+
+template <class T>  
+boolean Iterator<T>::hasNext(){
+  return (currentNode != 0);
+}
+
+template <class T>  
+T* Iterator<T>::getNext(){
+  T* rez = currentNode->data; 
+  currentNode = currentNode->nextNode;
+  return rez;
+}
+
+// LinkedList
+
+template <class T>  
+LinkedList<T>::LinkedList():
+lastNode(0){
+}
+
+template <class T>  
+LinkedList<T>::~LinkedList(){ //destructor
+  while(lastNode != 0){
+    Node<T>* currNode  = lastNode;
+    lastNode = lastNode->nextNode;
+    delete currNode;
+  }
+};
+
+template <class T>  
+void LinkedList<T>::add(T* data){
+  Node<T>* newNode = new Node<T>;
+  newNode->data = data;
+  newNode->nextNode = lastNode;
+  lastNode = newNode;
+}
+template <class T>  
+Iterator<T> LinkedList<T>::getIterator(){
+  return Iterator<T>(lastNode);
+}
+
+
+/////////////////////////////////////////////////////////////////////
+//                               ERROR                             //
+/////////////////////////////////////////////////////////////////////
+
+LinkedList<Error> Error::fullList = LinkedList<Error>();
 
 Error::Error() : 
-nextError(lastAddedItem), sequence(0xFF), sequenceSize(0xFF), isStored(false) {
-  lastAddedItem = this;
+sequence(0xFF), sequenceSize(0xFF), isStored(false){
+  fullList.add(this);
 }
 
 void Error::init(byte sequence, byte sequenceSize, const __FlashStringHelper* description) {
@@ -14,21 +69,21 @@ void Error::init(byte sequence, byte sequenceSize, const __FlashStringHelper* de
   this->description = description;
 }
 
-Error* Error::findByIndex(byte sequence, byte sequenceSize){
-  Error* currentItemPtr = lastAddedItem;
-  while (currentItemPtr != 0){
+Error* Error::findByKey(byte sequence, byte sequenceSize){
+
+  Iterator<Error> iterator = fullList.getIterator();
+  while(iterator.hasNext()){
+    Error* currentItemPtr = iterator.getNext();    
     if (currentItemPtr->sequence == sequence && currentItemPtr->sequenceSize == sequenceSize) {
       return currentItemPtr;
     }
-    currentItemPtr = (Error*)currentItemPtr->nextError;
   }
   return 0;
 }
 
 boolean Error::isInitialized(){
-  return (findByIndex(0xFF, 0xFF) == 0);
+  return (findByKey(0xFF, 0xFF) == 0);
 }
-
 
 void Error::notify() {
   digitalWrite(ERROR_PIN, LOW);
@@ -49,11 +104,15 @@ void Error::notify() {
 }
 
 
-Event* Event::lastAddedEvent = 0;
+/////////////////////////////////////////////////////////////////////
+//                               EVENT                             //
+/////////////////////////////////////////////////////////////////////
+
+LinkedList<Event> Event::fullList = LinkedList<Event>();
 
 Event::Event() : 
-nextEvent(lastAddedEvent), index(0xFF) {
-  lastAddedEvent = this;
+index(0xFF) {
+  fullList.add(this);
 }
 
 void  Event::init(byte index, const __FlashStringHelper* description) {
@@ -61,20 +120,19 @@ void  Event::init(byte index, const __FlashStringHelper* description) {
   this->description = description;
 }
 
-Event* Event::findByIndex(byte index){
-  Event* currentItemPtr = lastAddedEvent;
-  while (currentItemPtr != 0){
-    //Serial.println(currentItemPtr->description);
+Event* Event::findByKey(byte index){
+  Iterator<Event> iterator = fullList.getIterator();
+  while(iterator.hasNext()){
+    Event* currentItemPtr = iterator.getNext();    
     if (currentItemPtr->index == index) {
       return currentItemPtr;
     }
-    currentItemPtr = (Event*)currentItemPtr->nextEvent;
   }
   return 0;
 }
 
 boolean  Event::isInitialized(){
-  return (findByIndex(0xFF) == 0);
+  return (findByKey(0xFF) == 0);
 }
 
 
@@ -85,13 +143,6 @@ ERROR_TERMOMETER_DISCONNECTED,
 ERROR_TERMOMETER_ZERO_VALUE,
 ERROR_TERMOMETER_CRITICAL_VALUE,
 ERROR_MEMORY_LOW;
-
-/*EVENT_DATA_CHECK_PERIOD_SEC,
- EVENT_DATA_TEMPERATURE_DAY,
- EVENT_DATA_TEMPERATURE_NIGHT,
- EVENT_DATA_TEMPERATURE_CRITICAL,
- EVENT_DATA_TEMPERATURE_DELTA,*/
-//EVENT_RTC_SYNKC(10, "RTC synced");
 
 Event 
 EVENT_FIRST_START_UP, 
@@ -115,16 +166,19 @@ void initLoggerModel(){
   ERROR_TERMOMETER_CRITICAL_VALUE.init(B000, 3, F("Error: Termometer returned CRITICAL value"));
   ERROR_MEMORY_LOW.init(B111, 3, F("Error: Memory remained less 200 bytes"));
 
-  EVENT_FIRST_START_UP.init(1, F("FIRST STARTUP")), 
-  EVENT_RESTART.init(2, F("RESTARTED")), 
-  EVENT_MODE_DAY.init(3, F("Growbox switched to DAY mode")), 
-  EVENT_MODE_NIGHT.init(4, F("Growbox switched to NIGHT mode")), 
-  EVENT_LIGHT_OFF.init(5, F("LIGHT turned OFF")), 
-  EVENT_LIGHT_ON.init(6, F("LIGHT turned ON")), 
-  EVENT_FAN_OFF.init(7, F("FAN turned OFF")), 
-  EVENT_FAN_ON_MIN.init(8, F("FAN turned ON MIN speed")), 
-  EVENT_FAN_ON_MAX.init(9, F("FAN turned ON MAX speed")),
-  EVENT_SERIAL_UNKNOWN_COMMAND.init(10, F("Unknown serial command"));
+  EVENT_FIRST_START_UP.init(1, F("First startup")), 
+  EVENT_RESTART.init(2, F("Restart")), 
+  EVENT_MODE_DAY.init(3, F("DAY mode")), 
+  EVENT_MODE_NIGHT.init(4, F("NIGHT mode")), 
+  EVENT_LIGHT_OFF.init(5, F("Light OFF")), 
+  EVENT_LIGHT_ON.init(6, F("Light ON")), 
+  EVENT_FAN_OFF.init(7, F("Fan OFF")), 
+  EVENT_FAN_ON_MIN.init(8, F("Fan ON, MIN speed")), 
+  EVENT_FAN_ON_MAX.init(9, F("Fan ON, MAX speed"));//,
+  //EVENT_SERIAL_UNKNOWN_COMMAND.init(10, F("Unknown serial command"));
 }
+
+
+
 
 

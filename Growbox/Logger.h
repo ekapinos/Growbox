@@ -8,6 +8,10 @@ class LoggerClass {
 
 public:
 
+  /////////////////////////////////////////////////////////////////////
+  //                             APPEND                              //
+  /////////////////////////////////////////////////////////////////////
+
   static void logEvent(Event &event);
 
   static void logError(Error &error);
@@ -16,16 +20,18 @@ public:
   static void logTemperature(byte temperature);
 
   /////////////////////////////////////////////////////////////////////
-  //                        GROWBOX COMMANDS                         //
+  //                               READ                              //
   /////////////////////////////////////////////////////////////////////
 
   static int getLogRecordsCount(); 
-
   static LogRecord getLogRecordByIndex(int index);
+
+  /////////////////////////////////////////////////////////////////////
+  //                              CHECK                              //
+  /////////////////////////////////////////////////////////////////////
 
   static String getLogRecordPrefix(const LogRecord &logRecord);
   static const __FlashStringHelper* getLogRecordDescription(LogRecord &logRecord);
-
   static String getLogRecordSuffix(const LogRecord &logRecord);
 
   static boolean isEvent(const LogRecord &logRecord);
@@ -34,7 +40,7 @@ public:
 
 private:
 
-  static void printDirtyLogRecord(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean isStored, const byte temperature = 0xFF);
+  static void printLogRecordToSerialMonotior(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean isStored, const byte temperature = 0xFF);
 
 };
 
