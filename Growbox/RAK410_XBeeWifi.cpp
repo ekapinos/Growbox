@@ -13,27 +13,22 @@ const char S_WIFI_POST_[] PROGMEM  = "POST /";
 
 
 RAK410_XBeeWifiClass::RAK410_XBeeWifiClass(): 
-useSerialWifi (false), s_restartWifi(false), s_restartWifiIfNoResponseAutomatically(true) {
+useSerialWifi(false), s_restartWifi(true), s_restartWifiIfNoResponseAutomatically(true) {
+}
+
+boolean RAK410_XBeeWifiClass::isPresent(){ // check if the device is present
+  return useSerialWifi;
 }
 /////////////////////////////////////////////////////////////////////
 //                             STARTUP                             //
 /////////////////////////////////////////////////////////////////////
 
-
-void RAK410_XBeeWifiClass::setWifiConfiguration(const String& _s_wifiSID, const String& _s_wifiPass){
-  s_wifiSID = _s_wifiSID;
-  s_wifiPass = _s_wifiPass;
-}
-
 void RAK410_XBeeWifiClass::updateWiFiStatus(){
-  if (s_restartWifi){
-    checkSerial();
+  if (!s_restartWifi){
+    return;
   }
-}
 
-void RAK410_XBeeWifiClass::checkSerial(){
-
-  boolean oldUseSerialWifi     = useSerialWifi;
+  boolean oldUseSerialWifi = useSerialWifi;
 
   if (!useSerialWifi){
     Serial1.begin(115200);
@@ -90,6 +85,11 @@ void RAK410_XBeeWifiClass::checkSerial(){
   }
 }
 
+void RAK410_XBeeWifiClass::setWifiConfiguration(const String& _s_wifiSID, const String& _s_wifiPass){
+  s_wifiSID = _s_wifiSID;
+  s_wifiPass = _s_wifiPass;
+}
+
 boolean RAK410_XBeeWifiClass::startWifi(){
   showWifiMessage(F("Starting..."));
   boolean isLoaded = startWifiSilent();
@@ -129,7 +129,8 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
     Serial_readString(input); // at first we should read, after manipulate  
 
     if (StringUtils::flashStringStartsWith(input, S_WIFI_RESPONSE_WELLCOME) || StringUtils::flashStringStartsWith(input, S_WIFI_RESPONSE_ERROR)){
-      checkSerial(); // manual restart, or wrong state of Wi-Fi
+      s_restartWifi = true;
+      updateWiFiStatus(); // manual restart, or wrong state of Wi-Fi
       return RAK410_XBEEWIFI_REQUEST_TYPE_NONE;
     }
 
@@ -607,4 +608,5 @@ size_t RAK410_XBeeWifiClass::Serial_readString(String& str){
 }
 
 RAK410_XBeeWifiClass RAK410_XBeeWifi;
+
 

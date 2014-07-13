@@ -19,7 +19,7 @@ public:
 
   static const word CAPACITY = 0x1000; // 4K byte = 32K bit
 
-  boolean isPresent(void); // check if the device is present
+  boolean isPresent(); // check if the device is present
 
   void write(const word address, const byte data) ;
   byte read(word address);

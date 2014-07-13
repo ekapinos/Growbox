@@ -103,7 +103,7 @@ void setup() {
   int controllerFreeMemoryBeforeBoot = freeMemory();
 
   GB_Controller.updateSerialMonitorStatus();
-  RAK410_XBeeWifi.checkSerial();
+  RAK410_XBeeWifi.updateWiFiStatus();
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
   if(g_useSerialMonitor){
@@ -224,7 +224,7 @@ void setup() {
     Serial.println(F("Growbox successfully started"));
   }
 
-  if (RAK410_XBeeWifi.useSerialWifi){ 
+  if (RAK410_XBeeWifi.isPresent()){ 
     RAK410_XBeeWifi.setWifiConfiguration(StringUtils::flashStringLoad(F("Hell")), StringUtils::flashStringLoad(F("flat65router"))); 
     RAK410_XBeeWifi.startWifi();
   }

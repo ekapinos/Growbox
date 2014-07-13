@@ -23,6 +23,7 @@ private:
 
   int s_sendWifiDataFrameSize;
 
+  boolean useSerialWifi;
 public:
 
 enum RequestType {
@@ -34,27 +35,24 @@ enum RequestType {
 
 };
 
-  /*volatile*/  boolean useSerialWifi;
-
   RAK410_XBeeWifiClass();
+
+  boolean isPresent(); // check if the device is present
 
   /////////////////////////////////////////////////////////////////////
   //                             STARTUP                             //
   /////////////////////////////////////////////////////////////////////
 
-
-  void setWifiConfiguration(const String& _s_wifiSID, const String& _s_wifiPass);
-
   void updateWiFiStatus();
 
-  void checkSerial();
+  void setWifiConfiguration(const String& _s_wifiSID, const String& _s_wifiPass);
 
   boolean startWifi();
 
   void cleanSerialBuffer();
 
  
-   /////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////
   //                           WIFI PROTOCOL                         //
   /////////////////////////////////////////////////////////////////////
 
@@ -85,7 +83,6 @@ private:
   String wifiExecuteRawCommand(const __FlashStringHelper* command, int maxResponseDeleay);
   
 
-private:
   /////////////////////////////////////////////////////////////////////
   //                          SERIAL READ                            //
   /////////////////////////////////////////////////////////////////////
