@@ -1,58 +1,6 @@
 #include "LoggerModel.h"
 
 /////////////////////////////////////////////////////////////////////
-//                            COLLECTIONS                          //
-/////////////////////////////////////////////////////////////////////
-
-// Iterator
-
-template <class T> 
-Iterator<T>::Iterator(Node<T>* currentNode): 
-currentNode(currentNode){
-}
-
-template <class T>  
-boolean Iterator<T>::hasNext(){
-  return (currentNode != 0);
-}
-
-template <class T>  
-T* Iterator<T>::getNext(){
-  T* rez = currentNode->data; 
-  currentNode = currentNode->nextNode;
-  return rez;
-}
-
-// LinkedList
-
-template <class T>  
-LinkedList<T>::LinkedList():
-lastNode(0){
-}
-
-template <class T>  
-LinkedList<T>::~LinkedList(){ //destructor
-  while(lastNode != 0){
-    Node<T>* currNode  = lastNode;
-    lastNode = lastNode->nextNode;
-    delete currNode;
-  }
-};
-
-template <class T>  
-void LinkedList<T>::add(T* data){
-  Node<T>* newNode = new Node<T>;
-  newNode->data = data;
-  newNode->nextNode = lastNode;
-  lastNode = newNode;
-}
-template <class T>  
-Iterator<T> LinkedList<T>::getIterator(){
-  return Iterator<T>(lastNode);
-}
-
-
-/////////////////////////////////////////////////////////////////////
 //                               ERROR                             //
 /////////////////////////////////////////////////////////////////////
 
@@ -153,8 +101,8 @@ EVENT_LIGHT_OFF,
 EVENT_LIGHT_ON, 
 EVENT_FAN_OFF, 
 EVENT_FAN_ON_MIN, 
-EVENT_FAN_ON_MAX,
-EVENT_SERIAL_UNKNOWN_COMMAND;
+EVENT_FAN_ON_MAX;//,
+//EVENT_SERIAL_UNKNOWN_COMMAND;
 
 void initLoggerModel(){
 

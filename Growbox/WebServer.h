@@ -79,13 +79,13 @@ private:
   void sendData(time_t data);
 
 
-  void sendTagButton(const char PROGMEM* url, const __FlashStringHelper* name);
+  void sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* name);
 
   void sendTag_Begin(HTTP_TAG type);
 
   void sendTag_End(HTTP_TAG type);
 
-  void sendTag(const char PROGMEM* pname, HTTP_TAG type);
+  void sendTag(const __FlashStringHelper* pname, HTTP_TAG type);
 
   void sendTag(const char tag, HTTP_TAG type);
 

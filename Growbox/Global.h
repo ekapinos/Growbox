@@ -1,14 +1,9 @@
-#ifndef GB_Global_h
-#define GB_Global_h
-
-#if ARDUINO >= 100
-#include <Arduino.h> 
-#else
-#include <WProgram.h> 
-#endif
+#ifndef Global_h
+#define Global_h
 
 #include <OneWire.h>
 
+#include "ArduinoPatch.h"
 #include "StringUtils.h"
 
 /////////////////////////////////////////////////////////////////////
@@ -87,9 +82,7 @@ extern boolean g_useSerialMonitor;
 //                         GLOBAL STRINGS                          //
 /////////////////////////////////////////////////////////////////////
 
-#define FS(x) (__FlashStringHelper*)(x)
-
-const char S_empty[] PROGMEM  = "";
+static const char S_empty[] PROGMEM  = "";
 const char S___ [] PROGMEM  = "  ";
 const char S_CRLF[] PROGMEM  = "\r\n";
 const char S_CRLFCRLF[] PROGMEM  = "\r\n\r\n";
@@ -103,6 +96,70 @@ const char S_bytes[] PROGMEM  = "bytes";
 const char S_PlusMinus [] PROGMEM  = "+/-";
 const char S_Next [] PROGMEM  = " > ";
 
+/////////////////////////////////////////////////////////////////////
+//                            COLLECTIONS                          //
+/////////////////////////////////////////////////////////////////////
+
+template <class T> 
+class Node {
+public: 
+  T* data;
+  Node* nextNode;  
+};
+
+template <class T> 
+class Iterator {
+  Node<T>* currentNode; 
+
+public:
+  Iterator(Node<T>* currentNode) : 
+  currentNode(currentNode){
+  }
+  boolean hasNext(){
+    return (currentNode != 0);
+  }
+  T* getNext(){
+    T* rez = currentNode->data; 
+    currentNode = currentNode->nextNode;
+    return rez;
+  }
+};
+
+template <class T> 
+class LinkedList {
+private: 
+  Node<T>* lastNode;
+
+public:  
+  LinkedList():
+  lastNode(0){
+  }
+
+  ~LinkedList(){
+
+    while(lastNode != 0){
+      Node<T>* currNode  = lastNode;
+      lastNode = lastNode->nextNode;
+      delete currNode;
+    }
+  }
+
+  void add(T* data){
+    Node<T>* newNode = new Node<T>;
+    newNode->data = data;
+    newNode->nextNode = lastNode;
+    lastNode = newNode;
+  }
+  
+  Iterator<T> getIterator(){
+    return Iterator<T>(lastNode);
+  }
+};
+
 #endif
+
+
+
+
 
 

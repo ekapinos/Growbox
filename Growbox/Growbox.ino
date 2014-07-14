@@ -120,14 +120,12 @@ void setup() {
   if (!Error::isInitialized()){
     if(g_useSerialMonitor){ 
       printFatalErrorOnBoot(F("not all Errors initialized"));
-      //RAK410_XBeeWifi.printDirtyEnd();
     }
     while(true) delay(5000);  
   }
   if (!Event::isInitialized()){
     if(g_useSerialMonitor){ 
       printFatalErrorOnBoot(F("not all Events initialized"));
-      //RAK410_XBeeWifi.printDirtyEnd();
     }
     while(true) delay(5000);  
   }
@@ -173,8 +171,8 @@ void setup() {
   }
 
   // Configure termometer
-  GB_Thermometer::start();
-  while(!GB_Thermometer::updateStatistics()) { // Load temperature on startup
+  GB_Thermometer.init();
+  while(!GB_Thermometer.updateStatistics()) { // Load temperature on startup
     delay(1000);
   }
 
@@ -186,7 +184,7 @@ void setup() {
   }
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
-  boolean itWasRestart = GB_StorageHelper.start();
+  boolean itWasRestart = GB_StorageHelper.init();
 
   g_isGrowboxStarted = true;
 
@@ -199,7 +197,7 @@ void setup() {
   }
 
   // Log current temeperature
-  GB_Thermometer::getTemperature(); // forceLog?
+  GB_Thermometer.getTemperature(); // forceLog?
 
   // Init/Restore growbox state
   if (isDayInGrowbox()){
@@ -261,7 +259,7 @@ void updateGrowboxState() {
 
   GB_Controller.checkFreeMemory();
 
-  float temperature = GB_Thermometer::getTemperature();
+  float temperature = GB_Thermometer.getTemperature();
 
   if (temperature >= TEMPERATURE_CRITICAL){
     turnOffLight();
@@ -331,7 +329,7 @@ void switchToNightMode(){
 /////////////////////////////////////////////////////////////////////
 
 void updateThermometerStatistics(){ // should return void
-  GB_Thermometer::updateStatistics(); 
+  GB_Thermometer.updateStatistics(); 
 }
 
 void updateWiFiStatus(){ // should return void

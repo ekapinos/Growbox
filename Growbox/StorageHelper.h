@@ -7,60 +7,62 @@
 #define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
 
 class StorageHelperClass{
-
+  
 public:
 
-   static const word LOG_CAPACITY = ((AT24C32_EEPROM_Class::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord));
+  static const word LOG_CAPACITY = ((AT24C32_EEPROM_Class::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord));
 
 private:
-   static const word LOG_RECORD_OVERFLOW_OFFSET = LOG_CAPACITY * sizeof(LogRecord);
-   BootRecord bootRecord;
+  static const word LOG_RECORD_OVERFLOW_OFFSET = LOG_CAPACITY * sizeof(LogRecord);
+  BootRecord c_bootRecord;
 
 public:
+
   /////////////////////////////////////////////////////////////////////
   //                            BOOT RECORD                          //
   /////////////////////////////////////////////////////////////////////
 
-   boolean start();
+  boolean init();
 
-   void setStoreLogRecordsEnabled(boolean flag);
-   boolean isStoreLogRecordsEnabled();
+  void setStoreLogRecordsEnabled(boolean flag);
+  boolean isStoreLogRecordsEnabled();
 
-   time_t getFirstStartupTimeStamp();
-   time_t getLastStartupTimeStamp();
+  time_t getFirstStartupTimeStamp();
+  time_t getLastStartupTimeStamp();
 
   /////////////////////////////////////////////////////////////////////
   //                            LOG RECORDS                          //
   /////////////////////////////////////////////////////////////////////
 
-   boolean storeLogRecord(LogRecord &logRecord);
+  boolean storeLogRecord(LogRecord &logRecord);
 
-   boolean isLogOverflow();
+  boolean isLogOverflow();
 
-   word getLogRecordsCount();
-   boolean getLogRecordByIndex(word index, LogRecord &logRecord);
+  word getLogRecordsCount();
+  boolean getLogRecordByIndex(word index, LogRecord &logRecord);
 
   /////////////////////////////////////////////////////////////////////
   //                        GROWBOX COMMANDS                         //
   /////////////////////////////////////////////////////////////////////
 
-   void resetFirmware();
+  void resetFirmware();
 
-   void resetStoredLog();
+  void resetStoredLog();
 
-   BootRecord getBootRecord();
+  BootRecord getBootRecord();
 
 private :
 
-   boolean isBootRecordCorrect();
+  boolean isBootRecordCorrect();
 
-   void increaseLogPointer();
+  void increaseLogPointer();
 
 };
 
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
+
 
 
 

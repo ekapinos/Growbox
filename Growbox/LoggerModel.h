@@ -4,40 +4,6 @@
 #include "Global.h"
 
 /////////////////////////////////////////////////////////////////////
-//                            COLLECTIONS                          //
-/////////////////////////////////////////////////////////////////////
-
-template <class T> 
-class Node{
-public: 
-  T* data;
-  Node* nextNode;  
-};
-
-template <class T> 
-class Iterator{
-  Node<T>* currentNode; 
-
-public:
-  Iterator(Node<T>* currentNode);
-  boolean hasNext();
-  T* getNext();
-};
-
-template <class T> 
-class LinkedList{
-private: 
-  Node<T>* lastNode;
-
-public:  
-  LinkedList();
-  ~LinkedList();
-  void add(T* data);
-  Iterator<T> getIterator();
-};
-
-
-/////////////////////////////////////////////////////////////////////
 //                               ERROR                             //
 /////////////////////////////////////////////////////////////////////
 

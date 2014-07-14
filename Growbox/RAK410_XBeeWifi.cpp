@@ -13,11 +13,11 @@ const char S_WIFI_POST_[] PROGMEM  = "POST /";
 
 
 RAK410_XBeeWifiClass::RAK410_XBeeWifiClass(): 
-useSerialWifi(false), s_restartWifi(true), s_restartWifiIfNoResponseAutomatically(true) {
+c_useSerialWifi(false), c_restartWifi(true), c_restartWifiIfNoResponseAutomatically(true) {
 }
 
 boolean RAK410_XBeeWifiClass::isPresent(){ // check if the device is present
-  return useSerialWifi;
+  return c_useSerialWifi;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -26,13 +26,13 @@ boolean RAK410_XBeeWifiClass::isPresent(){ // check if the device is present
 
 void RAK410_XBeeWifiClass::updateWiFiStatus(){
 
-  if (useSerialWifi && !s_restartWifi){
+  if (c_useSerialWifi && !c_restartWifi){
     return;
   }
 
-  boolean oldUseSerialWifi = useSerialWifi;
+  boolean oldUseSerialWifi = c_useSerialWifi;
 
-  if (!useSerialWifi){
+  if (!c_useSerialWifi){
     Serial1.begin(115200);
     while (!Serial1) {
       ; // wait for serial port to connect. Needed for Leonardo only
@@ -45,8 +45,8 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
 
     String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
 
-    useSerialWifi = StringUtils::flashStringEquals(input, S_WIFI_RESPONSE_WELLCOME);
-    if (useSerialWifi) {
+    c_useSerialWifi = StringUtils::flashStringEquals(input, FS(S_WIFI_RESPONSE_WELLCOME));
+    if (c_useSerialWifi) {
       break;
     }
     if (g_useSerialMonitor && input.length() > 0){
@@ -59,8 +59,8 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
   }
 
   if (g_useSerialMonitor){
-    if (useSerialWifi != oldUseSerialWifi ){
-      if(useSerialWifi){ 
+    if (c_useSerialWifi != oldUseSerialWifi ){
+      if(c_useSerialWifi){ 
         showWifiMessage(FS(S_Connected));
       } 
       else {
@@ -69,8 +69,8 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
     }
   }
 
-  if (useSerialWifi){   
-    s_restartWifi = false;
+  if (c_useSerialWifi){   
+    c_restartWifi = false;
     //wifiExecuteCommand(F("at+del_data"));
     //wifiExecuteCommand(F("at+storeenable=0"));
     if(g_isGrowboxStarted){
@@ -83,9 +83,9 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
 
 }
 
-void RAK410_XBeeWifiClass::setConnectionParameters(const String& _s_wifiSID, const String& _s_wifiPass){
-  s_wifiSID = _s_wifiSID;
-  s_wifiPass = _s_wifiPass;
+void RAK410_XBeeWifiClass::setConnectionParameters(const String& _c_wifiSID, const String& _c_wifiPass){
+  c_wifiSID = _c_wifiSID;
+  c_wifiPass = _c_wifiPass;
 }
 
 boolean RAK410_XBeeWifiClass::startupWebServer(){
@@ -96,8 +96,9 @@ boolean RAK410_XBeeWifiClass::startupWebServer(){
   } 
   else {
     showWifiMessage(F("Web server start failed"));
-    s_restartWifi = true;
+    c_restartWifi = true;
   }
+  return isLoaded;
 }
 
 
@@ -117,8 +118,8 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
     // Read data from serial manager
     Serial_readString(input); // at first we should read, after manipulate  
 
-    if (StringUtils::flashStringStartsWith(input, S_WIFI_RESPONSE_WELLCOME) || StringUtils::flashStringStartsWith(input, S_WIFI_RESPONSE_ERROR)){
-      s_restartWifi = true;
+    if (StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_WELLCOME)) || StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_ERROR))){
+      c_restartWifi = true;
       updateWiFiStatus(); // manual restart, or wrong state of Wi-Fi
       return RAK410_XBEEWIFI_REQUEST_TYPE_NONE;
     }
@@ -151,19 +152,19 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
       // Check HTTP type 
       input = String();
       input.reserve(100);
-      dataLength -= Serial_readStringUntil(input, dataLength, S_CRLF);
+      dataLength -= Serial_readStringUntil(input, dataLength, FS(S_CRLF));
 
-      boolean isGet = StringUtils::flashStringStartsWith(input, S_WIFI_GET_);
-      boolean isPost = StringUtils::flashStringStartsWith(input, S_WIFI_POST_);
+      boolean isGet = StringUtils::flashStringStartsWith(input, FS(S_WIFI_GET_));
+      boolean isPost = StringUtils::flashStringStartsWith(input, FS(S_WIFI_POST_));
 
-      if ((isGet || isPost) && StringUtils::flashStringEndsWith(input, S_CRLF)){
+      if ((isGet || isPost) && StringUtils::flashStringEndsWith(input, FS(S_CRLF))){
 
         int firstIndex;
         if (isGet){  
-          firstIndex = StringUtils::flashStringLength(S_WIFI_GET_) - 1;
+          firstIndex = StringUtils::flashStringLength(FS(S_WIFI_GET_)) - 1;
         } 
         else {
-          firstIndex = StringUtils::flashStringLength(S_WIFI_POST_) - 1;
+          firstIndex = StringUtils::flashStringLength(FS(S_WIFI_POST_)) - 1;
         }
         int lastIndex = input.indexOf(' ', firstIndex);
         if (lastIndex == -1){
@@ -188,13 +189,13 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
         else {
           // Post
           //word dataLength0 = dataLength;
-          dataLength -= Serial_skipBytesUntil(dataLength, S_CRLFCRLF); // skip HTTP header
+          dataLength -= Serial_skipBytesUntil(dataLength, FS(S_CRLFCRLF)); // skip HTTP header
           //word dataLength1 = dataLength;
-          dataLength -= Serial_readStringUntil(postParams, dataLength, S_CRLF); // read HTTP data;
+          dataLength -= Serial_readStringUntil(postParams, dataLength, FS(S_CRLF)); // read HTTP data;
           // word dataLength2 = dataLength;           
           Serial_skipBytes(dataLength); // skip remaned endings
 
-          if (StringUtils::flashStringEndsWith(postParams, S_CRLF)){
+          if (StringUtils::flashStringEndsWith(postParams, FS(S_CRLF))){
             postParams = postParams.substring(0, input.length()-2);   
           }
           /*
@@ -301,33 +302,33 @@ void RAK410_XBeeWifiClass::sendFixedSizeFrameData(const __FlashStringHelper* dat
 }
 
 boolean RAK410_XBeeWifiClass::sendFixedSizeFrameStop(){
-  s_restartWifiIfNoResponseAutomatically = false;
+  c_restartWifiIfNoResponseAutomatically = false;
   boolean rez = wifiExecuteCommand();
-  s_restartWifiIfNoResponseAutomatically = true;
+  c_restartWifiIfNoResponseAutomatically = true;
   return rez;
 }
 
 void RAK410_XBeeWifiClass::sendAutoSizeFrameStart(const byte &wifiPortDescriptor){
   sendFixedSizeFrameStart(wifiPortDescriptor, WIFI_MAX_SEND_FRAME_SIZE);
-  s_autoSizeFrameSize = 0;
+  c_autoSizeFrameSize = 0;
 }
 
 boolean RAK410_XBeeWifiClass::sendAutoSizeFrameData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
   boolean isSendOK = true;
-  if (s_autoSizeFrameSize + StringUtils::flashStringLength(data) < WIFI_MAX_SEND_FRAME_SIZE){
-    s_autoSizeFrameSize += Serial1.print(data);
+  if (c_autoSizeFrameSize + StringUtils::flashStringLength(data) < WIFI_MAX_SEND_FRAME_SIZE){
+    c_autoSizeFrameSize += Serial1.print(data);
   } 
   else {
-    int index = 0;
-    while (s_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
+    size_t index = 0;
+    while (c_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
       char c = StringUtils::flashStringCharAt(data, index++);
-      s_autoSizeFrameSize += Serial1.print(c);
+      c_autoSizeFrameSize += Serial1.print(c);
     }
     isSendOK = sendAutoSizeFrameStop();
     sendAutoSizeFrameStart(wifiPortDescriptor);   
     while (index < StringUtils::flashStringLength(data)){
       char c = StringUtils::flashStringCharAt(data, index++);
-      s_autoSizeFrameSize += Serial1.print(c);
+      c_autoSizeFrameSize += Serial1.print(c);
     } 
 
   }
@@ -339,30 +340,30 @@ boolean RAK410_XBeeWifiClass::sendAutoSizeFrameData(const byte &wifiPortDescript
   if (data.length() == 0){
     return isSendOK;
   }
-  if (s_autoSizeFrameSize + data.length() < WIFI_MAX_SEND_FRAME_SIZE){
-    s_autoSizeFrameSize += Serial1.print(data);
+  if (c_autoSizeFrameSize + data.length() < WIFI_MAX_SEND_FRAME_SIZE){
+    c_autoSizeFrameSize += Serial1.print(data);
   } 
   else {
-    int index = 0;
-    while (s_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
+    size_t index = 0;
+    while (c_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
       char c = data[index++];
-      s_autoSizeFrameSize += Serial1.print(c);
+      c_autoSizeFrameSize += Serial1.print(c);
     }
     isSendOK = sendAutoSizeFrameStop();
     sendAutoSizeFrameStart(wifiPortDescriptor); 
 
     while (index < data.length()){
       char c = data[index++];
-      s_autoSizeFrameSize += Serial1.print(c);
+      c_autoSizeFrameSize += Serial1.print(c);
     }      
   }
   return isSendOK;
 }
 
 boolean RAK410_XBeeWifiClass::sendAutoSizeFrameStop(){
-  if (s_autoSizeFrameSize > 0){
-    while (s_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
-      s_autoSizeFrameSize += Serial1.write(0x00); // Filler 0x00
+  if (c_autoSizeFrameSize > 0){
+    while (c_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
+      c_autoSizeFrameSize += Serial1.write(0x00); // Filler 0x00
     }
   }
   return sendFixedSizeFrameStop();
@@ -392,24 +393,24 @@ boolean RAK410_XBeeWifiClass::startupWebServerSilent(){
     return false;
   } 
 
-  boolean isStationMode = (s_wifiSID.length()>0);    
+  boolean isStationMode = (c_wifiSID.length()>0);    
   if (isStationMode){
-    if (s_wifiPass.length() > 0){
+    if (c_wifiPass.length() > 0){
 
       showWifiMessage(F("at+psk=********"));
 
       Serial1.print(F("at+psk="));
-      Serial1.print(s_wifiPass);
+      Serial1.print(c_wifiPass);
       if (!wifiExecuteCommand()){
         return false;
       }
     } 
 
     showWifiMessage(F("at+connect="), false);
-    Serial.println(s_wifiSID);
+    Serial.println(c_wifiSID);
 
     Serial1.print(F("at+connect="));
-    Serial1.print(s_wifiSID);
+    Serial1.print(c_wifiSID);
     if (!wifiExecuteCommand(0, 5000)){
       return false;
     }
@@ -451,30 +452,30 @@ boolean RAK410_XBeeWifiClass::startupWebServerSilent(){
   return true;
 }
 
-boolean RAK410_XBeeWifiClass::wifiExecuteCommand(const __FlashStringHelper* command, int maxResponseDeleay){   
+boolean RAK410_XBeeWifiClass::wifiExecuteCommand(const __FlashStringHelper* command, size_t maxResponseDeleay){   
   String input = wifiExecuteRawCommand(command, maxResponseDeleay);
   if (input.length() == 0){
-    if (s_restartWifiIfNoResponseAutomatically){
-      s_restartWifi = true;
+    if (c_restartWifiIfNoResponseAutomatically){
+      c_restartWifi = true;
     }
 
     if (g_useSerialMonitor){   
       showWifiMessage(F("No response"), false);
-      if (s_restartWifiIfNoResponseAutomatically){
+      if (c_restartWifiIfNoResponseAutomatically){
         Serial.print(F(". Wi-fi will reboot"));
       } 
       Serial.println();
     }
     // Nothing to do
   } 
-  else if (StringUtils::flashStringStartsWith(input, S_WIFI_RESPONSE_OK) && StringUtils::flashStringEndsWith(input, S_CRLF)){
+  else if (StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_OK)) && StringUtils::flashStringEndsWith(input, FS(S_CRLF))){
     return true;
   } 
-  else if (StringUtils::flashStringStartsWith(input, S_WIFI_RESPONSE_ERROR) && StringUtils::flashStringEndsWith(input, S_CRLF)){
+  else if (StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_ERROR)) && StringUtils::flashStringEndsWith(input, FS(S_CRLF))){
     if (g_useSerialMonitor){
       byte errorCode = input[5];
       showWifiMessage(F("Error "), false);
-      Serial.print(StringUtils::getHEX(errorCode, true));
+      Serial.print(StringUtils::byteToHexString(errorCode, true));
       Serial.println();
     }      
   } 
@@ -491,7 +492,7 @@ boolean RAK410_XBeeWifiClass::wifiExecuteCommand(const __FlashStringHelper* comm
   return false;
 }
 
-String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* command, int maxResponseDeleay){
+String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* command, size_t maxResponseDeleay){
 
   Serial_skipAll();
 
@@ -518,128 +519,6 @@ String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* co
     }
   }
   return input;
-}
-
-/////////////////////////////////////////////////////////////////////
-//                          SERIAL READ                            //
-/////////////////////////////////////////////////////////////////////
-
-// WARNING! This is adapted copy of Stream.h, Serial.h, and HardwareSerial.h
-// functionality
-boolean RAK410_XBeeWifiClass::Serial_timedRead(char* c){
-  unsigned long _startMillis = millis();
-  unsigned long _currentMillis;
-  do {
-    if (Serial1.available()){
-      *c = (char) Serial1.read();
-      return true;   
-    }
-    _currentMillis = millis();
-  } 
-  while(((_currentMillis - _startMillis) < STREAM_TIMEOUT) || (_currentMillis < _startMillis));  // Overflow check 
-  //while((_currentMillis - _startMillis) < Stream_timeout); 
-  //while(millis() - _startMillis < Stream_timeout); 
-  return false;     // false indicates timeout
-}
-
-size_t RAK410_XBeeWifiClass::Serial_skipAll(){
-  char c;
-  size_t count = 0;
-  while (true) {
-    if (!Serial_timedRead(&c)){
-      break;
-    }
-    count++;
-  }
-  return count;
-}
-
-
-size_t RAK410_XBeeWifiClass::Serial_skipBytes(size_t length) {
-  char c;
-  size_t count = 0;
-  while (count < length) {
-    if (!Serial_timedRead(&c)){
-      break;
-    }
-    count++;
-  }
-  return count;
-}
-
-size_t RAK410_XBeeWifiClass::Serial_skipBytesUntil(size_t length, const char PROGMEM* pstr){   
-  int pstr_length = StringUtils::flashStringLength(pstr);   
-  char matcher[pstr_length];
-
-  char c;
-  size_t count = 0;
-  while (count < length) {
-    if (!Serial_timedRead(&c)){
-      break;
-    }
-    count++;
-
-    for (int i = 1; i < pstr_length; i++){
-      matcher[i-1] = matcher[i];  
-    }
-    matcher[pstr_length-1] = c;
-    if (count >= pstr_length && StringUtils::flashStringEquals(matcher, pstr_length, pstr)){
-      break;
-    } 
-  }
-  return count;
-}  
-
-size_t RAK410_XBeeWifiClass::Serial_readBytes(char *buffer, size_t length) {
-  size_t count = 0;
-  while (count < length) {
-    if (!Serial_timedRead(buffer)){
-      break;
-    }
-    buffer++;
-    count++;
-  }
-  return count;
-}
-
-size_t RAK410_XBeeWifiClass::Serial_readStringUntil(String& str, size_t length, const char PROGMEM* pstr){      
-  char c;
-  size_t count = 0;
-  while (count < length) {
-    if (!Serial_timedRead(&c)){
-      break;
-    }
-    count++;
-    str +=c;
-    if (StringUtils::flashStringEndsWith(str, pstr)){
-      break;
-    } 
-  }
-  return count;
-} 
-
-size_t RAK410_XBeeWifiClass::Serial_readString(String& str, size_t length){
-  char buffer[length];
-  size_t count = Serial_readBytes(buffer, length);
-  str.reserve(str.length() + count);
-  for (size_t i = 0; i < count; i++) {
-    str += buffer[i];  
-  }
-  return count;
-}
-
-size_t RAK410_XBeeWifiClass::Serial_readString(String& str){
-
-  size_t maxFrameLenght = 100; 
-  size_t countInFrame = Serial_readString(str, maxFrameLenght);
-
-  size_t count = countInFrame; 
-
-  while (countInFrame == maxFrameLenght){
-    countInFrame = Serial_readString(str, maxFrameLenght); 
-    count += countInFrame;
-  }
-  return count;
 }
 
 RAK410_XBeeWifiClass RAK410_XBeeWifi;

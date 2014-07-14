@@ -21,10 +21,10 @@ void WebServerClass::handleSerialEvent(){
     break;
 
   case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
-    if (StringUtils::flashStringEquals(input, S_url) || 
-      StringUtils::flashStringEquals(input, S_url_log) ||
-      StringUtils::flashStringEquals(input, S_url_conf) ||
-      StringUtils::flashStringEquals(input, S_url_storage)){
+    if (StringUtils::flashStringEquals(input, FS(S_url)) || 
+      StringUtils::flashStringEquals(input, FS(S_url_log)) ||
+      StringUtils::flashStringEquals(input, FS(S_url_conf)) ||
+      StringUtils::flashStringEquals(input, FS(S_url_storage))){
 
       sendHttpOK_Header(c_wifiPortDescriptor);
 
@@ -63,7 +63,7 @@ void WebServerClass::sendHTTPRedirect(const byte &wifiPortDescriptor, const __Fl
   //const __FlashStringHelper* header = F("HTTP/1.1 303 See Other\r\nLocation: "); // DO not use it with RAK 410
   const __FlashStringHelper* header = F("HTTP/1.1 200 OK (303 doesn't work on RAK 410)\r\nrefresh: 0; url="); 
 
-  RAK410_XBeeWifi.sendFixedSizeFrameStart(wifiPortDescriptor, StringUtils::flashStringLength(header) + StringUtils::flashStringLength(data) + StringUtils::flashStringLength(S_CRLFCRLF));
+  RAK410_XBeeWifi.sendFixedSizeFrameStart(wifiPortDescriptor, StringUtils::flashStringLength(header) + StringUtils::flashStringLength(data) + StringUtils::flashStringLength(FS(S_CRLFCRLF)));
 
   RAK410_XBeeWifi.sendFixedSizeFrameData(header);
   RAK410_XBeeWifi.sendFixedSizeFrameData(data);
@@ -143,14 +143,14 @@ void WebServerClass::sendData(float data){
 }
 
 void WebServerClass::sendData(time_t data){
-  String str = StringUtils::getTimeString(data);
+  String str = StringUtils::timeToString(data);
   sendData(str);
 }
 
 
-void WebServerClass::sendTagButton(const char PROGMEM* url, const __FlashStringHelper* name){
+void WebServerClass::sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* name){
   sendData(F("<input type=\"button\" onclick=\"document.location='"));
-  sendData(FS(url));
+  sendData(url);
   sendData(F("'\" value=\""));
   sendData(name);
   sendData(F("\"/>"));
@@ -170,9 +170,9 @@ void WebServerClass::sendTag_End(HTTP_TAG type){
   sendData('>');
 }
 
-void WebServerClass::sendTag(const char PROGMEM* pname, HTTP_TAG type){
+void WebServerClass::sendTag(const __FlashStringHelper* pname, HTTP_TAG type){
   sendTag_Begin(type);
-  sendData(FS(pname));
+  sendData(pname);
   sendTag_End(type);
 }
 
@@ -185,37 +185,37 @@ void WebServerClass::sendTag(const char tag, HTTP_TAG type){
 void WebServerClass::generateHttpResponsePage(const String &input){
 
 
-    sendTag(S_html, HTTP_TAG_OPEN); 
-    sendTag(S_h1, HTTP_TAG_OPEN); 
+    sendTag(FS(S_html), HTTP_TAG_OPEN); 
+    sendTag(FS(S_h1), HTTP_TAG_OPEN); 
     sendData(F("Growbox"));  
-    sendTag(S_h1, HTTP_TAG_CLOSED);
-    sendTagButton(S_url, F("Status"));
-    sendTagButton(S_url_log, F("Daily log"));
-    sendTagButton(S_url_conf, F("Configuration"));
-    sendTagButton(S_url_storage, F("Storage dump"));
-    sendTag(S_hr, HTTP_TAG_SINGLE);
-    sendTag(S_pre, HTTP_TAG_OPEN);
+    sendTag(FS(S_h1), HTTP_TAG_CLOSED);
+    sendTagButton(FS(S_url), F("Status"));
+    sendTagButton(FS(S_url_log), F("Daily log"));
+    sendTagButton(FS(S_url_conf), F("Configuration"));
+    sendTagButton(FS(S_url_storage), F("Storage dump"));
+    sendTag(FS(S_hr), HTTP_TAG_SINGLE);
+    sendTag(FS(S_pre), HTTP_TAG_OPEN);
     sendBriefStatus();
-    sendTag(S_pre, HTTP_TAG_CLOSED);
+    sendTag(FS(S_pre), HTTP_TAG_CLOSED);
 
-  sendTag(S_pre, HTTP_TAG_OPEN);
-  if (StringUtils::flashStringEquals(input, S_url)){
+  sendTag(FS(S_pre), HTTP_TAG_OPEN);
+  if (StringUtils::flashStringEquals(input, FS(S_url))){
     sendPinsStatus();   
   } 
-  else if (StringUtils::flashStringEquals(input, S_url_conf)){
+  else if (StringUtils::flashStringEquals(input, FS(S_url_conf))){
     sendConfigurationControls();
   } 
-  else if (StringUtils::flashStringEquals(input, S_url_log)){
+  else if (StringUtils::flashStringEquals(input, FS(S_url_log))){
     printSendFullLog(true, true, true); // TODO use parameters
   }
-  else if (StringUtils::flashStringEquals(input, S_url_storage)){
+  else if (StringUtils::flashStringEquals(input, FS(S_url_storage))){
     sendStorageDump(); 
   }
 
   if (c_isWifiResponseError) return;
 
-  sendTag(S_pre, HTTP_TAG_CLOSED);
-  sendTag(S_html, HTTP_TAG_CLOSED);
+  sendTag(FS(S_pre), HTTP_TAG_CLOSED);
+  sendTag(FS(S_html), HTTP_TAG_CLOSED);
   /*
     // read the incoming byte:
    char firstChar = 0, secondChar = 0; 
@@ -337,7 +337,7 @@ void WebServerClass::sendBriefStatus(){
   sendBootStatus();
   sendTimeStatus();
   sendTemperatureStatus();  
-  sendTag(S_hr, HTTP_TAG_SINGLE); 
+  sendTag(FS(S_hr), HTTP_TAG_SINGLE); 
 }
 
 
@@ -401,7 +401,7 @@ void WebServerClass::sendTimeStatus(){
 void WebServerClass::sendTemperatureStatus(){
   float workingTemperature, statisticsTemperature;
   int statisticsCount;
-  GB_Thermometer::getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
+  GB_Thermometer.getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
 
   sendData(FS(S_Temperature)); 
   sendData(F(": current ")); 
@@ -504,7 +504,7 @@ void WebServerClass::sendPinsStatus(){
 void WebServerClass::printSendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
   LogRecord logRecord;
   boolean isEmpty = true;
-  sendTag(S_table, HTTP_TAG_OPEN);
+  sendTag(FS(S_table), HTTP_TAG_OPEN);
   for (int i = 0; i < GB_Logger.getLogRecordsCount(); i++){
 
     logRecord = GB_Logger.getLogRecordByIndex(i);
@@ -518,28 +518,28 @@ void WebServerClass::printSendFullLog(boolean printEvents, boolean printErrors, 
       continue;
     }
 
-    sendTag(S_tr, HTTP_TAG_OPEN);
-    sendTag(S_td, HTTP_TAG_OPEN);
+    sendTag(FS(S_tr), HTTP_TAG_OPEN);
+    sendTag(FS(S_td), HTTP_TAG_OPEN);
     sendData(i+1);
-    sendTag(S_td, HTTP_TAG_CLOSED);
-    sendTag(S_td, HTTP_TAG_OPEN);
-    sendData(StringUtils::getTimeString(logRecord.timeStamp));    
-    sendTag(S_td, HTTP_TAG_CLOSED);
-    sendTag(S_td, HTTP_TAG_OPEN);
-    sendData(StringUtils::getHEX(logRecord.data, true));
-    sendTag(S_td, HTTP_TAG_CLOSED);
-    sendTag(S_td, HTTP_TAG_OPEN);
+    sendTag(FS(S_td), HTTP_TAG_CLOSED);
+    sendTag(FS(S_td), HTTP_TAG_OPEN);
+    sendData(StringUtils::timeToString(logRecord.timeStamp));    
+    sendTag(FS(S_td), HTTP_TAG_CLOSED);
+    sendTag(FS(S_td), HTTP_TAG_OPEN);
+    sendData(StringUtils::byteToHexString(logRecord.data, true));
+    sendTag(FS(S_td), HTTP_TAG_CLOSED);
+    sendTag(FS(S_td), HTTP_TAG_OPEN);
     sendData(GB_Logger.getLogRecordDescription(logRecord));
     sendData(GB_Logger.getLogRecordSuffix(logRecord));
-    sendTag(S_td, HTTP_TAG_CLOSED);
+    sendTag(FS(S_td), HTTP_TAG_CLOSED);
     //sendDataLn();
-    sendTag(S_tr, HTTP_TAG_CLOSED);
+    sendTag(FS(S_tr), HTTP_TAG_CLOSED);
     isEmpty = false;
 
     if (c_isWifiResponseError) return;
 
   }
-  sendTag(S_table, HTTP_TAG_CLOSED);
+  sendTag(FS(S_table), HTTP_TAG_CLOSED);
   if (isEmpty){
     sendData(F("Log empty"));
   }
@@ -554,42 +554,42 @@ void WebServerClass::printStorage(word address, byte sizeOf){
 }
 
 void WebServerClass::sendStorageDump(){
-  sendTag(S_table, HTTP_TAG_OPEN);
-  sendTag(S_tr, HTTP_TAG_OPEN);
-  sendTag(S_td, HTTP_TAG_OPEN);
-  sendTag(S_td, HTTP_TAG_CLOSED);
+  sendTag(FS(S_table), HTTP_TAG_OPEN);
+  sendTag(FS(S_tr), HTTP_TAG_OPEN);
+  sendTag(FS(S_td), HTTP_TAG_OPEN);
+  sendTag(FS(S_td), HTTP_TAG_CLOSED);
   for (word i = 0; i < 16 ; i++){
-    sendTag(S_td, HTTP_TAG_OPEN);
+    sendTag(FS(S_td), HTTP_TAG_OPEN);
     sendTag('b', HTTP_TAG_OPEN);
-    sendData(StringUtils::getHEX(i));
+    sendData(StringUtils::byteToHexString(i));
     sendTag('b', HTTP_TAG_CLOSED); 
-    sendTag(S_td, HTTP_TAG_CLOSED);
+    sendTag(FS(S_td), HTTP_TAG_CLOSED);
   }
-  sendTag(S_tr, HTTP_TAG_CLOSED);
+  sendTag(FS(S_tr), HTTP_TAG_CLOSED);
 
   for (word i = 0; i < AT24C32_EEPROM.CAPACITY ; i++){
     byte value = AT24C32_EEPROM.read(i);
 
     if (i% 16 ==0){
       if (i>0){
-        sendTag(S_tr, HTTP_TAG_CLOSED);
+        sendTag(FS(S_tr), HTTP_TAG_CLOSED);
       }
-      sendTag(S_tr, HTTP_TAG_OPEN);
-      sendTag(S_td, HTTP_TAG_OPEN);
+      sendTag(FS(S_tr), HTTP_TAG_OPEN);
+      sendTag(FS(S_td), HTTP_TAG_OPEN);
       sendTag('b', HTTP_TAG_OPEN);
-      sendData(StringUtils::getHEX(i/16));
+      sendData(StringUtils::byteToHexString(i/16));
       sendTag('b', HTTP_TAG_CLOSED);
-      sendTag(S_td, HTTP_TAG_CLOSED);
+      sendTag(FS(S_td), HTTP_TAG_CLOSED);
     }
-    sendTag(S_td, HTTP_TAG_OPEN);
-    sendData(StringUtils::getHEX(value));
-    sendTag(S_td, HTTP_TAG_CLOSED);
+    sendTag(FS(S_td), HTTP_TAG_OPEN);
+    sendData(StringUtils::byteToHexString(value));
+    sendTag(FS(S_td), HTTP_TAG_CLOSED);
 
     if (c_isWifiResponseError) return;
 
   }
-  sendTag(S_tr, HTTP_TAG_CLOSED);
-  sendTag(S_table, HTTP_TAG_CLOSED);
+  sendTag(FS(S_tr), HTTP_TAG_CLOSED);
+  sendTag(FS(S_table), HTTP_TAG_CLOSED);
 }
 
 

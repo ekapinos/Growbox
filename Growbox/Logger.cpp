@@ -21,7 +21,7 @@ void LoggerClass::logEvent(Event &event){
 //   SS - length of errir seqence 
 //   DDDD - sequence data
 void LoggerClass::logError(Error &error){
-  LogRecord logRecord(B01000000|(B00000011 | error.sequenceSize-1)<<4 | (B00001111 & error.sequence));
+  LogRecord logRecord(B01000000| ((B00000011 & (error.sequenceSize-1))<<4) | (B00001111 & error.sequence));
   boolean isStoredNow = false;
   if(!error.isStored){
     error.isStored = GB_StorageHelper.storeLogRecord(logRecord);
@@ -68,9 +68,9 @@ LogRecord LoggerClass::getLogRecordByIndex(int index){
 
 String LoggerClass::getLogRecordPrefix(const LogRecord &logRecord){        
   String out;
-  out += StringUtils::getTimeString(logRecord.timeStamp);
+  out += StringUtils::timeToString(logRecord.timeStamp);
   out += ' '; 
-  out += StringUtils::getHEX(logRecord.data, true);
+  out += StringUtils::byteToHexString(logRecord.data, true);
   out += ' '; 
   return out;
 }
@@ -91,7 +91,7 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
   } 
   else if (isError(logRecord)){    
     byte sequence = (data & B00001111); 
-    byte sequenceSize = (data & B00110000)>>4; 
+    byte sequenceSize = ((data & B00110000)>>4) + 1; 
     Error* foundItemPtr = Error::findByKey(sequence, sequenceSize);
     if (foundItemPtr == 0){
       return F("Unknown error");

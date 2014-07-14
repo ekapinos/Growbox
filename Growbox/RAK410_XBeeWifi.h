@@ -8,19 +8,19 @@ class RAK410_XBeeWifiClass{
 
 private:
 
-  static const int WIFI_MAX_SEND_FRAME_SIZE = 1400; // 1400 max from spec
-  static const int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
-  static const unsigned long STREAM_TIMEOUT = 1000; // Like in Stram.h
+  static const unsigned int WIFI_MAX_SEND_FRAME_SIZE = 1400; // 1400 max from spec
+  static const unsigned int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
 
-  String s_wifiSID;
-  String s_wifiPass;// 8-63 char
+  boolean c_useSerialWifi;
+  
+  boolean c_restartWifi;
+  boolean c_restartWifiIfNoResponseAutomatically;
 
-  boolean s_restartWifi;
-  boolean s_restartWifiIfNoResponseAutomatically;
+  unsigned int c_autoSizeFrameSize;
 
-  int s_autoSizeFrameSize;
+  String c_wifiSID;
+  String c_wifiPass;// 8-63 char
 
-  boolean useSerialWifi;
 public:
 
   enum RequestType {
@@ -73,27 +73,8 @@ private:
 
   boolean startupWebServerSilent();
 
-  boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, int maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
-  String wifiExecuteRawCommand(const __FlashStringHelper* command, int maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
-
-
-  /////////////////////////////////////////////////////////////////////
-  //                          SERIAL READ                            //
-  /////////////////////////////////////////////////////////////////////
-
-  // WARNING! This is adapted copy of Stream.h, Serial.h, and HardwareSerial.h
-  // functionality
-
-  boolean Serial_timedRead(char* c);
-
-  size_t Serial_skipAll();
-  size_t Serial_skipBytes(size_t length);
-  size_t Serial_skipBytesUntil(size_t length, const char PROGMEM* pstr);  
-
-  size_t Serial_readBytes(char *buffer, size_t length);
-  size_t Serial_readStringUntil(String& str, size_t length, const char PROGMEM* pstr);
-  size_t Serial_readString(String& str, size_t length);
-  size_t Serial_readString(String& str);
+  boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
+  String wifiExecuteRawCommand(const __FlashStringHelper* command, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
   
 };
 
