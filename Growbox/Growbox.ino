@@ -1,6 +1,5 @@
 
 //#include <EEPROM.h>
-#include <stdint.h>
 
 // Warning! We need to include all used libraries, 
 // otherwise Arduino IDE doesn't set correct build 

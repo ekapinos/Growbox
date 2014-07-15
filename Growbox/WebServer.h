@@ -49,50 +49,32 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   static void sendHttpNotFound(const byte wifiPortDescriptor);
-  
   static void sendHTTPRedirect(const byte &wifiPortDescriptor, const __FlashStringHelper* data);
-
   static void sendHttpOK_Header(const byte wifiPortDescriptor);
-
   static void sendHttpOK_PageComplete(const byte &wifiPortDescriptor);
 
-
   /////////////////////////////////////////////////////////////////////
-  //                     HTTP SUPPLEMENTAL COMMANDS                  //
+  //                  HTTP 200 OK SUPPLEMENTAL COMMANDS              //
   /////////////////////////////////////////////////////////////////////
 
   void sendData(const __FlashStringHelper* data);
-
   void sendData(const String &data);
-
-  void sendDataLn();
-
-  /// TODO optimize it
   void sendData(int data);
-
   void sendData(word data);
-
   void sendData(char data);
-
   void sendData(float data);
-
   void sendData(time_t data);
 
-
+  void sendDataLn();
   void sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* name);
-
   void sendTag_Begin(HTTP_TAG type);
-
   void sendTag_End(HTTP_TAG type);
-
   void sendTag(const __FlashStringHelper* pname, HTTP_TAG type);
-
   void sendTag(const char tag, HTTP_TAG type);
 
   void generateHttpResponsePage(const String &input);
 
   void sendBriefStatus();
-
 
   void sendConfigurationControls();
   void sendFreeMemory();

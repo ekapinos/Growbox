@@ -10,17 +10,12 @@ void WebServerClass::handleSerialEvent(){
   // HTTP response supplemental   
   RAK410_XBeeWifiClass::RequestType c_commandType = RAK410_XBeeWifi.handleSerialEvent(c_wifiPortDescriptor, input, postParams);
 
-  //  Serial.print(F("WIFI > input: "));
-  //  Serial.print(input);
-  //  Serial.print(F(" post: "));
-  //  Serial.print(postParams);
-
   switch(c_commandType){
-  case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST:
+    case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST:
     sendHTTPRedirect(c_wifiPortDescriptor, FS(S_url));
     break;
 
-  case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
+    case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
     if (StringUtils::flashStringEquals(input, FS(S_url)) || 
       StringUtils::flashStringEquals(input, FS(S_url_log)) ||
       StringUtils::flashStringEquals(input, FS(S_url_conf)) ||
@@ -34,7 +29,7 @@ void WebServerClass::handleSerialEvent(){
 
       if(g_useSerialMonitor){ 
         if (c_isWifiResponseError){
-          showWebMessage(F("Send responce error"));
+          showWebMessage(F("Error occurred during sending responce"));
         }
       }
     } 
@@ -42,6 +37,9 @@ void WebServerClass::handleSerialEvent(){
       // Unknown resource
       sendHttpNotFound(c_wifiPortDescriptor);    
     }
+    break;
+
+  default:
     break;
   }
 }
@@ -84,8 +82,6 @@ void WebServerClass::sendHttpOK_PageComplete(const byte &wifiPortDescriptor){
   RAK410_XBeeWifi.sendCloseConnection(wifiPortDescriptor);
 }
 
-
-
 void WebServerClass::showWebMessage(const __FlashStringHelper* str, boolean newLine){ //TODO 
   if (g_useSerialMonitor){
     Serial.print(FS("WEB> "));
@@ -102,20 +98,16 @@ void WebServerClass::showWebMessage(const __FlashStringHelper* str, boolean newL
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendData(const __FlashStringHelper* data){
-    if (!RAK410_XBeeWifi.sendAutoSizeFrameData(c_wifiPortDescriptor, data)){
-      c_isWifiResponseError = true;
-    }
-  } 
+  if (!RAK410_XBeeWifi.sendAutoSizeFrameData(c_wifiPortDescriptor, data)){
+    c_isWifiResponseError = true;
+  }
+} 
 
 
 void WebServerClass::sendData(const String &data){
-    if (!RAK410_XBeeWifi.sendAutoSizeFrameData(c_wifiPortDescriptor, data)){
-      c_isWifiResponseError = true;
-    }
-}
-
-void WebServerClass::sendDataLn(){
-  sendData(FS(S_CRLF));
+  if (!RAK410_XBeeWifi.sendAutoSizeFrameData(c_wifiPortDescriptor, data)){
+    c_isWifiResponseError = true;
+  }
 }
 
 /// TODO optimize it
@@ -147,6 +139,9 @@ void WebServerClass::sendData(time_t data){
   sendData(str);
 }
 
+void WebServerClass::sendDataLn(){
+  sendData(FS(S_CRLF));
+}
 
 void WebServerClass::sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* name){
   sendData(F("<input type=\"button\" onclick=\"document.location='"));
@@ -185,18 +180,18 @@ void WebServerClass::sendTag(const char tag, HTTP_TAG type){
 void WebServerClass::generateHttpResponsePage(const String &input){
 
 
-    sendTag(FS(S_html), HTTP_TAG_OPEN); 
-    sendTag(FS(S_h1), HTTP_TAG_OPEN); 
-    sendData(F("Growbox"));  
-    sendTag(FS(S_h1), HTTP_TAG_CLOSED);
-    sendTagButton(FS(S_url), F("Status"));
-    sendTagButton(FS(S_url_log), F("Daily log"));
-    sendTagButton(FS(S_url_conf), F("Configuration"));
-    sendTagButton(FS(S_url_storage), F("Storage dump"));
-    sendTag(FS(S_hr), HTTP_TAG_SINGLE);
-    sendTag(FS(S_pre), HTTP_TAG_OPEN);
-    sendBriefStatus();
-    sendTag(FS(S_pre), HTTP_TAG_CLOSED);
+  sendTag(FS(S_html), HTTP_TAG_OPEN); 
+  sendTag(FS(S_h1), HTTP_TAG_OPEN); 
+  sendData(F("Growbox"));  
+  sendTag(FS(S_h1), HTTP_TAG_CLOSED);
+  sendTagButton(FS(S_url), F("Status"));
+  sendTagButton(FS(S_url_log), F("Daily log"));
+  sendTagButton(FS(S_url_conf), F("Configuration"));
+  sendTagButton(FS(S_url_storage), F("Storage dump"));
+  sendTag(FS(S_hr), HTTP_TAG_SINGLE);
+  sendTag(FS(S_pre), HTTP_TAG_OPEN);
+  sendBriefStatus();
+  sendTag(FS(S_pre), HTTP_TAG_CLOSED);
 
   sendTag(FS(S_pre), HTTP_TAG_OPEN);
   if (StringUtils::flashStringEquals(input, FS(S_url))){
@@ -595,6 +590,8 @@ void WebServerClass::sendStorageDump(){
 
 
 WebServerClass GB_WebServer;
+
+
 
 
 

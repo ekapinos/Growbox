@@ -6,9 +6,7 @@
 /////////////////////////////////////////////////////////////////////
 
 size_t StringUtils::flashStringLength(const __FlashStringHelper* fstr){
-  return strlen_P(
-  PS(fstr)
-  );
+  return strlen_P(((const char /*PROGMEM*/*)fstr));
 }
 
 char StringUtils::flashStringCharAt(const __FlashStringHelper* fstr, size_t index, boolean checkOverflow){ 
@@ -17,7 +15,7 @@ char StringUtils::flashStringCharAt(const __FlashStringHelper* fstr, size_t inde
       return 0xFF; 
     }
   }
-  return pgm_read_byte(PS(fstr)+index);
+  return pgm_read_byte(((const char /*PROGMEM*/*)fstr)+index);
 }
 
 boolean StringUtils::flashStringEquals(const String &str, const __FlashStringHelper* fstr){ 
@@ -37,7 +35,7 @@ boolean StringUtils::flashStringEquals(const char* cstr, size_t cstr_length, con
   if (cstr_length != flashStringLength(fstr)){
     return false;
   }
-  return (strncmp_P(cstr, PS(fstr), cstr_length) == 0); // check this method
+  return (strncmp_P(cstr, ((const char*)fstr), cstr_length) == 0); // check this method
 }
 
 boolean StringUtils::flashStringStartsWith(const String &str, const __FlashStringHelper* fstr){ 

@@ -9,8 +9,8 @@
 
 #include <Time.h> 
 
-#define FS(x) (reinterpret_cast<const __FlashStringHelper*>)(x)
-#define PS(x) (reinterpret_cast<const char PROGMEM*>)(x)
+#define FS(x) (reinterpret_cast<const __FlashStringHelper*>(x))
+//#define PS(x) (reinterpret_cast<const char PROGMEM*>(x))
 
 namespace StringUtils {
   
