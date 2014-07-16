@@ -21,8 +21,9 @@ boolean isLogOverflow :
     1;  
 boolean isLoggerEnabled :
     2;      
-//boolean useWifiAccessPointMode :
-//    3;     
+boolean isWifiStationMode :
+// false - Access point, true - Station mode
+    3;     
   } 
   boolPreferencies;                 //  1 
   byte reserved[145];               //  <----reserved

@@ -12,14 +12,12 @@ private:
   static const unsigned int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
 
   boolean c_useSerialWifi;
-  
+
   boolean c_restartWifi;
-  boolean c_restartWifiIfNoResponseAutomatically;
 
   unsigned int c_autoSizeFrameSize;
 
-  String c_wifiSID;
-  String c_wifiPass;// 8-63 char
+  boolean isWifiPrintCommandStarted;
 
 public:
 
@@ -35,18 +33,16 @@ public:
   RAK410_XBeeWifiClass();
 
   boolean isPresent(); // check if the device is present
-  
 
-  /////////////////////////////////////////////////////////////////////
+
+    /////////////////////////////////////////////////////////////////////
   //                             STARTUP                             //
   /////////////////////////////////////////////////////////////////////
 
   void updateWiFiStatus();
 
-  void setConnectionParameters(const String& _s_wifiSID, const String& _s_wifiPass);
-
   boolean startupWebServer();
-  
+
 
   /////////////////////////////////////////////////////////////////////
   //                              WEB SERVER                         //
@@ -69,18 +65,45 @@ public:
 
 
 private:
-  void showWifiMessage(const __FlashStringHelper* str, boolean newLine = true);
-
   boolean startupWebServerSilent();
 
   boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
-  String wifiExecuteRawCommand(const __FlashStringHelper* command, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
-  
+  String wifiExecuteRawCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
+
+  template <class T> void showWifiMessage(T str, boolean newLine = true){
+    if (g_useSerialMonitor){
+      Serial.print(F("WIFI> "));
+      Serial.print(str);
+      if (newLine){  
+        Serial.println();
+      }      
+    }
+  }
+
+  template <class T> void wifiExecuteRawCommandPrint(T command){
+    Serial1.print(command);  
+
+    if (g_useSerialMonitor){
+      if (isWifiPrintCommandStarted){  
+        Serial.print(command); 
+      } 
+      else {
+        showWifiMessage(command, false);
+      }  
+    }
+    isWifiPrintCommandStarted = true;
+  }  
+
 };
 
 extern RAK410_XBeeWifiClass RAK410_XBeeWifi;
 
 #endif
+
+
+
+
+
 
 
 

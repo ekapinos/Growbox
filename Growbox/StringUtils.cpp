@@ -89,6 +89,21 @@ String StringUtils::flashStringLoad(const __FlashStringHelper* fstr){
   return str; 
 }
 
+size_t StringUtils::flashStringLoad(const __FlashStringHelper* fstr, char* cstr, size_t cstrLength){
+  size_t length = flashStringLength(fstr);
+
+  size_t loadedBytes = 0;
+  for (size_t i = 0; i < length && i < cstrLength; i++){
+    cstr[i] = flashStringCharAt(fstr, i, false);
+    loadedBytes++;
+  }
+  if (loadedBytes < cstrLength){
+    loadedBytes++;
+    cstr[loadedBytes] = 0x00; // null terminal  
+  }
+  return loadedBytes; 
+}
+
 /////////////////////////////////////////////////////////////////////
 //                         STRING CLASS UTILS                      //
 /////////////////////////////////////////////////////////////////////
@@ -150,6 +165,7 @@ String StringUtils::timeToString(time_t time){
   out += ']';
   return out;
 } 
+
 
 
 

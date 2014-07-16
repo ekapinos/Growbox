@@ -82,7 +82,10 @@ extern boolean g_useSerialMonitor;
 //                         GLOBAL STRINGS                          //
 /////////////////////////////////////////////////////////////////////
 
-static const char S_empty[] PROGMEM  = "";
+const char S_WIFI_DEFAULT_SSID[] PROGMEM  = "Growbox"; //WPA2 in AP mode
+const char S_WIFI_DEFAULT_PASS[] PROGMEM  = "ingodwetrust";
+
+const char S_empty[] PROGMEM  = "";
 const char S___ [] PROGMEM  = "  ";
 const char S_CRLF[] PROGMEM  = "\r\n";
 const char S_CRLFCRLF[] PROGMEM  = "\r\n\r\n";

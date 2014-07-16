@@ -24,15 +24,15 @@ public:
   boolean init();
   void update();
 
-  void setStoreLogRecordsEnabled(boolean flag);
-  boolean isStoreLogRecordsEnabled();
-
   time_t getFirstStartupTimeStamp();
   time_t getLastStartupTimeStamp();
 
   /////////////////////////////////////////////////////////////////////
   //                            LOG RECORDS                          //
   /////////////////////////////////////////////////////////////////////
+
+  void setStoreLogRecordsEnabled(boolean flag);
+  boolean isStoreLogRecordsEnabled();
 
   boolean storeLogRecord(LogRecord &logRecord);
 
@@ -46,15 +46,22 @@ public:
   /////////////////////////////////////////////////////////////////////
 
   void resetFirmware();
-
   void resetStoredLog();
-
+  
   BootRecord getBootRecord();
+
+  /////////////////////////////////////////////////////////////////////
+  //                               WI-FI                             //
+  /////////////////////////////////////////////////////////////////////
+
+  boolean isWifiStationMode();
+  String getWifiSSID();
+  String getWifiPASS();
+
 
 private :
 
   boolean isBootRecordCorrect();
-
   void increaseLogIndex();
 
 };

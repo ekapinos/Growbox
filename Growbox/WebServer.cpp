@@ -85,7 +85,7 @@ void WebServerClass::sendHttpOK_PageComplete(const byte &wifiPortDescriptor){
 
 void WebServerClass::showWebMessage(const __FlashStringHelper* str, boolean newLine){ //TODO 
   if (g_useSerialMonitor){
-    Serial.print(FS("WEB> "));
+    Serial.print(F("WEB> "));
     Serial.print(str);
     if (newLine){  
       Serial.println();    

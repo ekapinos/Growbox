@@ -164,39 +164,41 @@ void setup() {
   if(g_useSerialMonitor){ 
     printStatusOnBoot(F("storage"));
   }
+  
+  //GB_StorageHelper.resetFirmware();
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean itWasRestart = GB_StorageHelper.init();
 
   g_isGrowboxStarted = true;
 
-
-  Serial.println(GB_StorageHelper.LOG_CAPACITY);
-  Serial.println(GB_StorageHelper.LOG_CAPACITY_ARDUINO);
-  Serial.println(GB_StorageHelper.LOG_CAPACITY_AT24C32);
-  
-  byte test [] ={200, 200, 200, 200, 200};
-  EEPROM_AT24C32.writeBlock<byte>(0, test, 5);
-
+//
+//  Serial.println(GB_StorageHelper.LOG_CAPACITY);
+//  Serial.println(GB_StorageHelper.LOG_CAPACITY_ARDUINO);
+//  Serial.println(GB_StorageHelper.LOG_CAPACITY_AT24C32);
+//  
+//  byte test [] ={200, 200, 200, 200, 200};
+//  EEPROM_AT24C32.writeBlock<byte>(0, test, 5);
+//
 //  for (word i=0; i< GB_StorageHelper.LOG_CAPACITY; i++){
 //    LogRecord logRecord(i);//(B11000000|(i%B00111111));
 //    GB_StorageHelper.storeLogRecord(logRecord);
 //    Serial.print(F("SERIAL HELPER> Write ")); 
 //    Serial.println(i); 
 //  }
-
-  for (word i=0; i< GB_StorageHelper.getLogRecordsCount(); i++){
-    LogRecord logRecord;
-    GB_StorageHelper.getLogRecordByIndex(i, logRecord);
-    Serial.print(i); 
-    Serial.print(" - ");     
-    Serial.print(StringUtils::timeToString(logRecord.timeStamp)); 
-    Serial.print(" - "); 
-    Serial.println(logRecord.data); 
-  }
-
-  while(true) delay(5000);
-  return;
+//
+//  for (word i=0; i< GB_StorageHelper.getLogRecordsCount(); i++){
+//    LogRecord logRecord;
+//    GB_StorageHelper.getLogRecordByIndex(i, logRecord);
+//    Serial.print(i); 
+//    Serial.print(" - ");     
+//    Serial.print(StringUtils::timeToString(logRecord.timeStamp)); 
+//    Serial.print(" - "); 
+//    Serial.println(logRecord.data); 
+//  }
+//
+//  while(true) delay(5000);
+//  return;
 
 
   // Now we can use logger
@@ -238,7 +240,6 @@ void setup() {
   }
 
   if (RAK410_XBeeWifi.isPresent()){ 
-    RAK410_XBeeWifi.setConnectionParameters(StringUtils::flashStringLoad(F("Hell")), StringUtils::flashStringLoad(F("flat65router"))); 
     RAK410_XBeeWifi.startupWebServer();
   }
 
