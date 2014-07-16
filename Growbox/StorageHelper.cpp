@@ -1,6 +1,6 @@
 #include "StorageHelper.h" 
 
-#include "EEPROMExPatch.h"
+#include "EEPROM_ARDUINO.h"
 #include "EEPROM_AT24C32.h"
 
 //#define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))

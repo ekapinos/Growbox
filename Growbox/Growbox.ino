@@ -59,8 +59,8 @@ void printStatusOnBoot(const __FlashStringHelper* str){ //TODO
 }
 
 void stopOnFatalError(const __FlashStringHelper* str){ //TODO 
-   digitalWrite(ERROR_PIN, HIGH);
-   if (g_useSerialMonitor){
+  digitalWrite(ERROR_PIN, HIGH);
+  if (g_useSerialMonitor){
     Serial.print(F("Fatal error: "));
     Serial.println(str);
   }
@@ -122,14 +122,16 @@ void setup() {
   }
 
   if (BOOT_RECORD_SIZE != sizeof(BootRecord)){
-    Serial.print(BOOT_RECORD_SIZE);  Serial.print('-'); Serial.print(sizeof(BootRecord));
+    Serial.print(BOOT_RECORD_SIZE);  
+    Serial.print('-'); 
+    Serial.print(sizeof(BootRecord));
     stopOnFatalError(F("wrong BootRecord size"));
   }
 
   if (LOG_RECORD_SIZE != sizeof(LogRecord)){
     stopOnFatalError(F("wrong LogRecord size"));
   }
-    
+
   GB_Controller.checkFreeMemory();
 
   if(g_useSerialMonitor){ 
@@ -166,27 +168,29 @@ void setup() {
   boolean itWasRestart = GB_StorageHelper.init();
 
   g_isGrowboxStarted = true;
-  
-  //Serial.println(GB_StorageHelper.LOG_CAPACITY);
-//
-  //for (word i=0; i< GB_StorageHelper.LOG_CAPACITY; i++){
-  //  LogRecord logRecord(B11000000|(i%B00111111));
-  //  GB_StorageHelper.storeLogRecord(logRecord);
-  //  
-  //}
-  
-//  for (word i=0; i< GB_StorageHelper.getLogRecordsCount(); i++){
-//    LogRecord logRecord;
-//    GB_StorageHelper.getLogRecordByIndex(i, logRecord);
-//    Serial.print(i); 
-//    Serial.print(" - ");     
-//    Serial.print(StringUtils::timeToString(logRecord.timeStamp)); 
-//    Serial.print(" - "); 
-//    Serial.println(logRecord.data); 
-//  }
-//  
-//  while(true) delay(5000);
-//  return;
+
+
+  Serial.println(GB_StorageHelper.LOG_CAPACITY);
+
+  for (word i=0; i< GB_StorageHelper.LOG_CAPACITY; i++){
+    LogRecord logRecord(B11000000|(i%B00111111));
+    GB_StorageHelper.storeLogRecord(logRecord);
+  }
+
+  for (word i=0; i< GB_StorageHelper.getLogRecordsCount(); i++){
+    LogRecord logRecord;
+    GB_StorageHelper.getLogRecordByIndex(i, logRecord);
+    Serial.print(i); 
+    Serial.print(" - ");     
+    Serial.print(StringUtils::timeToString(logRecord.timeStamp)); 
+    Serial.print(" - "); 
+    Serial.println(logRecord.data); 
+  }
+
+  while(true) delay(5000);
+  return;
+
+
 
 
   // Now we can use logger
@@ -389,6 +393,7 @@ void turnOffFan(){
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
   GB_Logger.logEvent(EVENT_FAN_OFF);
 }
+
 
 
 
