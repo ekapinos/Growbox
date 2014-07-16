@@ -5,9 +5,9 @@
 
 //#define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
 
-const word StorageHelperClass::LOG_CAPACITY_INTERNAL    = (EEPROMSizeMega - sizeof(BootRecord))/sizeof(LogRecord);
-const word StorageHelperClass::LOG_CAPACITY_AT24C32     = EEPROM_AT24C32.CAPACITY/sizeof(LogRecord);
-const word StorageHelperClass::LOG_CAPACITY             = LOG_CAPACITY_INTERNAL+LOG_CAPACITY_AT24C32;
+const word StorageHelperClass::LOG_CAPACITY_ARDUINO    = (EEPROM.getCapacity() - sizeof(BootRecord))/sizeof(LogRecord);
+const word StorageHelperClass::LOG_CAPACITY_AT24C32     = EEPROM_AT24C32.getCapacity()/sizeof(LogRecord);
+const word StorageHelperClass::LOG_CAPACITY             = LOG_CAPACITY_ARDUINO+LOG_CAPACITY_AT24C32;
 
 /////////////////////////////////////////////////////////////////////
 //                            BOOT RECORD                          //
@@ -64,14 +64,14 @@ time_t StorageHelperClass::getLastStartupTimeStamp(){
 /////////////////////////////////////////////////////////////////////
 
 boolean StorageHelperClass::storeLogRecord(LogRecord &logRecord){ 
-  boolean storeLog = g_isGrowboxStarted && isBootRecordCorrect() && c_bootRecord.boolPreferencies.isLoggerEnabled && EEPROM.isReady() && EEPROM_AT24C32.isPresent(); // TODO check in another places
+  boolean storeLog = g_isGrowboxStarted && isBootRecordCorrect() && c_bootRecord.boolPreferencies.isLoggerEnabled && EEPROM.isPresent() && EEPROM_AT24C32.isPresent(); // TODO check in another places
   if (!storeLog){
     return false;
   }
-  if (c_bootRecord.nextLogRecordIndex < LOG_CAPACITY_INTERNAL){
+  if (c_bootRecord.nextLogRecordIndex < LOG_CAPACITY_ARDUINO){
     EEPROM.updateBlock<LogRecord>(sizeof(BootRecord)+c_bootRecord.nextLogRecordIndex*sizeof(logRecord), logRecord);
   } else {
-    EEPROM_AT24C32.updateBlock<LogRecord>((c_bootRecord.nextLogRecordIndex-LOG_CAPACITY_INTERNAL)*sizeof(logRecord), logRecord);
+    EEPROM_AT24C32.updateBlock<LogRecord>((c_bootRecord.nextLogRecordIndex-LOG_CAPACITY_ARDUINO)*sizeof(logRecord), logRecord);
   }
   increaseLogIndex();
   return true;
@@ -106,10 +106,10 @@ boolean StorageHelperClass::getLogRecordByIndex(word index, LogRecord &logRecord
     planeIndex -= LOG_CAPACITY;
   }
   //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
-   if (planeIndex < LOG_CAPACITY_INTERNAL){
+   if (planeIndex < LOG_CAPACITY_ARDUINO){
     EEPROM.readBlock<LogRecord>(sizeof(BootRecord) + planeIndex*sizeof(logRecord), logRecord);
   } else {
-    EEPROM_AT24C32.readBlock<LogRecord>((planeIndex-LOG_CAPACITY_INTERNAL)*sizeof(logRecord), logRecord);
+    EEPROM_AT24C32.readBlock<LogRecord>((planeIndex-LOG_CAPACITY_ARDUINO)*sizeof(logRecord), logRecord);
   }
   return true;
 }

@@ -563,7 +563,7 @@ void WebServerClass::sendStorageDump(){
   }
   sendTag(FS(S_tr), HTTP_TAG_CLOSED);
 
-  for (word i = 0; i < EEPROM_AT24C32.CAPACITY ; i++){
+  for (word i = 0; i < EEPROM_AT24C32.getCapacity() ; i++){
     byte value = EEPROM_AT24C32.read(i);
 
     if (i% 16 ==0){

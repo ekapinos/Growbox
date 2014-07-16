@@ -20,6 +20,7 @@
 #include "Thermometer.h"
 #include "RAK410_XBeeWifi.h"
 #include "WebServer.h"
+#include "EEPROM_AT24C32.h"
 
 /////////////////////////////////////////////////////////////////////
 //                              STATUS                             //
@@ -171,11 +172,18 @@ void setup() {
 
 
   Serial.println(GB_StorageHelper.LOG_CAPACITY);
+  Serial.println(GB_StorageHelper.LOG_CAPACITY_ARDUINO);
+  Serial.println(GB_StorageHelper.LOG_CAPACITY_AT24C32);
+  
+  byte test [] ={200, 200, 200, 200, 200};
+  EEPROM_AT24C32.writeBlock<byte>(0, test, 5);
 
-  for (word i=0; i< GB_StorageHelper.LOG_CAPACITY; i++){
-    LogRecord logRecord(B11000000|(i%B00111111));
-    GB_StorageHelper.storeLogRecord(logRecord);
-  }
+//  for (word i=0; i< GB_StorageHelper.LOG_CAPACITY; i++){
+//    LogRecord logRecord(i);//(B11000000|(i%B00111111));
+//    GB_StorageHelper.storeLogRecord(logRecord);
+//    Serial.print(F("SERIAL HELPER> Write ")); 
+//    Serial.println(i); 
+//  }
 
   for (word i=0; i< GB_StorageHelper.getLogRecordsCount(); i++){
     LogRecord logRecord;
@@ -189,8 +197,6 @@ void setup() {
 
   while(true) delay(5000);
   return;
-
-
 
 
   // Now we can use logger

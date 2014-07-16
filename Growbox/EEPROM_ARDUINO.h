@@ -12,110 +12,87 @@
 #include <WProgram.h> 
 #endif
 
-#define EEPROMSizeATmega168   512     
-#define EEPROMSizeATmega328   1024     
-#define EEPROMSizeATmega1280  4096     
-#define EEPROMSizeATmega32u4  1024
-#define EEPROMSizeAT90USB1286 4096
-#define EEPROMSizeMK20DX128   2048
-
-#define EEPROMSizeUno         EEPROMSizeATmega328     
-#define EEPROMSizeUnoSMD      EEPROMSizeATmega328
-#define EEPROMSizeLilypad     EEPROMSizeATmega328
-#define EEPROMSizeDuemilanove EEPROMSizeATmega328
-#define EEPROMSizeMega        EEPROMSizeATmega1280
-#define EEPROMSizeDiecimila   EEPROMSizeATmega168
-#define EEPROMSizeNano        EEPROMSizeATmega168
-#define EEPROMSizeTeensy2     EEPROMSizeATmega32u4
-#define EEPROMSizeLeonardo    EEPROMSizeATmega32u4
-#define EEPROMSizeMicro       EEPROMSizeATmega32u4
-#define EEPROMSizeYun         EEPROMSizeATmega32u4
-#define EEPROMSizeTeensy2pp   EEPROMSizeAT90USB1286
-#define EEPROMSizeTeensy3     EEPROMSizeMK20DX128
-
-#ifndef EEPROM_CAPACITY
-// Define your device before import
-#define EEPROM_CAPACITY       EEPROMSizeMega
-#endif
-
 class EEPROM_ARDUINO_Class{
 
-  static const word CAPACITY = EEPROM_CAPACITY;
-
 public:
-
-  virtual boolean isWriteOk(const word address); 
-  virtual boolean isReady();
-
+  virtual ~EEPROM_ARDUINO_Class() {}
+  
+  virtual word getCapacity();
+  virtual boolean isPresent(); // check if the device is present
+  
   virtual void write(const word address, const byte data) ;
-  virtual byte read(word address);
-  virtual void write_block(const word address, const void* data, const word sizeofData);
-  virtual void read_block(const word address, void *data, const word sizeofData);
+  virtual byte read(word address);  
+  
+  /////////////////////////////////////////////////////////////////////
+  //                             TESTING                             //
+  /////////////////////////////////////////////////////////////////////
 
-
+  void fillWithValue(byte value);
+  void fillIncremental();
+  
   /////////////////////////////////////////////////////////////////////
   //                            TEMPLATES                            //
   /////////////////////////////////////////////////////////////////////
 
-  template <class T> word readBlock(word address, const T value[], word items){
-    if (!isWriteOk(address+items*sizeof(T)-1)) {
+  template <class T> word readBlock(const word address, const T value[], word items){
+    if ((address+items*sizeof(T)-1) >= getCapacity()) {
       return 0;
     }
-    word i;
-    for (i = 0; i < items; i++) {
-      readBlock<T>(address+(i*sizeof(T)),value[i]); 
+    word rez = 0;
+    for (word i = 0; i < items; i++) {
+      rez += readBlock<T>(address+i*sizeof(T), value[i]); 
     }     
-    return i;
+    return rez;
   }
 
-  template <class T> word readBlock(word address, T& value){	
-    if (!isWriteOk(address+sizeof(value)-1)) {
+  template <class T> word readBlock(const word address, const T& value){	
+    if ((address+sizeof(value)-1) >= getCapacity()) {
       return 0;
     }	
-    read_block(address, &value, sizeof(value));     
+    read_block(address, (void*)&value, sizeof(value));     
     return sizeof(value);
   }
 
   template <class T> word writeBlock(word address, const T value[], word items){	
-    if (!isWriteOk(address+items*sizeof(T)-1)) {
+    if ((address+items*sizeof(T)-1) >= getCapacity()) {
       return 0;
     }
-    word i;
-    for (i = 0; i < items; i++) {
-      writeBlock<T>(address+(i*sizeof(T)),value[i]);
+    word rez;
+    for (word i = 0; i < items; i++) {
+      rez += writeBlock<T>(address+(i*sizeof(T)),value[i]);
     }
-    return i;
+    return rez;
   }
 
-  template <class T> word writeBlock(word address, const T& value){
-    if (!isWriteOk(address+sizeof(value)-1)) {
+  template <class T> word writeBlock(const word address, const T& value){
+    if ((address+sizeof(value)-1) >= getCapacity()) {
       return 0;
     }
     write_block(address, &value, sizeof(value));		  			  
     return sizeof(value);
   }
 
-  template <class T> word updateBlock(word address, const T value[], word items) {
-    int writeCount=0;
-    if (!isWriteOk(address+items*sizeof(T)-1)) {
+  template <class T> word updateBlock(const word address, const T value[], word items) {
+    
+    if ((address+items*sizeof(T)-1) >= getCapacity()) {
       return 0;
     }
+    word rez=0;
     for (word i = 0; i < items; i++){
-      writeCount+= updateBlock<T>(address+(i*sizeof(T)),value[i]);
+      rez+= updateBlock<T>(address+i*sizeof(T),value[i]);
     }
-    return writeCount;
+    return rez;
   }
 
   template <class T> int updateBlock(word address, const T& value) {
     word writeCount=0;
-    if (!isWriteOk(address+sizeof(value)-1)) {
+    if ((address+sizeof(value)-1)  >= getCapacity()) {
       return 0;
     }
     const byte* bytePointer = (const byte*)(const void*)&value;
     for (word i = 0; i < sizeof(value); i++) {
-      if (read(address) != *bytePointer) {
-        write(address, *bytePointer);
-        //Serial.print(F("STORAGE-INTRNAL> write address: "));Serial.print(address); Serial.print(F(" value: "));Serial.println(*bytePointer);
+      if (read_byte(address) != *bytePointer) {
+        write_byte(address, *bytePointer);
         writeCount++;		
       }
       address++;
@@ -123,6 +100,13 @@ public:
     }
     return writeCount;
   }  
+  
+private:
+  virtual void write_byte(const word address, const byte data) ;
+  virtual byte read_byte(word address);
+  virtual void write_block(const word address, const void* data, const word sizeofData);
+  virtual void read_block(const word address, void* data, const word sizeofData);
+
 };
 
 extern EEPROM_ARDUINO_Class EEPROM;

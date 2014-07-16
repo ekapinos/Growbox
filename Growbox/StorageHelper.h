@@ -7,7 +7,7 @@ class StorageHelperClass{
 
 public:
 
-  static const word LOG_CAPACITY_INTERNAL;
+  static const word LOG_CAPACITY_ARDUINO;
   static const word LOG_CAPACITY_AT24C32;
   static const word LOG_CAPACITY;
 
