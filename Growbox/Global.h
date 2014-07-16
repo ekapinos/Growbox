@@ -92,7 +92,7 @@ const char S_Enabled[] PROGMEM  = "Enabled";
 const char S_Disabled[] PROGMEM  = "Disabled";
 const char S_Temperature[] PROGMEM  = "Temperature";
 const char S_Free_memory[] PROGMEM  = "Free memory: ";
-const char S_bytes[] PROGMEM  = "bytes";
+const char S_bytes[] PROGMEM  = " bytes";
 const char S_PlusMinus [] PROGMEM  = "+/-";
 const char S_Next [] PROGMEM  = " > ";
 

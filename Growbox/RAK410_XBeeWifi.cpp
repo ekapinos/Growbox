@@ -246,7 +246,7 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
 
       if (g_useSerialMonitor) {
         showWifiMessage(FS(S_Connected), false);
-        Serial.print(F(" "));
+        Serial.print(' ');
         Serial.println(wifiPortDescriptor);
       }
 
@@ -375,7 +375,7 @@ boolean RAK410_XBeeWifiClass::sendAutoSizeFrameStop(){
 
 boolean RAK410_XBeeWifiClass::sendCloseConnection(const byte wifiPortDescriptor){
   showWifiMessage(FS(S_Disconnected), false);
-  Serial.print(F(" "));
+  Serial.print(' ');
   Serial.println(wifiPortDescriptor);
 
   Serial1.print(F("at+cls="));

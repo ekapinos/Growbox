@@ -1,43 +1,52 @@
 #include "StorageHelper.h" 
 
-#include "Global.h"
-#include "AT24C32_EEPROM.h"
+#include "EEPROMExPatch.h"
+#include "EEPROM_AT24C32.h"
 
-#define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
+//#define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
+
+const word StorageHelperClass::LOG_CAPACITY_INTERNAL    = (EEPROMSizeMega - sizeof(BootRecord))/sizeof(LogRecord);
+const word StorageHelperClass::LOG_CAPACITY_AT24C32     = EEPROM_AT24C32.CAPACITY/sizeof(LogRecord);
+const word StorageHelperClass::LOG_CAPACITY             = LOG_CAPACITY_INTERNAL+LOG_CAPACITY_AT24C32;
 
 /////////////////////////////////////////////////////////////////////
 //                            BOOT RECORD                          //
 /////////////////////////////////////////////////////////////////////
 
 boolean StorageHelperClass::init(){
-
-  AT24C32_EEPROM.read(0, &c_bootRecord, sizeof(BootRecord));
+  
+  EEPROM.readBlock<BootRecord>(0, c_bootRecord);
+  
   if (isBootRecordCorrect()){
     c_bootRecord.lastStartupTimeStamp = now();      
-    AT24C32_EEPROM.write(OFFSETOF(BootRecord, lastStartupTimeStamp), &(c_bootRecord.lastStartupTimeStamp), sizeof(c_bootRecord.lastStartupTimeStamp));      
+    EEPROM.updateBlock(0, c_bootRecord);      
     return true;   
   } 
   else {
     c_bootRecord.first_magic = MAGIC_NUMBER;
     c_bootRecord.firstStartupTimeStamp = now();
     c_bootRecord.lastStartupTimeStamp = c_bootRecord.firstStartupTimeStamp;
-    c_bootRecord.nextLogRecordAddress = sizeof(BootRecord);
+    c_bootRecord.nextLogRecordIndex = 0;
     c_bootRecord.boolPreferencies.isLogOverflow = false;
     c_bootRecord.boolPreferencies.isLoggerEnabled = true;
-    for(byte i=0; i<sizeof(c_bootRecord.reserved); i++){
+    for(byte i=0; i < sizeof(c_bootRecord.reserved); i++){
       c_bootRecord.reserved[i] = 0;
     }
     c_bootRecord.last_magic = MAGIC_NUMBER;
 
-    AT24C32_EEPROM.write(0, &c_bootRecord, sizeof(BootRecord));
+    EEPROM.updateBlock(0, c_bootRecord);
 
     return false; 
   }
 }
 
+void update(){
+  
+}
+
 void StorageHelperClass::setStoreLogRecordsEnabled(boolean flag){
   c_bootRecord.boolPreferencies.isLoggerEnabled = flag;
-  AT24C32_EEPROM.write(OFFSETOF(BootRecord, boolPreferencies), &(c_bootRecord.boolPreferencies), sizeof(c_bootRecord.boolPreferencies)); 
+  EEPROM.updateBlock(0, c_bootRecord); 
 }
 boolean StorageHelperClass::isStoreLogRecordsEnabled(){
   return c_bootRecord.boolPreferencies.isLoggerEnabled; 
@@ -55,12 +64,16 @@ time_t StorageHelperClass::getLastStartupTimeStamp(){
 /////////////////////////////////////////////////////////////////////
 
 boolean StorageHelperClass::storeLogRecord(LogRecord &logRecord){ 
-  boolean storeLog = g_isGrowboxStarted && isBootRecordCorrect() && c_bootRecord.boolPreferencies.isLoggerEnabled && AT24C32_EEPROM.isPresent(); // TODO check in another places
+  boolean storeLog = g_isGrowboxStarted && isBootRecordCorrect() && c_bootRecord.boolPreferencies.isLoggerEnabled && EEPROM.isReady() && EEPROM_AT24C32.isPresent(); // TODO check in another places
   if (!storeLog){
     return false;
   }
-  AT24C32_EEPROM.write(c_bootRecord.nextLogRecordAddress, &logRecord, sizeof(LogRecord));
-  increaseLogPointer();
+  if (c_bootRecord.nextLogRecordIndex < LOG_CAPACITY_INTERNAL){
+    EEPROM.updateBlock<LogRecord>(sizeof(BootRecord)+c_bootRecord.nextLogRecordIndex*sizeof(logRecord), logRecord);
+  } else {
+    EEPROM_AT24C32.updateBlock<LogRecord>((c_bootRecord.nextLogRecordIndex-LOG_CAPACITY_INTERNAL)*sizeof(logRecord), logRecord);
+  }
+  increaseLogIndex();
   return true;
 }
 
@@ -73,7 +86,7 @@ word StorageHelperClass::getLogRecordsCount(){
     return LOG_CAPACITY; 
   } 
   else {
-    return (c_bootRecord.nextLogRecordAddress - sizeof(BootRecord))/sizeof(LogRecord);
+    return c_bootRecord.nextLogRecordIndex;
   }
 }
 boolean StorageHelperClass::getLogRecordByIndex(word index, LogRecord &logRecord){
@@ -81,20 +94,23 @@ boolean StorageHelperClass::getLogRecordByIndex(word index, LogRecord &logRecord
     return false;
   }
 
-  word logRecordOffset = 0;
+  word planeIndex = 0;
   if (c_bootRecord.boolPreferencies.isLogOverflow){
-    logRecordOffset = c_bootRecord.nextLogRecordAddress - sizeof(BootRecord);
+    planeIndex = c_bootRecord.nextLogRecordIndex;
   }
   //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
-  logRecordOffset += index * sizeof(LogRecord);
+  planeIndex += index;
 
   //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
-  if (logRecordOffset >= LOG_RECORD_OVERFLOW_OFFSET){
-    logRecordOffset -= LOG_RECORD_OVERFLOW_OFFSET;
+  if (planeIndex >= LOG_CAPACITY){
+    planeIndex -= LOG_CAPACITY;
   }
   //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
-  word address = sizeof(BootRecord) + logRecordOffset; 
-  AT24C32_EEPROM.read(address, &logRecord, sizeof(LogRecord));  
+   if (planeIndex < LOG_CAPACITY_INTERNAL){
+    EEPROM.readBlock<LogRecord>(sizeof(BootRecord) + planeIndex*sizeof(logRecord), logRecord);
+  } else {
+    EEPROM_AT24C32.readBlock<LogRecord>((planeIndex-LOG_CAPACITY_INTERNAL)*sizeof(logRecord), logRecord);
+  }
   return true;
 }
 
@@ -104,15 +120,13 @@ boolean StorageHelperClass::getLogRecordByIndex(word index, LogRecord &logRecord
 
 void StorageHelperClass::resetFirmware(){
   c_bootRecord.first_magic = 0;
-  AT24C32_EEPROM.write(0, &c_bootRecord, sizeof(BootRecord));
+  EEPROM.updateBlock(0, c_bootRecord);
 }
 
 void StorageHelperClass::resetStoredLog(){
-  c_bootRecord.nextLogRecordAddress = sizeof(BootRecord);
-  AT24C32_EEPROM.write(OFFSETOF(BootRecord, nextLogRecordAddress), &(c_bootRecord.nextLogRecordAddress), sizeof(c_bootRecord.nextLogRecordAddress)); 
-
+  c_bootRecord.nextLogRecordIndex = 0;
   c_bootRecord.boolPreferencies.isLogOverflow = false;
-  AT24C32_EEPROM.write(OFFSETOF(BootRecord, boolPreferencies), &(c_bootRecord.boolPreferencies), sizeof(c_bootRecord.boolPreferencies));
+  EEPROM.updateBlock(0, c_bootRecord);
 }
 
 BootRecord StorageHelperClass::getBootRecord(){
@@ -125,16 +139,16 @@ boolean StorageHelperClass::isBootRecordCorrect(){ // TODO rename it
   return (c_bootRecord.first_magic == MAGIC_NUMBER) && (c_bootRecord.last_magic == MAGIC_NUMBER);
 }
 
-void StorageHelperClass::increaseLogPointer(){
-  c_bootRecord.nextLogRecordAddress += sizeof(LogRecord); 
-  if (c_bootRecord.nextLogRecordAddress >= (sizeof(BootRecord) + LOG_RECORD_OVERFLOW_OFFSET)){
-    c_bootRecord.nextLogRecordAddress = sizeof(BootRecord);
+void StorageHelperClass::increaseLogIndex(){
+  c_bootRecord.nextLogRecordIndex++;
+  if (c_bootRecord.nextLogRecordIndex >= LOG_CAPACITY){
+    c_bootRecord.nextLogRecordIndex = 0;
     if (!c_bootRecord.boolPreferencies.isLogOverflow){
       c_bootRecord.boolPreferencies.isLogOverflow = true;
-      AT24C32_EEPROM.write(OFFSETOF(BootRecord, boolPreferencies), &(c_bootRecord.boolPreferencies), sizeof(c_bootRecord.boolPreferencies)); 
+      //EEPROM.updateBlock(0, c_bootRecord); 
     }
   }
-  AT24C32_EEPROM.write(OFFSETOF(BootRecord, nextLogRecordAddress), &(c_bootRecord.nextLogRecordAddress), sizeof(c_bootRecord.nextLogRecordAddress)); 
+  EEPROM.updateBlock(0, c_bootRecord); 
 }
 
 StorageHelperClass GB_StorageHelper;

@@ -1,20 +1,19 @@
-#ifndef GB_StorageHelper_h
-#define GB_StorageHelper_h
+#ifndef StorageHelper_h
+#define StorageHelper_h
 
 #include "StorageModel.h"
-#include "AT24C32_EEPROM.h"
-
-#define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
 
 class StorageHelperClass{
-  
+
 public:
 
-  static const word LOG_CAPACITY = ((AT24C32_EEPROM_Class::CAPACITY - sizeof(BootRecord))/sizeof(LogRecord));
+  static const word LOG_CAPACITY_INTERNAL;
+  static const word LOG_CAPACITY_AT24C32;
+  static const word LOG_CAPACITY;
 
 private:
-  static const word LOG_RECORD_OVERFLOW_OFFSET = LOG_CAPACITY * sizeof(LogRecord);
-  BootRecord c_bootRecord;
+
+  BootRecord c_bootRecord; // TODO - do note load in memory permanent 
 
 public:
 
@@ -23,6 +22,7 @@ public:
   /////////////////////////////////////////////////////////////////////
 
   boolean init();
+  void update();
 
   void setStoreLogRecordsEnabled(boolean flag);
   boolean isStoreLogRecordsEnabled();
@@ -55,13 +55,15 @@ private :
 
   boolean isBootRecordCorrect();
 
-  void increaseLogPointer();
+  void increaseLogIndex();
 
 };
 
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
+
+
 
 
 

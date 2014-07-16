@@ -1,6 +1,3 @@
-
-//#include <EEPROM.h>
-
 // Warning! We need to include all used libraries, 
 // otherwise Arduino IDE doesn't set correct build 
 // params for gcc compilator
@@ -61,11 +58,13 @@ void printStatusOnBoot(const __FlashStringHelper* str){ //TODO
   }
 }
 
-void printFatalErrorOnBoot(const __FlashStringHelper* str){ //TODO 
-  if (g_useSerialMonitor){
+void stopOnFatalError(const __FlashStringHelper* str){ //TODO 
+   digitalWrite(ERROR_PIN, HIGH);
+   if (g_useSerialMonitor){
     Serial.print(F("Fatal error: "));
     Serial.println(str);
   }
+  while(true) delay(5000); // Stop boot process
 }
 
 void printFreeMemory(){  
@@ -112,46 +111,29 @@ void setup() {
   if(g_useSerialMonitor){
     printFreeMemory();
     printStatusOnBoot(F("software configuration"));
-    //RAK410_XBeeWifi.printDirtyEnd();
   }
 
   initLoggerModel();
   if (!Error::isInitialized()){
-    if(g_useSerialMonitor){ 
-      printFatalErrorOnBoot(F("not all Errors initialized"));
-    }
-    while(true) delay(5000);  
+    stopOnFatalError(F("not all Errors initialized"));
   }
   if (!Event::isInitialized()){
-    if(g_useSerialMonitor){ 
-      printFatalErrorOnBoot(F("not all Events initialized"));
-    }
-    while(true) delay(5000);  
+    stopOnFatalError(F("not all Events initialized"));
   }
 
   if (BOOT_RECORD_SIZE != sizeof(BootRecord)){
-    digitalWrite(ERROR_PIN, HIGH);
-    if(g_useSerialMonitor){ 
-      printFatalErrorOnBoot(F("wrong BootRecord size"));
-      //RAK410_XBeeWifi.printDirtyEnd();
-    }
-    while(true) delay(5000);
+    Serial.print(BOOT_RECORD_SIZE);  Serial.print('-'); Serial.print(sizeof(BootRecord));
+    stopOnFatalError(F("wrong BootRecord size"));
   }
 
   if (LOG_RECORD_SIZE != sizeof(LogRecord)){
-    digitalWrite(ERROR_PIN, HIGH);
-    if(g_useSerialMonitor){ 
-      printFatalErrorOnBoot(F("wrong LogRecord size"));
-      //RAK410_XBeeWifi.printDirtyEnd();
-    }
-    while(true) delay(5000);
+    stopOnFatalError(F("wrong LogRecord size"));
   }
-
+    
   GB_Controller.checkFreeMemory();
 
   if(g_useSerialMonitor){ 
     printStatusOnBoot(F("clock"));
-    //RAK410_XBeeWifi.printDirtyEnd();
   }
 
   // Configure clock
@@ -166,7 +148,6 @@ void setup() {
 
   if(g_useSerialMonitor){ 
     printStatusOnBoot(F("termometer"));
-    //RAK410_XBeeWifi.printDirtyEnd();
   }
 
   // Configure termometer
@@ -179,13 +160,34 @@ void setup() {
 
   if(g_useSerialMonitor){ 
     printStatusOnBoot(F("storage"));
-    //RAK410_XBeeWifi.printDirtyEnd();
   }
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean itWasRestart = GB_StorageHelper.init();
 
   g_isGrowboxStarted = true;
+  
+  //Serial.println(GB_StorageHelper.LOG_CAPACITY);
+//
+  //for (word i=0; i< GB_StorageHelper.LOG_CAPACITY; i++){
+  //  LogRecord logRecord(B11000000|(i%B00111111));
+  //  GB_StorageHelper.storeLogRecord(logRecord);
+  //  
+  //}
+  
+//  for (word i=0; i< GB_StorageHelper.getLogRecordsCount(); i++){
+//    LogRecord logRecord;
+//    GB_StorageHelper.getLogRecordByIndex(i, logRecord);
+//    Serial.print(i); 
+//    Serial.print(" - ");     
+//    Serial.print(StringUtils::timeToString(logRecord.timeStamp)); 
+//    Serial.print(" - "); 
+//    Serial.println(logRecord.data); 
+//  }
+//  
+//  while(true) delay(5000);
+//  return;
+
 
   // Now we can use logger
   if (itWasRestart){

@@ -1,6 +1,7 @@
 #include "WebServer.h"
 
 #include "RAK410_XBeeWifi.h" 
+#include "EEPROM_AT24C32.h" 
 
 void WebServerClass::handleSerialEvent(){
 
@@ -543,7 +544,7 @@ void WebServerClass::printSendFullLog(boolean printEvents, boolean printErrors, 
 // TODO garbage?
 void WebServerClass::printStorage(word address, byte sizeOf){
   byte buffer[sizeOf];
-  AT24C32_EEPROM.read(address, buffer, sizeOf);
+  EEPROM_AT24C32.readBlock<byte>(address, buffer, sizeOf);
   PrintUtils::printRAM(buffer, sizeOf);
   Serial.println();
 }
@@ -562,8 +563,8 @@ void WebServerClass::sendStorageDump(){
   }
   sendTag(FS(S_tr), HTTP_TAG_CLOSED);
 
-  for (word i = 0; i < AT24C32_EEPROM.CAPACITY ; i++){
-    byte value = AT24C32_EEPROM.read(i);
+  for (word i = 0; i < EEPROM_AT24C32.CAPACITY ; i++){
+    byte value = EEPROM_AT24C32.read(i);
 
     if (i% 16 ==0){
       if (i>0){
