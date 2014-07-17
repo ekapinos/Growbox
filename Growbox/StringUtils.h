@@ -28,7 +28,7 @@ namespace StringUtils {
   boolean flashStringEndsWith(const String &str, const __FlashStringHelper* pstr);
 
   String flashStringLoad(const __FlashStringHelper* fstr);
-  size_t flashStringLoad(const __FlashStringHelper* fstr, char* cstr, size_t length);
+  size_t flashStringLoad(char* cstr, size_t length, const __FlashStringHelper* fstr);
   
   /////////////////////////////////////////////////////////////////////
   //                         STRING CLASS UTILS                      //

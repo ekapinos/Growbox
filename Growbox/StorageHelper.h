@@ -11,12 +11,6 @@ public:
   static const word LOG_CAPACITY_AT24C32;
   static const word LOG_CAPACITY;
 
-private:
-
-  BootRecord c_bootRecord; // TODO - do note load in memory permanent 
-
-public:
-
   /////////////////////////////////////////////////////////////////////
   //                            BOOT RECORD                          //
   /////////////////////////////////////////////////////////////////////
@@ -47,7 +41,7 @@ public:
 
   void resetFirmware();
   void resetStoredLog();
-  
+
   BootRecord getBootRecord();
 
   /////////////////////////////////////////////////////////////////////
@@ -56,19 +50,23 @@ public:
 
   boolean isWifiStationMode();
   String getWifiSSID();
-  String getWifiPASS();
+  String getWifiPass();
 
 
 private :
 
-  boolean isBootRecordCorrect();
-  void increaseLogIndex();
+  word getNextLogRecordIndex();
+  void increaseNextLogRecordIndex();
 
+  BootRecord::BoolPreferencies getBoolPreferencies();
+  void setBoolPreferencies(BootRecord::BoolPreferencies boolPreferencies);
 };
 
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
+
+
 
 
 

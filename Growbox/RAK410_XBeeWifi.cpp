@@ -393,7 +393,7 @@ boolean RAK410_XBeeWifiClass::startupWebServerSilent(){
   } 
 
   String wifiSSID = GB_StorageHelper.getWifiSSID();
-  String wifiPass = GB_StorageHelper.getWifiPASS();
+  String wifiPass = GB_StorageHelper.getWifiPass();
 
   if (wifiPass.length() > 0){
     wifiExecuteRawCommandPrint(F("at+psk="));

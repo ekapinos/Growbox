@@ -16,7 +16,7 @@ struct BootRecord {
   time_t firstStartupTimeStamp;     //  4
   time_t lastStartupTimeStamp;      //  4
   word nextLogRecordIndex;          //  2
-  struct  {
+  struct BoolPreferencies {
 boolean isLogOverflow :
     1;  
 boolean isLoggerEnabled :

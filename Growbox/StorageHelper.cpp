@@ -5,7 +5,7 @@
 #include "EEPROM_AT24C32.h"
 
 
-//#define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
+#define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
 
 const word StorageHelperClass::LOG_CAPACITY_ARDUINO     = (EEPROM.getCapacity() - sizeof(BootRecord)) / sizeof(LogRecord);
 const word StorageHelperClass::LOG_CAPACITY_AT24C32     = (EEPROM_AT24C32.getCapacity()) / sizeof(LogRecord);
@@ -17,45 +17,45 @@ const word StorageHelperClass::LOG_CAPACITY             = (LOG_CAPACITY_ARDUINO 
 
 boolean StorageHelperClass::init(){
 
-  EEPROM.readBlock<BootRecord>(0, c_bootRecord);
+  BootRecord bootRecord = EEPROM.readBlock<BootRecord>(0);
 
-  if (isBootRecordCorrect()){
-    c_bootRecord.lastStartupTimeStamp = now();      
-    EEPROM.updateBlock(0, c_bootRecord);      
+  if ((bootRecord.first_magic == MAGIC_NUMBER) && (bootRecord.last_magic == MAGIC_NUMBER)){ 
+    EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp), now());      
     return true;   
   } 
   else {
-    c_bootRecord.first_magic = MAGIC_NUMBER;
-    c_bootRecord.firstStartupTimeStamp = now();
-    c_bootRecord.lastStartupTimeStamp = c_bootRecord.firstStartupTimeStamp;
-    c_bootRecord.nextLogRecordIndex = 0;
-    c_bootRecord.boolPreferencies.isLogOverflow = false;
-    c_bootRecord.boolPreferencies.isLoggerEnabled = true;
+    bootRecord.first_magic = MAGIC_NUMBER;
+    bootRecord.firstStartupTimeStamp = now();
+    bootRecord.lastStartupTimeStamp = bootRecord.firstStartupTimeStamp;
+    bootRecord.nextLogRecordIndex = 0;
+    bootRecord.boolPreferencies.isLogOverflow = false;
+    bootRecord.boolPreferencies.isLoggerEnabled = true;
 
-    c_bootRecord.boolPreferencies.isWifiStationMode = false; // AP by default
-    StringUtils::flashStringLoad(FS(S_WIFI_DEFAULT_SSID), c_bootRecord.wifiSSID, WIFI_SSID_LENGTH);
-    StringUtils::flashStringLoad(FS(S_WIFI_DEFAULT_PASS), c_bootRecord.wifiPass, WIFI_PASS_LENGTH); 
+    bootRecord.boolPreferencies.isWifiStationMode = false; // AP by default
+    StringUtils::flashStringLoad(bootRecord.wifiSSID, WIFI_SSID_LENGTH, FS(S_WIFI_DEFAULT_SSID));
+    StringUtils::flashStringLoad(bootRecord.wifiPass, WIFI_PASS_LENGTH, FS(S_WIFI_DEFAULT_PASS)); 
 
-    for(byte i=0; i < sizeof(c_bootRecord.reserved); i++){
-      c_bootRecord.reserved[i] = 0;
+    for(byte i=0; i < sizeof(bootRecord.reserved); i++){
+      bootRecord.reserved[i] = 0;
     }
-    c_bootRecord.last_magic = MAGIC_NUMBER;
+    bootRecord.last_magic = MAGIC_NUMBER;
 
-    EEPROM.updateBlock(0, c_bootRecord);
+    EEPROM.updateBlock<BootRecord>(0, bootRecord);
 
     return false; 
   }
 }
 
 void update(){
-
+  // TODO implement if extermal EEPROM DISCONNECTED
 }
 
 time_t StorageHelperClass::getFirstStartupTimeStamp(){
-  return c_bootRecord.firstStartupTimeStamp; 
+  return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, firstStartupTimeStamp)); 
 }
+
 time_t StorageHelperClass::getLastStartupTimeStamp(){
-  return c_bootRecord.lastStartupTimeStamp; 
+  return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp));
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -63,48 +63,54 @@ time_t StorageHelperClass::getLastStartupTimeStamp(){
 /////////////////////////////////////////////////////////////////////
 
 void StorageHelperClass::setStoreLogRecordsEnabled(boolean flag){
-  c_bootRecord.boolPreferencies.isLoggerEnabled = flag;
-  EEPROM.updateBlock(0, c_bootRecord); 
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.isLoggerEnabled = flag;
+  setBoolPreferencies(boolPreferencies);
 }
+
 boolean StorageHelperClass::isStoreLogRecordsEnabled(){
-  return c_bootRecord.boolPreferencies.isLoggerEnabled; 
+  return getBoolPreferencies().isLoggerEnabled;
 }
 
 boolean StorageHelperClass::storeLogRecord(LogRecord &logRecord){ 
-  boolean storeLog = g_isGrowboxStarted && isBootRecordCorrect() && c_bootRecord.boolPreferencies.isLoggerEnabled && EEPROM.isPresent() && EEPROM_AT24C32.isPresent(); // TODO check in another places
+  boolean storeLog = g_isGrowboxStarted && isStoreLogRecordsEnabled() && EEPROM.isPresent() && EEPROM_AT24C32.isPresent();
   if (!storeLog){
     return false;
   }
-  if (c_bootRecord.nextLogRecordIndex < LOG_CAPACITY_ARDUINO){
-    EEPROM.updateBlock<LogRecord>(sizeof(BootRecord)+c_bootRecord.nextLogRecordIndex*sizeof(logRecord), logRecord);
+  word nextLogRecordIndex = getNextLogRecordIndex();
+  if (nextLogRecordIndex < LOG_CAPACITY_ARDUINO){
+    word address = sizeof(BootRecord) + nextLogRecordIndex * sizeof(logRecord);
+    EEPROM.updateBlock<LogRecord>(address, logRecord);
   } 
   else {
-    EEPROM_AT24C32.updateBlock<LogRecord>((c_bootRecord.nextLogRecordIndex-LOG_CAPACITY_ARDUINO)*sizeof(logRecord), logRecord);
+    word address = (nextLogRecordIndex - LOG_CAPACITY_ARDUINO) * sizeof(logRecord);
+    EEPROM_AT24C32.updateBlock<LogRecord>(address, logRecord);
   }
-  increaseLogIndex();
+  increaseNextLogRecordIndex();
   return true;
 }
 
 boolean StorageHelperClass::isLogOverflow(){
-  return c_bootRecord.boolPreferencies.isLogOverflow;
+  return getBoolPreferencies().isLogOverflow;
 }
 
 word StorageHelperClass::getLogRecordsCount(){
-  if (c_bootRecord.boolPreferencies.isLogOverflow){
+  if (isLogOverflow()){
     return LOG_CAPACITY; 
   } 
   else {
-    return c_bootRecord.nextLogRecordIndex;
+    return getNextLogRecordIndex();
   }
 }
+
 boolean StorageHelperClass::getLogRecordByIndex(word index, LogRecord &logRecord){
   if (index >= getLogRecordsCount()){
     return false;
   }
 
   word planeIndex = 0;
-  if (c_bootRecord.boolPreferencies.isLogOverflow){
-    planeIndex = c_bootRecord.nextLogRecordIndex;
+  if (isLogOverflow()){
+    planeIndex = getNextLogRecordIndex();
   }
   //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
   planeIndex += index;
@@ -115,10 +121,10 @@ boolean StorageHelperClass::getLogRecordByIndex(word index, LogRecord &logRecord
   }
   //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
   if (planeIndex < LOG_CAPACITY_ARDUINO){
-    EEPROM.readBlock<LogRecord>(sizeof(BootRecord) + planeIndex*sizeof(logRecord), logRecord);
+    logRecord = EEPROM.readBlock<LogRecord>(sizeof(BootRecord) + planeIndex*sizeof(logRecord));
   } 
   else {
-    EEPROM_AT24C32.readBlock<LogRecord>((planeIndex-LOG_CAPACITY_ARDUINO)*sizeof(logRecord), logRecord);
+    logRecord = EEPROM_AT24C32.readBlock<LogRecord>((planeIndex-LOG_CAPACITY_ARDUINO)*sizeof(logRecord));
   }
   return true;
 }
@@ -128,18 +134,19 @@ boolean StorageHelperClass::getLogRecordByIndex(word index, LogRecord &logRecord
 /////////////////////////////////////////////////////////////////////
 
 void StorageHelperClass::resetFirmware(){
-  c_bootRecord.first_magic = 0;
-  EEPROM.updateBlock(0, c_bootRecord);
+  EEPROM.updateBlock<word>(OFFSETOF(BootRecord, first_magic), 0x0000);
 }
 
-void StorageHelperClass::resetStoredLog(){
-  c_bootRecord.nextLogRecordIndex = 0;
-  c_bootRecord.boolPreferencies.isLogOverflow = false;
-  EEPROM.updateBlock(0, c_bootRecord);
+void StorageHelperClass::resetStoredLog(){  
+  EEPROM.updateBlock<word>(OFFSETOF(BootRecord, nextLogRecordIndex), 0x0000);
+
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.isLogOverflow = false;
+  setBoolPreferencies(boolPreferencies);
 }
 
 BootRecord StorageHelperClass::getBootRecord(){
-  return c_bootRecord; // Creates copy of boot record //TODO check it
+  return EEPROM.readBlock<BootRecord>(0);
 }
 
 
@@ -148,12 +155,15 @@ BootRecord StorageHelperClass::getBootRecord(){
 /////////////////////////////////////////////////////////////////////
 
 boolean StorageHelperClass::isWifiStationMode(){
-  return c_bootRecord.boolPreferencies.isWifiStationMode; 
+  return getBoolPreferencies().isWifiStationMode; 
 }
-String StorageHelperClass::getWifiSSID(){
+String StorageHelperClass::getWifiSSID(){ 
+  byte buffer[WIFI_SSID_LENGTH];
+  EEPROM.readBlock<byte>(OFFSETOF(BootRecord, wifiSSID), buffer, WIFI_SSID_LENGTH);
+
   String str;
   for (word i = 0; i< WIFI_SSID_LENGTH; i++){
-    char c = c_bootRecord.wifiSSID[i];
+    char c = buffer[i];
     if (c == 0){
       break;
     }
@@ -162,10 +172,13 @@ String StorageHelperClass::getWifiSSID(){
   return str;
 }
 
-String StorageHelperClass::getWifiPASS(){
-    String str;
+String StorageHelperClass::getWifiPass(){
+  byte buffer[WIFI_PASS_LENGTH];
+  EEPROM.readBlock<byte>(OFFSETOF(BootRecord, wifiPass), buffer, WIFI_PASS_LENGTH);
+
+  String str;
   for (word i = 0; i< WIFI_PASS_LENGTH; i++){
-    char c = c_bootRecord.wifiPass[i];
+    char c = buffer[i];
     if (c == 0){
       break;
     }
@@ -173,24 +186,35 @@ String StorageHelperClass::getWifiPASS(){
   }
   return str;
 }
-//private :
 
-boolean StorageHelperClass::isBootRecordCorrect(){ // TODO rename it
-  return (c_bootRecord.first_magic == MAGIC_NUMBER) && (c_bootRecord.last_magic == MAGIC_NUMBER);
+word StorageHelperClass::getNextLogRecordIndex(){
+  return EEPROM.readBlock<word>(OFFSETOF(BootRecord, nextLogRecordIndex));
 }
 
-void StorageHelperClass::increaseLogIndex(){
-  c_bootRecord.nextLogRecordIndex++;
-  if (c_bootRecord.nextLogRecordIndex >= LOG_CAPACITY){
-    c_bootRecord.nextLogRecordIndex = 0;
-    if (!c_bootRecord.boolPreferencies.isLogOverflow){
-      c_bootRecord.boolPreferencies.isLogOverflow = true;
-      //EEPROM.updateBlock(0, c_bootRecord); 
-    }
+
+void StorageHelperClass::increaseNextLogRecordIndex(){
+  word nextLogRecordIndex = getNextLogRecordIndex();
+  nextLogRecordIndex++;
+  if (nextLogRecordIndex >= LOG_CAPACITY){
+    nextLogRecordIndex = 0;
+
+    BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+    boolPreferencies.isLogOverflow = true;
+    setBoolPreferencies(boolPreferencies);
   }
-  EEPROM.updateBlock(0, c_bootRecord); 
+  EEPROM.updateBlock(OFFSETOF(BootRecord, nextLogRecordIndex), nextLogRecordIndex); 
+}
+
+BootRecord::BoolPreferencies StorageHelperClass::getBoolPreferencies(){  
+  return EEPROM.readBlock<BootRecord::BoolPreferencies>(OFFSETOF(BootRecord, boolPreferencies));
+}
+
+void StorageHelperClass::setBoolPreferencies(BootRecord::BoolPreferencies boolPreferencies){
+  EEPROM.updateBlock<BootRecord::BoolPreferencies>(OFFSETOF(BootRecord, boolPreferencies), boolPreferencies);
 }
 
 StorageHelperClass GB_StorageHelper;
+
+
 
 

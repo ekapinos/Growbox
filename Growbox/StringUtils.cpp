@@ -89,7 +89,7 @@ String StringUtils::flashStringLoad(const __FlashStringHelper* fstr){
   return str; 
 }
 
-size_t StringUtils::flashStringLoad(const __FlashStringHelper* fstr, char* cstr, size_t cstrLength){
+size_t StringUtils::flashStringLoad(char* cstr, size_t cstrLength, const __FlashStringHelper* fstr){
   size_t length = flashStringLength(fstr);
 
   size_t loadedBytes = 0;

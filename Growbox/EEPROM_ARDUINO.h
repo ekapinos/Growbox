@@ -34,23 +34,22 @@ public:
   //                            TEMPLATES                            //
   /////////////////////////////////////////////////////////////////////
 
-  template <class T> word readBlock(const word address, const T value[], word items){
+  template <class T> void readBlock(const word address, T value[], word items){
     if ((address+items*sizeof(T)-1) >= getCapacity()) {
-      return 0;
+      return;
     }
-    word rez = 0;
     for (word i = 0; i < items; i++) {
-      rez += readBlock<T>(address+i*sizeof(T), value[i]); 
+      value[i] = readBlock<T>(address+i*sizeof(T)); 
     }     
-    return rez;
   }
 
-  template <class T> word readBlock(const word address, const T& value){	
-    if ((address+sizeof(value)-1) >= getCapacity()) {
-      return 0;
+  template <class T> T readBlock(const word address){	
+    if ((address+sizeof(T)-1) >= getCapacity()) {
+      return T();
     }	
-    read_block(address, (void*)&value, sizeof(value));     
-    return sizeof(value);
+    T value;
+    read_block(address, &value, sizeof(value));     
+    return value;
   }
 
   template <class T> word writeBlock(word address, const T value[], word items){	
