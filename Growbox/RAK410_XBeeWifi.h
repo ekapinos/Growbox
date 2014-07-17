@@ -80,8 +80,8 @@ private:
     }
   }
 
-  template <class T> void wifiExecuteRawCommandPrint(T command){
-    Serial1.print(command);  
+  template <class T> unsigned int wifiExecuteRawCommandPrint(T command){
+    unsigned int rez = Serial1.print(command);  
 
     if (g_useSerialMonitor){
       if (isWifiPrintCommandStarted){  
@@ -92,6 +92,8 @@ private:
       }  
     }
     isWifiPrintCommandStarted = true;
+    
+    return rez;
   }  
 
 };

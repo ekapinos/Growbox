@@ -285,7 +285,7 @@ void RAK410_XBeeWifiClass::sendFixedSizeData(const byte portDescriptor, const __
     return;
   }
   sendFixedSizeFrameStart(portDescriptor, length);
-  Serial1.print(data);
+  wifiExecuteRawCommandPrint(data);
   sendFixedSizeFrameStop();
 }
 
@@ -320,19 +320,19 @@ void RAK410_XBeeWifiClass::sendAutoSizeFrameStart(const byte &wifiPortDescriptor
 boolean RAK410_XBeeWifiClass::sendAutoSizeFrameData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
   boolean isSendOK = true;
   if (c_autoSizeFrameSize + StringUtils::flashStringLength(data) < WIFI_MAX_SEND_FRAME_SIZE){
-    c_autoSizeFrameSize += Serial1.print(data);
+    c_autoSizeFrameSize += wifiExecuteRawCommandPrint(data);
   } 
   else {
     size_t index = 0;
     while (c_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
       char c = StringUtils::flashStringCharAt(data, index++);
-      c_autoSizeFrameSize += Serial1.print(c);
+      c_autoSizeFrameSize += wifiExecuteRawCommandPrint(c);
     }
     isSendOK = sendAutoSizeFrameStop();
     sendAutoSizeFrameStart(wifiPortDescriptor);   
     while (index < StringUtils::flashStringLength(data)){
       char c = StringUtils::flashStringCharAt(data, index++);
-      c_autoSizeFrameSize += Serial1.print(c);
+      c_autoSizeFrameSize += wifiExecuteRawCommandPrint(c);
     } 
 
   }
@@ -345,20 +345,20 @@ boolean RAK410_XBeeWifiClass::sendAutoSizeFrameData(const byte &wifiPortDescript
     return isSendOK;
   }
   if (c_autoSizeFrameSize + data.length() < WIFI_MAX_SEND_FRAME_SIZE){
-    c_autoSizeFrameSize += Serial1.print(data);
+    c_autoSizeFrameSize += wifiExecuteRawCommandPrint(data);
   } 
   else {
     size_t index = 0;
     while (c_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
       char c = data[index++];
-      c_autoSizeFrameSize += Serial1.print(c);
+      c_autoSizeFrameSize += wifiExecuteRawCommandPrint(c);
     }
     isSendOK = sendAutoSizeFrameStop();
     sendAutoSizeFrameStart(wifiPortDescriptor); 
 
     while (index < data.length()){
       char c = data[index++];
-      c_autoSizeFrameSize += Serial1.print(c);
+      c_autoSizeFrameSize += wifiExecuteRawCommandPrint(c);
     }      
   }
   return isSendOK;
