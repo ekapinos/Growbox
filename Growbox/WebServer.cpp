@@ -19,23 +19,23 @@ void WebServerClass::showWebMessage(const __FlashStringHelper* str, boolean newL
 
 void WebServerClass::handleSerialEvent(){
 
-  String input;   
+  String url;   
   String postParams; 
 
   // HTTP response supplemental   
-  RAK410_XBeeWifiClass::RequestType commandType = RAK410_XBeeWifi.handleSerialEvent(c_wifiPortDescriptor, input, postParams);
+  RAK410_XBeeWifiClass::RequestType commandType = RAK410_XBeeWifi.handleSerialEvent(c_wifiPortDescriptor, url, postParams);
 
   switch(commandType){
     case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
     if (
-      StringUtils::flashStringEquals(input, FS(S_url)) || 
-      StringUtils::flashStringEquals(input, FS(S_url_log)) ||
-      StringUtils::flashStringEquals(input, FS(S_url_conf)) ||
-      StringUtils::flashStringEquals(input, FS(S_url_storage))
-    ){
+    StringUtils::flashStringEquals(url, FS(S_url_root)) || 
+      StringUtils::flashStringEquals(url, FS(S_url_log)) ||
+      StringUtils::flashStringStartsWith(url,FS(S_url_configuration)) ||
+      StringUtils::flashStringEquals(url, FS(S_url_storage))
+      ){
 
       sendHttpPageHeader();
-      sendHttpPageBody(input);
+      sendHttpPageBody(url);
       sendHttpPageComplete();
 
       if(g_useSerialMonitor){ 
@@ -49,8 +49,8 @@ void WebServerClass::handleSerialEvent(){
     }
     break;  
 
-    case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST:
-    sendHttpRedirect(FS(S_url));
+    case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST: 
+    sendHttpRedirect(applyPostParams(postParams));
     break;
 
   default:
@@ -71,14 +71,14 @@ void WebServerClass::sendHttpNotFound(){
 // WARNING! RAK 410 became mad when 2 parallel connections comes. Like with Chrome and POST request, when RAK response 303.
 // Connection for POST request closed by Chrome (not by RAK). And during this time Chrome creates new parallel connection for GET
 // request.
-void WebServerClass::sendHttpRedirect(const __FlashStringHelper* data){ 
+void WebServerClass::sendHttpRedirect(const String &url){ 
   //const __FlashStringHelper* header = F("HTTP/1.1 303 See Other\r\nLocation: "); // DO not use it with RAK 410
-  const __FlashStringHelper* header = F("HTTP/1.1 200 OK (303 doesn't work on RAK 410)\r\nrefresh: 0; url="); 
+  const __FlashStringHelper* header = F("HTTP/1.1 200 OK (303 doesn't work on RAK 410)\r\nrefresh: 1; url="); 
 
-  RAK410_XBeeWifi.sendFixedSizeFrameStart(c_wifiPortDescriptor, StringUtils::flashStringLength(header) + StringUtils::flashStringLength(data) + StringUtils::flashStringLength(FS(S_CRLFCRLF)));
+  RAK410_XBeeWifi.sendFixedSizeFrameStart(c_wifiPortDescriptor, StringUtils::flashStringLength(header) + url.length() + StringUtils::flashStringLength(FS(S_CRLFCRLF)));
 
   RAK410_XBeeWifi.sendFixedSizeFrameData(header);
-  RAK410_XBeeWifi.sendFixedSizeFrameData(data);
+  RAK410_XBeeWifi.sendFixedSizeFrameData(url);
   RAK410_XBeeWifi.sendFixedSizeFrameData(FS(S_CRLFCRLF));
 
   RAK410_XBeeWifi.sendFixedSizeFrameStop();
@@ -97,39 +97,45 @@ void WebServerClass::sendHttpPageComplete(){
   RAK410_XBeeWifi.sendCloseConnection(c_wifiPortDescriptor);
 }
 
-void WebServerClass::sendHttpPageBody(const String &input){
+void WebServerClass::sendHttpPageBody(const String &url){
 
-  sendTag(FS(S_html), HTTP_TAG_OPEN); 
-  sendTag(FS(S_h1), HTTP_TAG_OPEN); 
-  sendRawData(F("Growbox"));  
-  sendTag(FS(S_h1), HTTP_TAG_CLOSED);
-  sendTagButton(FS(S_url), F("Status"));
-  sendTagButton(FS(S_url_log), F("Daily log"));
-  sendTagButton(FS(S_url_conf), F("Configuration"));
-  sendTagButton(FS(S_url_storage), F("Storage dump"));
+  boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
+  boolean isLogPage     = StringUtils::flashStringEquals(url, FS(S_url_log));
+  boolean isConfPage    = StringUtils::flashStringStartsWith(url, FS(S_url_configuration));
+  boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
+
+  sendRawData(F("<html><head>"));
+  sendRawData(F("  <title>Growbox</title>"));
+  sendRawData(F("  <meta name='viewport' content='width=device-width, initial-scale=1'/>"));
+  sendRawData(F("</head>"));
+  sendRawData(F("<body style='font-family:Arial;'>"));
+
+  sendRawData(F("<h1>Growbox</h1>"));   
+
+  sendTagButton(FS(S_url_root), F("Status"), isRootPage);
+  sendTagButton(FS(S_url_log), F("Daily log"), isLogPage);
+  sendTagButton(FS(S_url_configuration), F("Configuration"), isConfPage);
+  sendTagButton(FS(S_url_storage), F("Storage dump"), isStoragePage);
   sendTag(FS(S_hr), HTTP_TAG_SINGLE);
-  sendTag(FS(S_pre), HTTP_TAG_OPEN);
-  sendBriefStatus();
-  sendTag(FS(S_pre), HTTP_TAG_CLOSED);
 
-  sendTag(FS(S_pre), HTTP_TAG_OPEN);
-  if (StringUtils::flashStringEquals(input, FS(S_url))){
+  //sendTag(FS(S_pre), HTTP_TAG_OPEN);
+  if (isRootPage){
+    sendBriefStatus();
     sendPinsStatus();   
   } 
-  else if (StringUtils::flashStringEquals(input, FS(S_url_conf))){
-    sendConfigurationControls();
-  } 
-  else if (StringUtils::flashStringEquals(input, FS(S_url_log))){
+  else if (isLogPage){
     sendFullLog(true, true, true); // TODO use parameters
   }
-  else if (StringUtils::flashStringEquals(input, FS(S_url_storage))){
+  else if (isConfPage){
+    sendConfigurationForms();
+  } 
+  else if (isStoragePage){
     sendStorageDump(); 
   }
 
   if (c_isWifiResponseError) return;
 
-  sendTag(FS(S_pre), HTTP_TAG_CLOSED);
-  sendTag(FS(S_html), HTTP_TAG_CLOSED);
+  sendRawData(F("</body></html>"));
   /*
     // read the incoming byte:
    char firstChar = 0, secondChar = 0; 
@@ -273,18 +279,114 @@ void WebServerClass::sendRawData(time_t data){
   sendRawData(str);
 }
 
-void WebServerClass::sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* name){
-  sendRawData(F("<input type=\"button\" onclick=\"document.location='"));
-  sendRawData(url);
-  sendRawData(F("'\" value=\""));
-  sendRawData(name);
-  sendRawData(F("\"/>"));
+void WebServerClass::sendTagButton(const __FlashStringHelper* buttonUrl, const __FlashStringHelper* buttonTitle, boolean isSelected){
+  sendRawData(F("<input type='button' onclick='document.location=\""));
+  sendRawData(buttonUrl);
+  sendRawData(F("\"' value='"));
+  sendRawData(buttonTitle);
+  sendRawData(F("'"));
+  if (isSelected) {
+    sendRawData(F(" style='text-decoration:underline;'"));
+  }
+  sendRawData(F(" />"));
 }
 
 /////////////////////////////////////////////////////////////////////
 //                          HTML PAGE PARTS                        //
 /////////////////////////////////////////////////////////////////////
 
+void WebServerClass::sendConfigurationForms(){
+
+  boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
+
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post'>"));
+
+  sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
+
+  sendRawData(F("<input type='radio' name='isWifiStationMode' value='0'")); 
+  if(!isWifiStationMode) {
+    sendRawData(F("checked='checked'")); 
+  } 
+  sendRawData(F("/>Create new Network (hidden, WPA2)<br/>"));
+  sendRawData(F("<input type='radio' name='isWifiStationMode' value='1'"));
+  if(isWifiStationMode) {
+    sendRawData(F("checked='checked'")); 
+  } 
+  sendRawData(F("/>Join existed Network<br/>"));
+
+  sendRawData(F("<table>"));
+  sendRawData(F("<tr><td><label for='wifiSSID'>SSID    </label></td><td><input type='text' name='wifiSSID' required value='"));
+  sendRawData(GB_StorageHelper.getWifiSSID());
+  sendRawData(F("' maxlength='"));
+  sendRawData(WIFI_SSID_LENGTH);
+  sendRawData(F("'/></td></tr>"));
+
+  sendRawData(F("<tr><td><label for='wifiPass'>Password</label></td><td><input type='text' name='wifiPass' required value='"));
+  sendRawData(GB_StorageHelper.getWifiPass());
+  sendRawData(F("' maxlength='"));
+  sendRawData(WIFI_PASS_LENGTH);
+  sendRawData(F("'/></td></tr>"));
+
+  sendRawData(F("</table>")); 
+
+  sendRawData(F("<input type='submit' value='Update'>"));
+
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("</form>"));
+}
+
+String WebServerClass::applyPostParams(String& postParams){
+  boolean isAllParamsApplied = true;
+  int beginIndex = 0;  
+  int endIndex = postParams.indexOf('&');
+  while (beginIndex < (int) postParams.length()){
+    if (endIndex == -1){
+      endIndex = postParams.length();
+    }
+    String postParam = postParams.substring(beginIndex, endIndex);  
+    isAllParamsApplied &= applyPostParam(postParam);
+
+    beginIndex = endIndex+1;
+    endIndex = postParams.indexOf('&', beginIndex);
+  }
+
+  String rez = StringUtils::flashStringLoad(FS(S_url_configuration));
+  if (isAllParamsApplied){
+    rez += StringUtils::flashStringLoad(F("/ok"));
+  } 
+  else {
+    rez += StringUtils::flashStringLoad(F("/error"));
+  }
+  return rez;
+}
+
+boolean WebServerClass::applyPostParam(String& postParam){
+  // isWifiStationMode=1&wifiSSID=Growbox%3C&wifiPass=ingodwetrust
+  boolean isOK = true;
+  //Serial.println(postParam);
+  int equalsCharIndex = postParam.indexOf('=');
+  if (equalsCharIndex == -1){
+    return false;
+  }
+  String paramName  = postParam.substring(0, equalsCharIndex);
+  String paramValue = postParam.substring(equalsCharIndex+1);
+
+  //Serial.print(paramName); Serial.print(" -> "); Serial.println(paramValue);
+
+  if (StringUtils::flashStringEquals(paramName, F("isWifiStationMode"))){
+    GB_StorageHelper.setWifiStationMode(paramValue[0]=='1');  
+  } 
+  else if (StringUtils::flashStringEquals(paramName, F("wifiSSID"))){
+    GB_StorageHelper.setWifiSSID(paramValue);
+  }
+  else if (StringUtils::flashStringEquals(paramName, F("wifiPass"))){
+    GB_StorageHelper.setWifiPass(paramValue);
+  }
+
+  return isOK;
+}
 
 void WebServerClass::sendBriefStatus(){
   sendFreeMemory();
@@ -294,15 +396,8 @@ void WebServerClass::sendBriefStatus(){
   sendTag(FS(S_hr), HTTP_TAG_SINGLE); 
 }
 
-void WebServerClass::sendConfigurationControls(){
-  sendRawData(F("<form action=\"/\" method=\"post\">"));
-  sendRawData(F("<input type=\"submit\" value=\"Submit\">"));
-  sendRawData(F("</form>"));
-}
-
 void WebServerClass::sendFreeMemory(){  
   sendRawData(FS(S_Free_memory));
-  //sendTab_B(HTTP_TAG_OPEN);
   sendRawData(freeMemory()); 
   sendRawData(FS(S_bytes));
   sendRawData(FS(S_CRLF));
@@ -546,6 +641,10 @@ void WebServerClass::sendStorageDump(){
 
 
 WebServerClass GB_WebServer;
+
+
+
+
 
 
 

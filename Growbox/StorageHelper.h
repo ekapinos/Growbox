@@ -51,7 +51,10 @@ public:
   boolean isWifiStationMode();
   String getWifiSSID();
   String getWifiPass();
-
+  
+  void setWifiStationMode(boolean);
+  void setWifiSSID(String);
+  void setWifiPass(String);
 
 private :
 

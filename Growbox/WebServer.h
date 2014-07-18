@@ -25,9 +25,9 @@ const char S_pre[] PROGMEM  = "pre";
 const char S_html[] PROGMEM  = "html";
 const char S_h1[] PROGMEM  = "h1";
 
-const char S_url[] PROGMEM  = "/";
+const char S_url_root[] PROGMEM  = "/";
 const char S_url_log[] PROGMEM  = "/log";
-const char S_url_conf[] PROGMEM  = "/conf";
+const char S_url_configuration[] PROGMEM  = "/conf";
 const char S_url_storage[] PROGMEM  = "/storage";
 
 class WebServerClass{
@@ -49,7 +49,7 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   void sendHttpNotFound();
-  void sendHttpRedirect(const __FlashStringHelper* data);
+  void sendHttpRedirect(const String &url);
 
   void sendHttpPageHeader();
   void sendHttpPageComplete();
@@ -68,7 +68,7 @@ private:
     sendRawData(str);
   }
 
-  void sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* name);
+  void sendTagButton(const __FlashStringHelper* buttonUrl, const __FlashStringHelper* buttonTitle, boolean isSelected);
 
   template <class T> void sendTag(T tagName, HTTP_TAG type){
     sendRawData('<');
@@ -88,13 +88,15 @@ private:
 
   void sendBriefStatus();
 
-  void sendConfigurationControls();
   void sendFreeMemory();
   void sendBootStatus();
   void sendTimeStatus();
   void sendTemperatureStatus();
   void sendPinsStatus();
 
+  void sendConfigurationForms();
+  String applyPostParams(String& postParams);
+  boolean applyPostParam(String& postParam);  
 
   void sendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature);
 
@@ -108,6 +110,7 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
 
 
 

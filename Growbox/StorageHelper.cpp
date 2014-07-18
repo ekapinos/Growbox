@@ -187,6 +187,30 @@ String StorageHelperClass::getWifiPass(){
   return str;
 }
 
+void  StorageHelperClass::setWifiStationMode(boolean isWifiStationMode){
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.isWifiStationMode = isWifiStationMode;
+  setBoolPreferencies(boolPreferencies);
+}
+
+void  StorageHelperClass::setWifiSSID(String wifiSSID){
+  byte buffer[WIFI_SSID_LENGTH];
+  wifiSSID.getBytes(buffer, WIFI_SSID_LENGTH);
+  if (wifiSSID.length() == WIFI_SSID_LENGTH){
+    buffer[WIFI_PASS_LENGTH -1] = wifiSSID[WIFI_SSID_LENGTH -1]; // fix, we last char can lost with Arduino labrary
+  }
+  EEPROM.updateBlock<byte>(OFFSETOF(BootRecord, wifiSSID), buffer, WIFI_SSID_LENGTH);
+}
+
+void  StorageHelperClass::setWifiPass(String wifiPass){
+  byte buffer[WIFI_PASS_LENGTH];
+  wifiPass.getBytes(buffer, WIFI_PASS_LENGTH);
+  if (wifiPass.length() == WIFI_PASS_LENGTH){
+    buffer[WIFI_PASS_LENGTH -1] = wifiPass[WIFI_PASS_LENGTH -1]; // fix, we last char can lost with Arduino labrary
+  }
+  EEPROM.updateBlock<byte>(OFFSETOF(BootRecord, wifiPass), buffer, WIFI_PASS_LENGTH);
+}
+
 
 word StorageHelperClass::getNextLogRecordIndex(){
   return EEPROM.readBlock<word>(OFFSETOF(BootRecord, nextLogRecordIndex));
@@ -215,6 +239,8 @@ void StorageHelperClass::setBoolPreferencies(BootRecord::BoolPreferencies boolPr
 }
 
 StorageHelperClass GB_StorageHelper;
+
+
 
 
 

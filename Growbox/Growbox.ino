@@ -105,7 +105,7 @@ void setup() {
   int controllerFreeMemoryBeforeBoot = freeMemory();
 
   GB_Controller.updateSerialMonitorStatus();
-  RAK410_XBeeWifi.updateWiFiStatus();
+  RAK410_XBeeWifi.init();
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
   if(g_useSerialMonitor){
@@ -239,7 +239,7 @@ void setup() {
   }
 
   if (RAK410_XBeeWifi.isPresent()){ 
-    RAK410_XBeeWifi.startupWebServer();
+    RAK410_XBeeWifi.updateWiFiStatus(); // start Web server
   }
 
 }

@@ -11,7 +11,7 @@ private:
   static const unsigned int WIFI_MAX_SEND_FRAME_SIZE = 1400; // 1400 max from spec
   static const unsigned int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
 
-  boolean c_useSerialWifi;
+  boolean c_isWifiPresent;
 
   boolean c_restartWifi;
 
@@ -39,10 +39,10 @@ public:
   //                             STARTUP                             //
   /////////////////////////////////////////////////////////////////////
 
+  void init();
   void updateWiFiStatus();
 
-  boolean startupWebServer();
-
+  boolean restartWifi();
 
   /////////////////////////////////////////////////////////////////////
   //                              WEB SERVER                         //
@@ -54,6 +54,7 @@ public:
 
   void    sendFixedSizeFrameStart(const byte portDescriptor, word length);
   void    sendFixedSizeFrameData(const __FlashStringHelper* data);
+  void    sendFixedSizeFrameData(const String &data);
   boolean sendFixedSizeFrameStop();
 
   void    sendAutoSizeFrameStart(const byte &wifiPortDescriptor);
@@ -65,9 +66,9 @@ public:
 
 
 private:
-  boolean startupWebServerSilent();
+  boolean startupWebServerSilent(boolean forceDefaultParameters = false);
 
-  boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
+  boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY, boolean rebootIfNoResponse=true);
   String wifiExecuteRawCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
 
   template <class T> void showWifiMessage(T str, boolean newLine = true){
@@ -80,7 +81,7 @@ private:
     }
   }
 
-  template <class T> unsigned int wifiExecuteRawCommandPrint(T command){
+  template <class T> unsigned int wifiExecuteCommandPrint(T command){
     unsigned int rez = Serial1.print(command);  
 
     if (g_useSerialMonitor){
@@ -92,7 +93,7 @@ private:
       }  
     }
     c_isWifiPrintCommandStarted = true;
-    
+
     return rez;
   }  
 
@@ -101,6 +102,8 @@ private:
 extern RAK410_XBeeWifiClass RAK410_XBeeWifi;
 
 #endif
+
+
 
 
 
