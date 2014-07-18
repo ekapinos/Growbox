@@ -17,7 +17,7 @@ private:
 
   unsigned int c_autoSizeFrameSize;
 
-  boolean isWifiPrintCommandStarted;
+  boolean c_isWifiPrintCommandStarted;
 
 public:
 
@@ -84,14 +84,14 @@ private:
     unsigned int rez = Serial1.print(command);  
 
     if (g_useSerialMonitor){
-      if (isWifiPrintCommandStarted){  
+      if (c_isWifiPrintCommandStarted){  
         Serial.print(command); 
       } 
       else {
         showWifiMessage(command, false);
       }  
     }
-    isWifiPrintCommandStarted = true;
+    c_isWifiPrintCommandStarted = true;
     
     return rez;
   }  

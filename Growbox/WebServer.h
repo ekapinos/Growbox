@@ -42,37 +42,49 @@ public:
 
 private:
 
-  static void showWebMessage(const __FlashStringHelper* str, boolean newLine = true);
+  void showWebMessage(const __FlashStringHelper* str, boolean newLine = true);
 
   /////////////////////////////////////////////////////////////////////
   //                           HTTP PROTOCOL                         //
   /////////////////////////////////////////////////////////////////////
 
-  static void sendHttpNotFound(const byte wifiPortDescriptor);
-  static void sendHTTPRedirect(const byte &wifiPortDescriptor, const __FlashStringHelper* data);
-  static void sendHttpOK_Header(const byte wifiPortDescriptor);
-  static void sendHttpOK_PageComplete(const byte &wifiPortDescriptor);
+  void sendHttpNotFound();
+  void sendHttpRedirect(const __FlashStringHelper* data);
+
+  void sendHttpPageHeader();
+  void sendHttpPageComplete();
+  void sendHttpPageBody(const String &input);
 
   /////////////////////////////////////////////////////////////////////
-  //                  HTTP 200 OK SUPPLEMENTAL COMMANDS              //
+  //                    HTML SUPPLEMENTAL COMMANDS                   //
   /////////////////////////////////////////////////////////////////////
 
-  void sendData(const __FlashStringHelper* data);
-  void sendData(const String &data);
-  void sendData(int data);
-  void sendData(word data);
-  void sendData(char data);
-  void sendData(float data);
-  void sendData(time_t data);
+  void sendRawData(const __FlashStringHelper* data);
+  void sendRawData(const String &data);
+  void sendRawData(float data);
+  void sendRawData(time_t data);
+  template <class T> void sendRawData(T data){
+    String str(data);
+    sendRawData(str);
+  }
 
-  void sendDataLn();
   void sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* name);
-  void sendTag_Begin(HTTP_TAG type);
-  void sendTag_End(HTTP_TAG type);
-  void sendTag(const __FlashStringHelper* pname, HTTP_TAG type);
-  void sendTag(const char tag, HTTP_TAG type);
 
-  void generateHttpResponsePage(const String &input);
+  template <class T> void sendTag(T tagName, HTTP_TAG type){
+    sendRawData('<');
+    if (type == HTTP_TAG_CLOSED){
+      sendRawData('/');
+    }
+    sendRawData(tagName);
+    if (type == HTTP_TAG_SINGLE){
+      sendRawData('/');
+    }
+    sendRawData('>');
+  }
+
+  /////////////////////////////////////////////////////////////////////
+  //                          HTML PAGE PARTS                        //
+  /////////////////////////////////////////////////////////////////////
 
   void sendBriefStatus();
 
@@ -84,7 +96,7 @@ private:
   void sendPinsStatus();
 
 
-  void printSendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature);
+  void sendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature);
 
   // TODO garbage?
   void printStorage(word address, byte sizeOf);
@@ -96,6 +108,11 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
+
+
+
+
 
 
 

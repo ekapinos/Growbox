@@ -187,10 +187,10 @@ String StorageHelperClass::getWifiPass(){
   return str;
 }
 
+
 word StorageHelperClass::getNextLogRecordIndex(){
   return EEPROM.readBlock<word>(OFFSETOF(BootRecord, nextLogRecordIndex));
 }
-
 
 void StorageHelperClass::increaseNextLogRecordIndex(){
   word nextLogRecordIndex = getNextLogRecordIndex();
@@ -204,6 +204,7 @@ void StorageHelperClass::increaseNextLogRecordIndex(){
   }
   EEPROM.updateBlock(OFFSETOF(BootRecord, nextLogRecordIndex), nextLogRecordIndex); 
 }
+
 
 BootRecord::BoolPreferencies StorageHelperClass::getBoolPreferencies(){  
   return EEPROM.readBlock<BootRecord::BoolPreferencies>(OFFSETOF(BootRecord, boolPreferencies));

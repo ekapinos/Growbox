@@ -3,30 +3,40 @@
 #include "RAK410_XBeeWifi.h" 
 #include "EEPROM_AT24C32.h" 
 
+void WebServerClass::showWebMessage(const __FlashStringHelper* str, boolean newLine){ //TODO 
+  if (g_useSerialMonitor){
+    Serial.print(F("WEB> "));
+    Serial.print(str);
+    if (newLine){  
+      Serial.println();    
+    }      
+  }
+}
+
+/////////////////////////////////////////////////////////////////////
+//                           HTTP PROTOCOL                         //
+/////////////////////////////////////////////////////////////////////
+
 void WebServerClass::handleSerialEvent(){
 
   String input;   
   String postParams; 
 
   // HTTP response supplemental   
-  RAK410_XBeeWifiClass::RequestType c_commandType = RAK410_XBeeWifi.handleSerialEvent(c_wifiPortDescriptor, input, postParams);
+  RAK410_XBeeWifiClass::RequestType commandType = RAK410_XBeeWifi.handleSerialEvent(c_wifiPortDescriptor, input, postParams);
 
-  switch(c_commandType){
-    case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST:
-    sendHTTPRedirect(c_wifiPortDescriptor, FS(S_url));
-    break;
-
+  switch(commandType){
     case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
-    if (StringUtils::flashStringEquals(input, FS(S_url)) || 
+    if (
+      StringUtils::flashStringEquals(input, FS(S_url)) || 
       StringUtils::flashStringEquals(input, FS(S_url_log)) ||
       StringUtils::flashStringEquals(input, FS(S_url_conf)) ||
-      StringUtils::flashStringEquals(input, FS(S_url_storage))){
+      StringUtils::flashStringEquals(input, FS(S_url_storage))
+    ){
 
-      sendHttpOK_Header(c_wifiPortDescriptor);
-
-      generateHttpResponsePage(input);
-
-      sendHttpOK_PageComplete(c_wifiPortDescriptor);
+      sendHttpPageHeader();
+      sendHttpPageBody(input);
+      sendHttpPageComplete();
 
       if(g_useSerialMonitor){ 
         if (c_isWifiResponseError){
@@ -34,10 +44,13 @@ void WebServerClass::handleSerialEvent(){
         }
       }
     } 
-    else {
-      // Unknown resource
-      sendHttpNotFound(c_wifiPortDescriptor);    
+    else { // Unknown resource
+      sendHttpNotFound();    
     }
+    break;  
+
+    case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST:
+    sendHttpRedirect(FS(S_url));
     break;
 
   default:
@@ -50,19 +63,19 @@ void WebServerClass::handleSerialEvent(){
 //                           HTTP PROTOCOL                         //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendHttpNotFound(const byte wifiPortDescriptor){ 
-  RAK410_XBeeWifi.sendFixedSizeData(wifiPortDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
-  RAK410_XBeeWifi.sendCloseConnection(wifiPortDescriptor);
+void WebServerClass::sendHttpNotFound(){ 
+  RAK410_XBeeWifi.sendFixedSizeData(c_wifiPortDescriptor, F("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"));
+  RAK410_XBeeWifi.sendCloseConnection(c_wifiPortDescriptor);
 }
 
 // WARNING! RAK 410 became mad when 2 parallel connections comes. Like with Chrome and POST request, when RAK response 303.
 // Connection for POST request closed by Chrome (not by RAK). And during this time Chrome creates new parallel connection for GET
 // request.
-void WebServerClass::sendHTTPRedirect(const byte &wifiPortDescriptor, const __FlashStringHelper* data){ 
+void WebServerClass::sendHttpRedirect(const __FlashStringHelper* data){ 
   //const __FlashStringHelper* header = F("HTTP/1.1 303 See Other\r\nLocation: "); // DO not use it with RAK 410
   const __FlashStringHelper* header = F("HTTP/1.1 200 OK (303 doesn't work on RAK 410)\r\nrefresh: 0; url="); 
 
-  RAK410_XBeeWifi.sendFixedSizeFrameStart(wifiPortDescriptor, StringUtils::flashStringLength(header) + StringUtils::flashStringLength(data) + StringUtils::flashStringLength(FS(S_CRLFCRLF)));
+  RAK410_XBeeWifi.sendFixedSizeFrameStart(c_wifiPortDescriptor, StringUtils::flashStringLength(header) + StringUtils::flashStringLength(data) + StringUtils::flashStringLength(FS(S_CRLFCRLF)));
 
   RAK410_XBeeWifi.sendFixedSizeFrameData(header);
   RAK410_XBeeWifi.sendFixedSizeFrameData(data);
@@ -70,120 +83,25 @@ void WebServerClass::sendHTTPRedirect(const byte &wifiPortDescriptor, const __Fl
 
   RAK410_XBeeWifi.sendFixedSizeFrameStop();
 
-  RAK410_XBeeWifi.sendCloseConnection(wifiPortDescriptor);
+  RAK410_XBeeWifi.sendCloseConnection(c_wifiPortDescriptor);
 }
 
-void WebServerClass::sendHttpOK_Header(const byte wifiPortDescriptor){ 
-  RAK410_XBeeWifi.sendFixedSizeData(wifiPortDescriptor, F("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n"));
-  RAK410_XBeeWifi.sendAutoSizeFrameStart(wifiPortDescriptor);
+
+void WebServerClass::sendHttpPageHeader(){ 
+  RAK410_XBeeWifi.sendFixedSizeData(c_wifiPortDescriptor, F("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n"));
+  RAK410_XBeeWifi.sendAutoSizeFrameStart(c_wifiPortDescriptor);
 }
 
-void WebServerClass::sendHttpOK_PageComplete(const byte &wifiPortDescriptor){  
+void WebServerClass::sendHttpPageComplete(){  
   RAK410_XBeeWifi.sendAutoSizeFrameStop();
-  RAK410_XBeeWifi.sendCloseConnection(wifiPortDescriptor);
+  RAK410_XBeeWifi.sendCloseConnection(c_wifiPortDescriptor);
 }
 
-void WebServerClass::showWebMessage(const __FlashStringHelper* str, boolean newLine){ //TODO 
-  if (g_useSerialMonitor){
-    Serial.print(F("WEB> "));
-    Serial.print(str);
-    if (newLine){  
-      Serial.println();    
-    }      
-  }
-}
-
-
-/////////////////////////////////////////////////////////////////////
-//                     HTTP SUPPLEMENTAL COMMANDS                  //
-/////////////////////////////////////////////////////////////////////
-
-void WebServerClass::sendData(const __FlashStringHelper* data){
-  if (!RAK410_XBeeWifi.sendAutoSizeFrameData(c_wifiPortDescriptor, data)){
-    c_isWifiResponseError = true;
-  }
-} 
-
-
-void WebServerClass::sendData(const String &data){
-  if (!RAK410_XBeeWifi.sendAutoSizeFrameData(c_wifiPortDescriptor, data)){
-    c_isWifiResponseError = true;
-  }
-}
-
-/// TODO optimize it
-void WebServerClass::sendData(int data){
-  String str; 
-  str += data;
-  sendData(str);
-}
-
-void WebServerClass::sendData(word data){
-  String str; 
-  str += data;
-  sendData(str);
-}
-
-void WebServerClass::sendData(char data){
-  String str; 
-  str += data;
-  sendData(str);
-}
-
-void WebServerClass::sendData(float data){
-  String str = StringUtils::floatToString(data);
-  sendData(str);
-}
-
-void WebServerClass::sendData(time_t data){
-  String str = StringUtils::timeToString(data);
-  sendData(str);
-}
-
-void WebServerClass::sendDataLn(){
-  sendData(FS(S_CRLF));
-}
-
-void WebServerClass::sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* name){
-  sendData(F("<input type=\"button\" onclick=\"document.location='"));
-  sendData(url);
-  sendData(F("'\" value=\""));
-  sendData(name);
-  sendData(F("\"/>"));
-}
-
-void WebServerClass::sendTag_Begin(HTTP_TAG type){
-  sendData('<');
-  if (type == HTTP_TAG_CLOSED){
-    sendData('/');
-  }
-}
-
-void WebServerClass::sendTag_End(HTTP_TAG type){
-  if (type == HTTP_TAG_SINGLE){
-    sendData('/');
-  }
-  sendData('>');
-}
-
-void WebServerClass::sendTag(const __FlashStringHelper* pname, HTTP_TAG type){
-  sendTag_Begin(type);
-  sendData(pname);
-  sendTag_End(type);
-}
-
-void WebServerClass::sendTag(const char tag, HTTP_TAG type){
-  sendTag_Begin(type);
-  sendData(tag);
-  sendTag_End(type);
-}
-
-void WebServerClass::generateHttpResponsePage(const String &input){
-
+void WebServerClass::sendHttpPageBody(const String &input){
 
   sendTag(FS(S_html), HTTP_TAG_OPEN); 
   sendTag(FS(S_h1), HTTP_TAG_OPEN); 
-  sendData(F("Growbox"));  
+  sendRawData(F("Growbox"));  
   sendTag(FS(S_h1), HTTP_TAG_CLOSED);
   sendTagButton(FS(S_url), F("Status"));
   sendTagButton(FS(S_url_log), F("Daily log"));
@@ -202,7 +120,7 @@ void WebServerClass::generateHttpResponsePage(const String &input){
     sendConfigurationControls();
   } 
   else if (StringUtils::flashStringEquals(input, FS(S_url_log))){
-    printSendFullLog(true, true, true); // TODO use parameters
+    sendFullLog(true, true, true); // TODO use parameters
   }
   else if (StringUtils::flashStringEquals(input, FS(S_url_storage))){
     sendStorageDump(); 
@@ -328,6 +246,46 @@ void WebServerClass::generateHttpResponsePage(const String &input){
 
 }
 
+
+/////////////////////////////////////////////////////////////////////
+//                    HTML SUPPLEMENTAL COMMANDS                   //
+/////////////////////////////////////////////////////////////////////
+
+void WebServerClass::sendRawData(const __FlashStringHelper* data){
+  if (!RAK410_XBeeWifi.sendAutoSizeFrameData(c_wifiPortDescriptor, data)){
+    c_isWifiResponseError = true;
+  }
+} 
+
+void WebServerClass::sendRawData(const String &data){
+  if (!RAK410_XBeeWifi.sendAutoSizeFrameData(c_wifiPortDescriptor, data)){
+    c_isWifiResponseError = true;
+  }
+}
+
+void WebServerClass::sendRawData(float data){
+  String str = StringUtils::floatToString(data);
+  sendRawData(str);
+}
+
+void WebServerClass::sendRawData(time_t data){
+  String str = StringUtils::timeToString(data);
+  sendRawData(str);
+}
+
+void WebServerClass::sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* name){
+  sendRawData(F("<input type=\"button\" onclick=\"document.location='"));
+  sendRawData(url);
+  sendRawData(F("'\" value=\""));
+  sendRawData(name);
+  sendRawData(F("\"/>"));
+}
+
+/////////////////////////////////////////////////////////////////////
+//                          HTML PAGE PARTS                        //
+/////////////////////////////////////////////////////////////////////
+
+
 void WebServerClass::sendBriefStatus(){
   sendFreeMemory();
   sendBootStatus();
@@ -336,62 +294,59 @@ void WebServerClass::sendBriefStatus(){
   sendTag(FS(S_hr), HTTP_TAG_SINGLE); 
 }
 
-
 void WebServerClass::sendConfigurationControls(){
-  sendData(F("<form action=\"/\" method=\"post\">"));
-  sendData(F("<input type=\"submit\" value=\"Submit\">"));
-  sendData(F("</form>"));
+  sendRawData(F("<form action=\"/\" method=\"post\">"));
+  sendRawData(F("<input type=\"submit\" value=\"Submit\">"));
+  sendRawData(F("</form>"));
 }
 
 void WebServerClass::sendFreeMemory(){  
-  sendData(FS(S_Free_memory));
+  sendRawData(FS(S_Free_memory));
   //sendTab_B(HTTP_TAG_OPEN);
-  sendData(freeMemory()); 
-  sendData(FS(S_bytes));
-  sendDataLn();
+  sendRawData(freeMemory()); 
+  sendRawData(FS(S_bytes));
+  sendRawData(FS(S_CRLF));
 }
 
-// private:
-
 void WebServerClass::sendBootStatus(){
-  sendData(F("Controller: startup: ")); 
-  sendData(GB_StorageHelper.getLastStartupTimeStamp());
-  sendData(F(", first startup: ")); 
-  sendData(GB_StorageHelper.getFirstStartupTimeStamp());
-  sendData(F("\r\nLogger: "));
+  sendRawData(F("Controller: startup: ")); 
+  sendRawData(GB_StorageHelper.getLastStartupTimeStamp());
+  sendRawData(F(", first startup: ")); 
+  sendRawData(GB_StorageHelper.getFirstStartupTimeStamp());
+  sendRawData(F("\r\nLogger: "));
   if (GB_StorageHelper.isStoreLogRecordsEnabled()){
-    sendData(FS(S_Enabled));
+    sendRawData(FS(S_Enabled));
   } 
   else {
-    sendData(FS(S_Disabled));
+    sendRawData(FS(S_Disabled));
   }
-  sendData(F(", records "));
-  sendData(GB_StorageHelper.getLogRecordsCount());
-  sendData('/');
-  sendData(GB_StorageHelper.LOG_CAPACITY);
+  sendRawData(F(", records "));
+  sendRawData(GB_StorageHelper.getLogRecordsCount());
+  sendRawData('/');
+  sendRawData(GB_StorageHelper.LOG_CAPACITY);
   if (GB_StorageHelper.isLogOverflow()){
-    sendData(F(", overflow"));
+    sendRawData(F(", overflow"));
   } 
-  sendDataLn();
+  sendRawData(FS(S_CRLF));
 }
 
 void WebServerClass::sendTimeStatus(){
-  sendData(F("Clock: ")); 
+  sendRawData(F("Clock: ")); 
   sendTag('b', HTTP_TAG_OPEN);
   if (g_isDayInGrowbox) {
-    sendData(F("DAY"));
+    sendRawData(F("DAY"));
   } 
   else{
-    sendData(F("NIGHT"));
+    sendRawData(F("NIGHT"));
   }
   sendTag('b', HTTP_TAG_CLOSED);
-  sendData(F(" mode, time ")); 
-  sendData(now());
-  sendData(F(", up time [")); 
-  sendData(UP_HOUR); 
-  sendData(F(":00], down time ["));
-  sendData(DOWN_HOUR);
-  sendData(F(":00]\r\n"));
+  sendRawData(F(" mode, time ")); 
+  sendRawData(now());
+  sendRawData(F(", up time [")); 
+  sendRawData(UP_HOUR); 
+  sendRawData(F(":00], down time ["));
+  sendRawData(DOWN_HOUR);
+  sendRawData(F(":00]\r\n"));
 }
 
 void WebServerClass::sendTemperatureStatus(){
@@ -399,40 +354,40 @@ void WebServerClass::sendTemperatureStatus(){
   int statisticsCount;
   GB_Thermometer.getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
 
-  sendData(FS(S_Temperature)); 
-  sendData(F(": current ")); 
-  sendData(workingTemperature);
-  sendData(F(", next ")); 
-  sendData(statisticsTemperature);
-  sendData(F(" (count ")); 
-  sendData(statisticsCount);
+  sendRawData(FS(S_Temperature)); 
+  sendRawData(F(": current ")); 
+  sendRawData(workingTemperature);
+  sendRawData(F(", next ")); 
+  sendRawData(statisticsTemperature);
+  sendRawData(F(" (count ")); 
+  sendRawData(statisticsCount);
 
-  sendData(F("), day "));
-  sendData(TEMPERATURE_DAY);
-  sendData(FS(S_PlusMinus));
-  sendData(TEMPERATURE_DELTA);
-  sendData(F(", night "));
-  sendData(TEMPERATURE_NIGHT);
-  sendData(FS(S_PlusMinus));
-  sendData(2*TEMPERATURE_DELTA);
-  sendData(F(", critical "));
-  sendData(TEMPERATURE_CRITICAL);
-  sendDataLn();
+  sendRawData(F("), day "));
+  sendRawData(TEMPERATURE_DAY);
+  sendRawData(FS(S_PlusMinus));
+  sendRawData(TEMPERATURE_DELTA);
+  sendRawData(F(", night "));
+  sendRawData(TEMPERATURE_NIGHT);
+  sendRawData(FS(S_PlusMinus));
+  sendRawData(2*TEMPERATURE_DELTA);
+  sendRawData(F(", critical "));
+  sendRawData(TEMPERATURE_CRITICAL);
+  sendRawData(FS(S_CRLF));
 }
 
 void WebServerClass::sendPinsStatus(){
-  sendData(F("Pin OUTPUT INPUT")); 
-  sendDataLn();
+  sendRawData(F("Pin OUTPUT INPUT")); 
+  sendRawData(FS(S_CRLF));
   for(int i=0; i<=19;i++){
-    sendData(' ');
+    sendRawData(' ');
     if (i>=14){
-      sendData('A');
-      sendData(i-14);
+      sendRawData('A');
+      sendRawData(i-14);
     } 
     else { 
-      sendData(StringUtils::getFixedDigitsString(i, 2));
+      sendRawData(StringUtils::getFixedDigitsString(i, 2));
     }
-    sendData(FS(S___)); 
+    sendRawData(FS(S___)); 
 
     boolean io_status, dataStatus, inputStatus;
     if (i<=7){ 
@@ -451,53 +406,53 @@ void WebServerClass::sendPinsStatus(){
       inputStatus = bitRead(PINC, i-14);
     }
     if (io_status == OUTPUT){
-      sendData(FS(S___));
-      sendData(dataStatus);
-      sendData(F("     -   "));
+      sendRawData(FS(S___));
+      sendRawData(dataStatus);
+      sendRawData(F("     -   "));
     } 
     else {
-      sendData(F("  -     "));
-      sendData(inputStatus);
-      sendData(FS(S___));
+      sendRawData(F("  -     "));
+      sendRawData(inputStatus);
+      sendRawData(FS(S___));
     }
 
     switch(i){
     case 0: 
     case 1: 
-      sendData(F("Reserved by Serial/USB. Can be used, if Serial/USB won't be connected"));
+      sendRawData(F("Reserved by Serial/USB. Can be used, if Serial/USB won't be connected"));
       break;
     case LIGHT_PIN: 
-      sendData(F("Relay: light on(0)/off(1)"));
+      sendRawData(F("Relay: light on(0)/off(1)"));
       break;
     case FAN_PIN: 
-      sendData(F("Relay: fan on(0)/off(1)"));
+      sendRawData(F("Relay: fan on(0)/off(1)"));
       break;
     case FAN_SPEED_PIN: 
-      sendData(F("Relay: fun max(0)/min(1) speed switch"));
+      sendRawData(F("Relay: fun max(0)/min(1) speed switch"));
       break;
     case ONE_WIRE_PIN: 
-      sendData(F("1-Wire: termometer"));
+      sendRawData(F("1-Wire: termometer"));
       break;
     case USE_SERIAL_MONOTOR_PIN: 
-      sendData(F("Use serial monitor on(1)/off(0)"));
+      sendRawData(F("Use serial monitor on(1)/off(0)"));
       break;
     case ERROR_PIN: 
-      sendData(F("Error status"));
+      sendRawData(F("Error status"));
       break;
     case BREEZE_PIN: 
-      sendData(F("Breeze"));
+      sendRawData(F("Breeze"));
       break;
     case 18: 
     case 19: 
-      sendData(F("Reserved by I2C. Can be used, if SCL, SDA pins will be used"));
+      sendRawData(F("Reserved by I2C. Can be used, if SCL, SDA pins will be used"));
       break;
     }
-    sendDataLn();
+    sendRawData(FS(S_CRLF));
   }
 }
 
 
-void WebServerClass::printSendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
+void WebServerClass::sendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
   LogRecord logRecord;
   boolean isEmpty = true;
   sendTag(FS(S_table), HTTP_TAG_OPEN);
@@ -516,17 +471,17 @@ void WebServerClass::printSendFullLog(boolean printEvents, boolean printErrors, 
 
     sendTag(FS(S_tr), HTTP_TAG_OPEN);
     sendTag(FS(S_td), HTTP_TAG_OPEN);
-    sendData(i+1);
+    sendRawData(i+1);
     sendTag(FS(S_td), HTTP_TAG_CLOSED);
     sendTag(FS(S_td), HTTP_TAG_OPEN);
-    sendData(StringUtils::timeToString(logRecord.timeStamp));    
+    sendRawData(StringUtils::timeToString(logRecord.timeStamp));    
     sendTag(FS(S_td), HTTP_TAG_CLOSED);
     sendTag(FS(S_td), HTTP_TAG_OPEN);
-    sendData(StringUtils::byteToHexString(logRecord.data, true));
+    sendRawData(StringUtils::byteToHexString(logRecord.data, true));
     sendTag(FS(S_td), HTTP_TAG_CLOSED);
     sendTag(FS(S_td), HTTP_TAG_OPEN);
-    sendData(GB_Logger.getLogRecordDescription(logRecord));
-    sendData(GB_Logger.getLogRecordSuffix(logRecord));
+    sendRawData(GB_Logger.getLogRecordDescription(logRecord));
+    sendRawData(GB_Logger.getLogRecordSuffix(logRecord));
     sendTag(FS(S_td), HTTP_TAG_CLOSED);
     //sendDataLn();
     sendTag(FS(S_tr), HTTP_TAG_CLOSED);
@@ -537,7 +492,7 @@ void WebServerClass::printSendFullLog(boolean printEvents, boolean printErrors, 
   }
   sendTag(FS(S_table), HTTP_TAG_CLOSED);
   if (isEmpty){
-    sendData(F("Log empty"));
+    sendRawData(F("Log empty"));
   }
 }
 
@@ -557,7 +512,7 @@ void WebServerClass::sendStorageDump(){
   for (word i = 0; i < 16 ; i++){
     sendTag(FS(S_td), HTTP_TAG_OPEN);
     sendTag('b', HTTP_TAG_OPEN);
-    sendData(StringUtils::byteToHexString(i));
+    sendRawData(StringUtils::byteToHexString(i));
     sendTag('b', HTTP_TAG_CLOSED); 
     sendTag(FS(S_td), HTTP_TAG_CLOSED);
   }
@@ -573,12 +528,12 @@ void WebServerClass::sendStorageDump(){
       sendTag(FS(S_tr), HTTP_TAG_OPEN);
       sendTag(FS(S_td), HTTP_TAG_OPEN);
       sendTag('b', HTTP_TAG_OPEN);
-      sendData(StringUtils::byteToHexString(i/16));
+      sendRawData(StringUtils::byteToHexString(i/16));
       sendTag('b', HTTP_TAG_CLOSED);
       sendTag(FS(S_td), HTTP_TAG_CLOSED);
     }
     sendTag(FS(S_td), HTTP_TAG_OPEN);
-    sendData(StringUtils::byteToHexString(value));
+    sendRawData(StringUtils::byteToHexString(value));
     sendTag(FS(S_td), HTTP_TAG_CLOSED);
 
     if (c_isWifiResponseError) return;
@@ -591,6 +546,13 @@ void WebServerClass::sendStorageDump(){
 
 
 WebServerClass GB_WebServer;
+
+
+
+
+
+
+
 
 
 

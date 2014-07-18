@@ -20,7 +20,6 @@
 #include "Thermometer.h"
 #include "RAK410_XBeeWifi.h"
 #include "WebServer.h"
-//#include "EEPROM_AT24C32.h"
 
 /////////////////////////////////////////////////////////////////////
 //                              STATUS                             //

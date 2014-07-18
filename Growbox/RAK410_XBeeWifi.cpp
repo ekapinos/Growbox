@@ -14,7 +14,7 @@ const char S_WIFI_POST_[] PROGMEM  = "POST /";
 
 
 RAK410_XBeeWifiClass::RAK410_XBeeWifiClass(): 
-c_useSerialWifi(false), c_restartWifi(true), isWifiPrintCommandStarted(false) {
+c_useSerialWifi(false), c_restartWifi(true), c_isWifiPrintCommandStarted(false) {
 }
 
 boolean RAK410_XBeeWifiClass::isPresent(){ // check if the device is present
@@ -493,7 +493,7 @@ String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* co
   }
 
   if (g_useSerialMonitor){
-    if (isWifiPrintCommandStarted){
+    if (c_isWifiPrintCommandStarted){
       if (command == 0){   
         Serial.println();
       } 
@@ -510,7 +510,7 @@ String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* co
       }  
     }
   }
-  isWifiPrintCommandStarted = false;
+  c_isWifiPrintCommandStarted = false;
 
   String input;
   input.reserve(10);
