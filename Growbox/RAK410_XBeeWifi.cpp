@@ -22,7 +22,7 @@ boolean RAK410_XBeeWifiClass::isPresent(){ // check if the device is present
 }
 
 /////////////////////////////////////////////////////////////////////
-//                             STARTUP                             //
+//                            WORKFLOW                             //
 /////////////////////////////////////////////////////////////////////
 
 void RAK410_XBeeWifiClass::init(){
@@ -86,28 +86,6 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
     }  
   }
 
-}
-
-boolean RAK410_XBeeWifiClass::restartWifi(){
-  boolean isWiFiPresent = false;
-
-  for (byte i = 0; i < 2; i++){ // Sometimes first command returns ERROR, two attempts
-
-    String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
-
-    isWiFiPresent = StringUtils::flashStringEquals(input, FS(S_WIFI_RESPONSE_WELLCOME));
-    if (isWiFiPresent) {
-      break;
-    }
-    if (g_useSerialMonitor && input.length() > 0){
-      showWifiMessage(F("Not correct wellcome message: "), false);
-      PrintUtils::printWithoutCRLF(input);
-      Serial.print(FS(S_Next));
-      PrintUtils::printHEX(input); 
-      Serial.println();
-    }
-  }
-  return isWiFiPresent;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -390,6 +368,28 @@ boolean RAK410_XBeeWifiClass::sendCloseConnection(const byte wifiPortDescriptor)
 
 //private:
 
+
+boolean RAK410_XBeeWifiClass::restartWifi(){
+  boolean isWiFiPresent = false;
+
+  for (byte i = 0; i < 2; i++){ // Sometimes first command returns ERROR, two attempts
+
+    String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
+
+    isWiFiPresent = StringUtils::flashStringEquals(input, FS(S_WIFI_RESPONSE_WELLCOME));
+    if (isWiFiPresent) {
+      break;
+    }
+    if (g_useSerialMonitor && input.length() > 0){
+      showWifiMessage(F("Not correct wellcome message: "), false);
+      PrintUtils::printWithoutCRLF(input);
+      Serial.print(FS(S_Next));
+      PrintUtils::printHEX(input); 
+      Serial.println();
+    }
+  }
+  return isWiFiPresent;
+}
 
 boolean RAK410_XBeeWifiClass::startupWebServer(boolean forceDefaultParameters){
 

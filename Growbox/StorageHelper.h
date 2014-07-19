@@ -33,7 +33,7 @@ public:
   boolean isLogOverflow();
 
   word getLogRecordsCount();
-  boolean getLogRecordByIndex(word index, LogRecord &logRecord);
+  LogRecord getLogRecordByIndex(word index);
 
   /////////////////////////////////////////////////////////////////////
   //                        GROWBOX COMMANDS                         //

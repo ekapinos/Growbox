@@ -1,17 +1,10 @@
 #include "WebServer.h"
 
+#include <MemoryFree.h>
+#include "StorageHelper.h" 
+#include "Thermometer.h" 
 #include "RAK410_XBeeWifi.h" 
 #include "EEPROM_AT24C32.h" 
-
-void WebServerClass::showWebMessage(const __FlashStringHelper* str, boolean newLine){ //TODO 
-  if (g_useSerialMonitor){
-    Serial.print(F("WEB> "));
-    Serial.print(str);
-    if (newLine){  
-      Serial.println();    
-    }      
-  }
-}
 
 /////////////////////////////////////////////////////////////////////
 //                           HTTP PROTOCOL                         //
@@ -29,7 +22,8 @@ void WebServerClass::handleSerialEvent(){
     case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
     if (
     StringUtils::flashStringEquals(url, FS(S_url_root)) || 
-      StringUtils::flashStringEquals(url, FS(S_url_log)) ||
+      //StringUtils::flashStringEquals(url, FS(S_url_pins)) || 
+    StringUtils::flashStringEquals(url, FS(S_url_log)) ||
       StringUtils::flashStringStartsWith(url,FS(S_url_configuration)) ||
       StringUtils::flashStringEquals(url, FS(S_url_storage))
       ){
@@ -99,6 +93,7 @@ void WebServerClass::sendHttpPageComplete(){
 void WebServerClass::sendHttpPageBody(const String &url){
 
   boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
+  //  boolean isPinsPage    = StringUtils::flashStringEquals(url, FS(S_url_pins));
   boolean isLogPage     = StringUtils::flashStringEquals(url, FS(S_url_log));
   boolean isConfPage    = StringUtils::flashStringStartsWith(url, FS(S_url_configuration));
   boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
@@ -112,17 +107,21 @@ void WebServerClass::sendHttpPageBody(const String &url){
   sendRawData(F("<h1>Growbox</h1>"));   
 
   sendTagButton(FS(S_url_root), F("Status"), isRootPage);
+  //sendTagButton(FS(S_url_pins), F("Pins status"), isPinsPage);  
   sendTagButton(FS(S_url_log), F("Daily log"), isLogPage);
   sendTagButton(FS(S_url_configuration), F("Configuration"), isConfPage);
   sendTagButton(FS(S_url_storage), F("Storage dump"), isStoragePage);
-  sendTag(FS(S_hr), HTTP_TAG_SINGLE);
 
-  //sendTag(FS(S_pre), HTTP_TAG_OPEN);
+  sendRawData(F("<hr/>"));
+
   if (isRootPage){
     sendStatusPage();
   } 
+  //  if (isPinsPage){
+  //    sendPinsStatus();
+  //  } 
   else if (isLogPage){
-    sendFullLog(true, true, true); // TODO use parameters
+    sendLogPage(true, true, true); // TODO use parameters
   }
   else if (isConfPage){
     sendConfigurationForms();
@@ -294,37 +293,57 @@ void WebServerClass::sendTagButton(const __FlashStringHelper* buttonUrl, const _
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendStatusPage(){
+
   sendRawData(F("<dl>"));
 
+
   sendRawData(F("<dt>Common</dt>"));
-  
+
   sendRawData(F("<dd>")); 
-  sendRawData(g_isDayInGrowbox ? F("day") : F("night"));
-  sendRawData(F("mode</dd>"));
-  
+  sendRawData(g_isDayInGrowbox ? F("Day") : F("Night"));
+  sendRawData(F(" mode</dd>"));
+
+  sendRawData(F("<dd>Light: ")); 
+  sendRawData((digitalRead(LIGHT_PIN) == RELAY_ON) ? F("enabled") : F("disabled"));
+  sendRawData(F("</dd>"));
+
+  sendRawData(F("<dd>Fan: ")); 
+  boolean isFanEnabled = (digitalRead(FAN_PIN) == RELAY_ON);
+  sendRawData(isFanEnabled ? F("enabled, ") : F("disabled"));
+  if (isFanEnabled){
+    sendRawData((digitalRead(FAN_SPEED_PIN) == FAN_SPEED_MIN) ? F("min") : F("max"));
+  }
+  sendRawData(F(" speed</dd>"));
+
   sendRawData(F("<dd>Current time: ")); 
   sendRawData(now());
   sendRawData(F("</dd>")); 
-   
+
   sendRawData(F("<dd>Last startup: ")); 
   sendRawData(GB_StorageHelper.getLastStartupTimeStamp());
   sendRawData(F("</dd>")); 
 
-  sendRawData(F("<dt>Scheduler</dt>"));
-  
-  sendRawData(F("<dd>Day mode up time: ")); 
-  sendRawData(UP_HOUR); 
-  sendRawData(F(":00</dd><dd>Night mode down time:"));
-  sendRawData(DOWN_HOUR);
-  sendRawData(F(":00</dd>"));
+
+  float workingTemperature, statisticsTemperature;
+  int statisticsCount;
+  GB_Thermometer.getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
+
+  sendRawData(F("<dt>Temperature</dt>")); 
+  sendRawData(F("<dd>Current: ")); 
+  sendRawData(workingTemperature);
+  sendRawData(F(" C</dd><dd>Forecast: ")); 
+  sendRawData(statisticsTemperature);
+  sendRawData(F(" C (")); 
+  sendRawData(statisticsCount);
+  sendRawData(F(" measurements)</dd>"));
 
 
   sendRawData(F("<dt>Logger</dt>"));
-  
+
   sendRawData(F("<dd>"));  
   sendRawData(GB_StorageHelper.isStoreLogRecordsEnabled() ? F("Enabled") : F("<b>Disabled</b>"));
   sendRawData(F("</dd>")); 
-  
+
   sendRawData(F("<dd>Stored records: "));
   sendRawData(GB_StorageHelper.getLogRecordsCount());
   sendRawData('/');
@@ -334,9 +353,31 @@ void WebServerClass::sendStatusPage(){
   }
   sendRawData(F("</dd>"));
 
-  
+
+  // TODO remove it
+  sendRawData(F("<dt>Configuration</dt>"));  
+
+  sendRawData(F("<dd>Turn to Day mode at: ")); 
+  sendRawData(UP_HOUR); 
+  sendRawData(F(":00</dd><dd>Turn to Night mode at: "));
+  sendRawData(DOWN_HOUR);
+  sendRawData(F(":00</dd>"));
+
+  sendRawData(F("<dd>Day temperature: "));
+  sendRawData(TEMPERATURE_DAY);
+  sendRawData(FS(S_PlusMinus));
+  sendRawData(TEMPERATURE_DELTA);
+  sendRawData(F("</dd><dd>Night temperature: "));
+  sendRawData(TEMPERATURE_NIGHT);
+  sendRawData(FS(S_PlusMinus));
+  sendRawData(2*TEMPERATURE_DELTA);
+  sendRawData(F("</dd><dd>Critical temperature: "));
+  sendRawData(TEMPERATURE_CRITICAL);
+  sendRawData(F("</dd>"));
+
+
   sendRawData(F("<dt>Other</dt>"));
-  
+
   sendRawData(F("<dd>Free memory: "));
   sendRawData(freeMemory()); 
   sendRawData(F(" bytes</dd>"));
@@ -346,189 +387,7 @@ void WebServerClass::sendStatusPage(){
   sendRawData(F("</dd>")); 
 
 
-
-
-  float workingTemperature, statisticsTemperature;
-  int statisticsCount;
-  GB_Thermometer.getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
-
-  sendRawData(F("<dd>Temperature: ")); 
-  sendRawData(F(": current ")); 
-  sendRawData(workingTemperature);
-  sendRawData(F(", next ")); 
-  sendRawData(statisticsTemperature);
-  sendRawData(F(" (count ")); 
-  sendRawData(statisticsCount);
-
-  sendRawData(F("), day "));
-  sendRawData(TEMPERATURE_DAY);
-  sendRawData(FS(S_PlusMinus));
-  sendRawData(TEMPERATURE_DELTA);
-  sendRawData(F(", night "));
-  sendRawData(TEMPERATURE_NIGHT);
-  sendRawData(FS(S_PlusMinus));
-  sendRawData(2*TEMPERATURE_DELTA);
-  sendRawData(F(", critical "));
-  sendRawData(TEMPERATURE_CRITICAL);
-  sendRawData(FS(S_CRLF));
-
-
-
- // sendBootStatus();
-//  sendTimeStatus();
-//  sendTemperatureStatus();  
-  sendRawData(F("</dl>"));
-  sendTag(FS(S_hr), HTTP_TAG_SINGLE); 
-  sendPinsStatus();   
-}
-
-void WebServerClass::sendFreeMemory(){ 
-  sendRawData(F("<dt>Hardware</dt><dd>Free memory: "));
-  sendRawData(freeMemory()); 
-  sendRawData(F(" bytes</dd>"));
-}
-
-void WebServerClass::sendBootStatus(){
-  sendRawData(F("<dt>Controller</dt><dd> startup: ")); 
-  sendRawData(GB_StorageHelper.getLastStartupTimeStamp());
-  sendRawData(F(", first startup: ")); 
-  sendRawData(GB_StorageHelper.getFirstStartupTimeStamp());
-  sendRawData(F("\r\nLogger: "));
-  if (GB_StorageHelper.isStoreLogRecordsEnabled()){
-    sendRawData(FS(S_Enabled));
-  } 
-  else {
-    sendRawData(FS(S_Disabled));
-  }
-  sendRawData(F(", records "));
-  sendRawData(GB_StorageHelper.getLogRecordsCount());
-  sendRawData('/');
-  sendRawData(GB_StorageHelper.LOG_CAPACITY);
-  if (GB_StorageHelper.isLogOverflow()){
-    sendRawData(F(", overflow"));
-  } 
-  sendRawData(F("</dd>"));
-}
-
-void WebServerClass::sendTimeStatus(){
-  sendRawData(F("Clock: ")); 
-  sendTag('b', HTTP_TAG_OPEN);
-  if (g_isDayInGrowbox) {
-    sendRawData(F("DAY"));
-  } 
-  else{
-    sendRawData(F("NIGHT"));
-  }
-  sendTag('b', HTTP_TAG_CLOSED);
-  sendRawData(F(" mode, time ")); 
-  sendRawData(now());
-  sendRawData(F(", up time [")); 
-  sendRawData(UP_HOUR); 
-  sendRawData(F(":00], down time ["));
-  sendRawData(DOWN_HOUR);
-  sendRawData(F(":00]\r\n"));
-}
-
-void WebServerClass::sendTemperatureStatus(){
-  float workingTemperature, statisticsTemperature;
-  int statisticsCount;
-  GB_Thermometer.getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
-
-  sendRawData(FS(S_Temperature)); 
-  sendRawData(F(": current ")); 
-  sendRawData(workingTemperature);
-  sendRawData(F(", next ")); 
-  sendRawData(statisticsTemperature);
-  sendRawData(F(" (count ")); 
-  sendRawData(statisticsCount);
-
-  sendRawData(F("), day "));
-  sendRawData(TEMPERATURE_DAY);
-  sendRawData(FS(S_PlusMinus));
-  sendRawData(TEMPERATURE_DELTA);
-  sendRawData(F(", night "));
-  sendRawData(TEMPERATURE_NIGHT);
-  sendRawData(FS(S_PlusMinus));
-  sendRawData(2*TEMPERATURE_DELTA);
-  sendRawData(F(", critical "));
-  sendRawData(TEMPERATURE_CRITICAL);
-  sendRawData(FS(S_CRLF));
-}
-
-void WebServerClass::sendPinsStatus(){
-  sendRawData(F("Pin OUTPUT INPUT")); 
-  sendRawData(FS(S_CRLF));
-  for(int i=0; i<=19;i++){
-    sendRawData(' ');
-    if (i>=14){
-      sendRawData('A');
-      sendRawData(i-14);
-    } 
-    else { 
-      sendRawData(StringUtils::getFixedDigitsString(i, 2));
-    }
-    sendRawData(FS(S___)); 
-
-    boolean io_status, dataStatus, inputStatus;
-    if (i<=7){ 
-      io_status = bitRead(DDRD, i);
-      dataStatus = bitRead(PORTD, i);
-      inputStatus = bitRead(PIND, i);
-    }    
-    else if (i <= 13){
-      io_status = bitRead(DDRB, i-8);
-      dataStatus = bitRead(PORTB, i-8);
-      inputStatus = bitRead(PINB, i-8);
-    }
-    else {
-      io_status = bitRead(DDRC, i-14);
-      dataStatus = bitRead(PORTC, i-14);
-      inputStatus = bitRead(PINC, i-14);
-    }
-    if (io_status == OUTPUT){
-      sendRawData(FS(S___));
-      sendRawData(dataStatus);
-      sendRawData(F("     -   "));
-    } 
-    else {
-      sendRawData(F("  -     "));
-      sendRawData(inputStatus);
-      sendRawData(FS(S___));
-    }
-
-    switch(i){
-    case 0: 
-    case 1: 
-      sendRawData(F("Reserved by Serial/USB. Can be used, if Serial/USB won't be connected"));
-      break;
-    case LIGHT_PIN: 
-      sendRawData(F("Relay: light on(0)/off(1)"));
-      break;
-    case FAN_PIN: 
-      sendRawData(F("Relay: fan on(0)/off(1)"));
-      break;
-    case FAN_SPEED_PIN: 
-      sendRawData(F("Relay: fun max(0)/min(1) speed switch"));
-      break;
-    case ONE_WIRE_PIN: 
-      sendRawData(F("1-Wire: termometer"));
-      break;
-    case USE_SERIAL_MONOTOR_PIN: 
-      sendRawData(F("Use serial monitor on(1)/off(0)"));
-      break;
-    case ERROR_PIN: 
-      sendRawData(F("Error status"));
-      break;
-    case BREEZE_PIN: 
-      sendRawData(F("Breeze"));
-      break;
-    case 18: 
-    case 19: 
-      sendRawData(F("Reserved by I2C. Can be used, if SCL, SDA pins will be used"));
-      break;
-    }
-    sendRawData(FS(S_CRLF));
-  }
+  sendRawData(F("</dl>")); 
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -636,12 +495,13 @@ boolean WebServerClass::applyPostParam(String& postParam){
 //                          OTHER PAGES                            //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
+void WebServerClass::sendLogPage(boolean printEvents, boolean printErrors, boolean printTemperature){
   LogRecord logRecord;
   boolean isEmpty = true;
-  sendTag(FS(S_table), HTTP_TAG_OPEN);
-  for (int i = 0; i < GB_Logger.getLogRecordsCount(); i++){
 
+  sendRawData(F("<table>"));
+  for (int i = 0; i < GB_Logger.getLogRecordsCount(); i++){
+    
     logRecord = GB_Logger.getLogRecordByIndex(i);
     if (!printEvents && GB_Logger.isEvent(logRecord)){
       continue;
@@ -652,29 +512,24 @@ void WebServerClass::sendFullLog(boolean printEvents, boolean printErrors, boole
     if (!printTemperature && GB_Logger.isTemperature(logRecord)){
       continue;
     }
-
-    sendTag(FS(S_tr), HTTP_TAG_OPEN);
-    sendTag(FS(S_td), HTTP_TAG_OPEN);
+    sendRawData(F("<tr><td>"));
     sendRawData(i+1);
-    sendTag(FS(S_td), HTTP_TAG_CLOSED);
-    sendTag(FS(S_td), HTTP_TAG_OPEN);
+    sendRawData(F("</td><td>"));
     sendRawData(StringUtils::timeToString(logRecord.timeStamp));    
-    sendTag(FS(S_td), HTTP_TAG_CLOSED);
-    sendTag(FS(S_td), HTTP_TAG_OPEN);
-    sendRawData(StringUtils::byteToHexString(logRecord.data, true));
-    sendTag(FS(S_td), HTTP_TAG_CLOSED);
-    sendTag(FS(S_td), HTTP_TAG_OPEN);
+    //sendRawData(F("</td><td>"));
+    //sendRawData(StringUtils::byteToHexString(logRecord.data, true));
+    sendRawData(F("</td><td>"));
     sendRawData(GB_Logger.getLogRecordDescription(logRecord));
-    sendRawData(GB_Logger.getLogRecordSuffix(logRecord));
-    sendTag(FS(S_td), HTTP_TAG_CLOSED);
-    //sendDataLn();
-    sendTag(FS(S_tr), HTTP_TAG_CLOSED);
+    sendRawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord));
+    sendRawData(F("</td></tr>")); // bug with linker is here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
+
     isEmpty = false;
 
     if (c_isWifiResponseError) return;
 
   }
-  sendTag(FS(S_table), HTTP_TAG_CLOSED);
+  sendRawData(F("</table>"));
+  
   if (isEmpty){
     sendRawData(F("Log empty"));
   }
@@ -728,6 +583,8 @@ void WebServerClass::sendStorageDump(){
 }
 
 WebServerClass GB_WebServer;
+
+
 
 
 

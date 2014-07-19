@@ -1,11 +1,7 @@
 #ifndef WebServer_h
 #define WebServer_h
 
-#include <MemoryFree.h>
-
 #include "Global.h"
-#include "StorageHelper.h" 
-#include "Thermometer.h" 
 
 /////////////////////////////////////////////////////////////////////
 //                           HTML CONSTS                           //
@@ -26,6 +22,7 @@ const char S_html[] PROGMEM  = "html";
 const char S_h1[] PROGMEM  = "h1";
 
 const char S_url_root[] PROGMEM  = "/";
+//const char S_url_pins[] PROGMEM  = "/pins";
 const char S_url_log[] PROGMEM  = "/log";
 const char S_url_configuration[] PROGMEM  = "/conf";
 const char S_url_storage[] PROGMEM  = "/storage";
@@ -41,8 +38,6 @@ public:
   void handleSerialEvent();
 
 private:
-
-  void showWebMessage(const __FlashStringHelper* str, boolean newLine = true);
 
   /////////////////////////////////////////////////////////////////////
   //                               HTTP                              //
@@ -88,12 +83,6 @@ private:
 
   void sendStatusPage();
 
-  void sendFreeMemory();
-  void sendBootStatus();
-  void sendTimeStatus();
-  void sendTemperatureStatus();
-  void sendPinsStatus();
-
   /////////////////////////////////////////////////////////////////////
   //                      CONFIGURATION PAGE                         //
   /////////////////////////////////////////////////////////////////////
@@ -107,18 +96,33 @@ private:
   //                          OTHER PAGES                            //
   /////////////////////////////////////////////////////////////////////
 
-  void sendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature);
+  void sendLogPage(boolean printEvents, boolean printErrors, boolean printTemperature);
 
   // TODO garbage?
   void printStorage(word address, byte sizeOf);
 
   void sendStorageDump();
 
+  /////////////////////////////////////////////////////////////////////
+  //                              OTHER                              //
+  /////////////////////////////////////////////////////////////////////
+
+  template <class T> void showWebMessage(T str, boolean newLine = true){
+    if (g_useSerialMonitor){
+      Serial.print(F("WEB> "));
+      Serial.print(str);
+      if (newLine){  
+        Serial.println();
+      }      
+    }
+  }
+
 };
 
 extern WebServerClass GB_WebServer;
 
 #endif
+
 
 
 

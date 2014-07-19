@@ -32,7 +32,7 @@ public:
 
   static String getLogRecordPrefix(const LogRecord &logRecord);
   static const __FlashStringHelper* getLogRecordDescription(LogRecord &logRecord);
-  static String getLogRecordSuffix(const LogRecord &logRecord);
+  static String getLogRecordDescriptionSuffix(const LogRecord &logRecord);
 
   static boolean isEvent(const LogRecord &logRecord);
   static boolean isError(const LogRecord &logRecord);

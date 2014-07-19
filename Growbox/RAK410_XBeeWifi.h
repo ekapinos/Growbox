@@ -31,14 +31,12 @@ public:
 
   boolean isPresent(); // check if the device is present
 
-  /////////////////////////////////////////////////////////////////////
-  //                             STARTUP                             //
+    /////////////////////////////////////////////////////////////////////
+  //                            WORKFLOW                             //
   /////////////////////////////////////////////////////////////////////
 
   void init();
   void updateWiFiStatus();
-
-  boolean restartWifi();
 
   /////////////////////////////////////////////////////////////////////
   //                               TCP                               //
@@ -62,20 +60,16 @@ public:
 
 
 private:
+
+  /////////////////////////////////////////////////////////////////////
+  //                               TCP                               //
+  /////////////////////////////////////////////////////////////////////
+
+  boolean restartWifi();
   boolean startupWebServer(boolean forceDefaultParameters = false);
 
   boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY, boolean rebootIfNoResponse=true);
   String wifiExecuteRawCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
-
-  template <class T> void showWifiMessage(T str, boolean newLine = true){
-    if (g_useSerialMonitor){
-      Serial.print(F("WIFI> "));
-      Serial.print(str);
-      if (newLine){  
-        Serial.println();
-      }      
-    }
-  }
 
   template <class T> unsigned int wifiExecuteCommandPrint(T command){
     unsigned int rez = Serial1.print(command);  
@@ -93,11 +87,26 @@ private:
     return rez;
   }  
 
+  /////////////////////////////////////////////////////////////////////
+  //                              OTHER                              //
+  /////////////////////////////////////////////////////////////////////
+
+  template <class T> void showWifiMessage(T str, boolean newLine = true){
+    if (g_useSerialMonitor){
+      Serial.print(F("WIFI> "));
+      Serial.print(str);
+      if (newLine){  
+        Serial.println();
+      }      
+    }
+  }
+
 };
 
 extern RAK410_XBeeWifiClass RAK410_XBeeWifi;
 
 #endif
+
 
 
 

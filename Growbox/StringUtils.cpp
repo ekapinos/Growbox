@@ -144,27 +144,35 @@ String StringUtils::floatToString(float number){
 }
 
 
-String StringUtils::timeToString(time_t time){
+String StringUtils::timeToString(time_t time, boolean getDate, boolean getTime){
   String out;
 
   tmElements_t tm;
   breakTime(time, tm);
 
   //out += '[';
-  out += getFixedDigitsString(tm.Hour, 2);
-  out += ':';
-  out += getFixedDigitsString(tm.Minute, 2);
-  out += ':';
-  out += getFixedDigitsString(tm.Second, 2);
-  out += ' ';
-  out += getFixedDigitsString(tm.Day, 2);
-  out +='.';
-  out += getFixedDigitsString(tm.Month, 2);
-  out += '.';
-  out += getFixedDigitsString(tmYearToCalendar(tm.Year), 4); 
+  if (getDate){
+    out += getFixedDigitsString(tm.Day, 2);
+    out +='.';
+    out += getFixedDigitsString(tm.Month, 2);
+    out += '.';
+    out += getFixedDigitsString(tmYearToCalendar(tm.Year), 4); 
+  }
+  if (getDate && getTime){
+    out += ' ';
+  }
+  if (getTime){
+    out += getFixedDigitsString(tm.Hour, 2);
+    out += ':';
+    out += getFixedDigitsString(tm.Minute, 2);
+    out += ':';
+    out += getFixedDigitsString(tm.Second, 2);
+  }
   //out += ']';
   return out;
 } 
+
+
 
 
 

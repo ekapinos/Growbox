@@ -57,9 +57,7 @@ int LoggerClass::getLogRecordsCount(){
 }  
 
 LogRecord LoggerClass::getLogRecordByIndex(int index){
-  LogRecord logRecord;
-  GB_StorageHelper.getLogRecordByIndex(index, logRecord);
-  return logRecord;
+  return GB_StorageHelper.getLogRecordByIndex(index);
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -105,7 +103,7 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
   }
 }
 
-String LoggerClass::getLogRecordSuffix(const LogRecord &logRecord){        
+String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){        
   String out;
   if (isTemperature(logRecord)) {
     byte temperature = (logRecord.data & B00111111);
@@ -142,7 +140,7 @@ void LoggerClass::printLogRecordToSerialMonotior(const LogRecord &logRecord, con
   }
   Serial.print(getLogRecordPrefix(logRecord));    
   Serial.print(description);
-  Serial.print(getLogRecordSuffix(logRecord));  
+  Serial.print(getLogRecordDescriptionSuffix(logRecord));  
 
   Serial.println();      
 }

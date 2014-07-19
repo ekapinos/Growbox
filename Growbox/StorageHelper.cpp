@@ -103,7 +103,7 @@ word StorageHelperClass::getLogRecordsCount(){
   }
 }
 
-boolean StorageHelperClass::getLogRecordByIndex(word index, LogRecord &logRecord){
+LogRecord StorageHelperClass::getLogRecordByIndex(word index){
   if (index >= getLogRecordsCount()){
     return false;
   }
@@ -121,12 +121,11 @@ boolean StorageHelperClass::getLogRecordByIndex(word index, LogRecord &logRecord
   }
   //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
   if (planeIndex < LOG_CAPACITY_ARDUINO){
-    logRecord = EEPROM.readBlock<LogRecord>(sizeof(BootRecord) + planeIndex*sizeof(logRecord));
+    return EEPROM.readBlock<LogRecord>(sizeof(BootRecord) + planeIndex*sizeof(LogRecord));
   } 
   else {
-    logRecord = EEPROM_AT24C32.readBlock<LogRecord>((planeIndex-LOG_CAPACITY_ARDUINO)*sizeof(logRecord));
+    return EEPROM_AT24C32.readBlock<LogRecord>((planeIndex-LOG_CAPACITY_ARDUINO)*sizeof(LogRecord));
   }
-  return true;
 }
 
 /////////////////////////////////////////////////////////////////////

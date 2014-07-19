@@ -37,7 +37,7 @@ namespace StringUtils {
   String getFixedDigitsString(const int number, const byte numberOfDigits);
   String byteToHexString(byte number, boolean addPrefix = false);
   String floatToString(float number);
-  String timeToString(time_t time);
+  String timeToString(time_t time, boolean getDate=true, boolean getTime=true);
 
 }
 
