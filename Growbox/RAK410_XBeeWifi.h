@@ -12,11 +12,8 @@ private:
   static const unsigned int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
 
   boolean c_isWifiPresent;
-
   boolean c_restartWifi;
-
   unsigned int c_autoSizeFrameSize;
-
   boolean c_isWifiPrintCommandStarted;
 
 public:
@@ -34,8 +31,7 @@ public:
 
   boolean isPresent(); // check if the device is present
 
-
-    /////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////
   //                             STARTUP                             //
   /////////////////////////////////////////////////////////////////////
 
@@ -45,7 +41,7 @@ public:
   boolean restartWifi();
 
   /////////////////////////////////////////////////////////////////////
-  //                              WEB SERVER                         //
+  //                               TCP                               //
   /////////////////////////////////////////////////////////////////////
 
   RequestType handleSerialEvent(byte &wifiPortDescriptor, String &input, String &postParams);
@@ -66,7 +62,7 @@ public:
 
 
 private:
-  boolean startupWebServerSilent(boolean forceDefaultParameters = false);
+  boolean startupWebServer(boolean forceDefaultParameters = false);
 
   boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY, boolean rebootIfNoResponse=true);
   String wifiExecuteRawCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);

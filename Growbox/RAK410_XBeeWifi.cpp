@@ -57,6 +57,9 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
   boolean isStartedUp = false;
 
   for (int i=0; i<3; i++){
+    if (g_useSerialMonitor){
+      Serial.println();
+    }
     boolean forceDefaultParameters = (i == 2);
     if (forceDefaultParameters){
       showWifiMessage(F("Starting up Web server with default parameters..."));
@@ -70,7 +73,7 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
       //wifiExecuteCommand(F("at+del_data"));
       //wifiExecuteCommand(F("at+storeenable=0"));
 
-      isStartedUp = startupWebServerSilent(forceDefaultParameters);
+      isStartedUp = startupWebServer(forceDefaultParameters);
     }
 
     if (isStartedUp){
@@ -108,7 +111,7 @@ boolean RAK410_XBeeWifiClass::restartWifi(){
 }
 
 /////////////////////////////////////////////////////////////////////
-//                              WEB SERVER                         //
+//                               TCP                               //
 /////////////////////////////////////////////////////////////////////
 
 RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &wifiPortDescriptor, String &input, String &postParams){
@@ -388,7 +391,7 @@ boolean RAK410_XBeeWifiClass::sendCloseConnection(const byte wifiPortDescriptor)
 //private:
 
 
-boolean RAK410_XBeeWifiClass::startupWebServerSilent(boolean forceDefaultParameters){
+boolean RAK410_XBeeWifiClass::startupWebServer(boolean forceDefaultParameters){
 
   if (!wifiExecuteCommand(F("at+scan=0"), 5000)){
     return false;
@@ -552,26 +555,6 @@ String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* co
 }
 
 RAK410_XBeeWifiClass RAK410_XBeeWifi;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

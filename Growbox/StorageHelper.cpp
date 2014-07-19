@@ -197,7 +197,7 @@ void  StorageHelperClass::setWifiSSID(String wifiSSID){
   byte buffer[WIFI_SSID_LENGTH];
   wifiSSID.getBytes(buffer, WIFI_SSID_LENGTH);
   if (wifiSSID.length() == WIFI_SSID_LENGTH){
-    buffer[WIFI_PASS_LENGTH -1] = wifiSSID[WIFI_SSID_LENGTH -1]; // fix, we last char can lost with Arduino labrary
+    buffer[WIFI_SSID_LENGTH -1] = wifiSSID[WIFI_SSID_LENGTH -1]; // fix, we last char can lost with Arduino labrary
   }
   EEPROM.updateBlock<byte>(OFFSETOF(BootRecord, wifiSSID), buffer, WIFI_SSID_LENGTH);
 }

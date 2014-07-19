@@ -150,7 +150,7 @@ String StringUtils::timeToString(time_t time){
   tmElements_t tm;
   breakTime(time, tm);
 
-  out += '[';
+  //out += '[';
   out += getFixedDigitsString(tm.Hour, 2);
   out += ':';
   out += getFixedDigitsString(tm.Minute, 2);
@@ -162,7 +162,7 @@ String StringUtils::timeToString(time_t time){
   out += getFixedDigitsString(tm.Month, 2);
   out += '.';
   out += getFixedDigitsString(tmYearToCalendar(tm.Year), 4); 
-  out += ']';
+  //out += ']';
   return out;
 } 
 

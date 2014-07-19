@@ -45,7 +45,7 @@ private:
   void showWebMessage(const __FlashStringHelper* str, boolean newLine = true);
 
   /////////////////////////////////////////////////////////////////////
-  //                           HTTP PROTOCOL                         //
+  //                               HTTP                              //
   /////////////////////////////////////////////////////////////////////
 
   void sendHttpNotFound();
@@ -56,7 +56,7 @@ private:
   void sendHttpPageBody(const String &input);
 
   /////////////////////////////////////////////////////////////////////
-  //                    HTML SUPPLEMENTAL COMMANDS                   //
+  //                               HTML                              //
   /////////////////////////////////////////////////////////////////////
 
   void sendRawData(const __FlashStringHelper* data);
@@ -83,10 +83,10 @@ private:
   }
 
   /////////////////////////////////////////////////////////////////////
-  //                          HTML PAGE PARTS                        //
+  //                          STATUS PAGE                            //
   /////////////////////////////////////////////////////////////////////
 
-  void sendBriefStatus();
+  void sendStatusPage();
 
   void sendFreeMemory();
   void sendBootStatus();
@@ -94,9 +94,18 @@ private:
   void sendTemperatureStatus();
   void sendPinsStatus();
 
+  /////////////////////////////////////////////////////////////////////
+  //                      CONFIGURATION PAGE                         //
+  /////////////////////////////////////////////////////////////////////
+
   void sendConfigurationForms();
+  void sendWiFIConfigurationForm();
   String applyPostParams(String& postParams);
   boolean applyPostParam(String& postParam);  
+
+  /////////////////////////////////////////////////////////////////////
+  //                          OTHER PAGES                            //
+  /////////////////////////////////////////////////////////////////////
 
   void sendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature);
 
@@ -110,6 +119,7 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
 
 
 

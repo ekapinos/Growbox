@@ -58,9 +58,8 @@ void WebServerClass::handleSerialEvent(){
   }
 }
 
-
 /////////////////////////////////////////////////////////////////////
-//                           HTTP PROTOCOL                         //
+//                               HTTP                              //
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendHttpNotFound(){ 
@@ -120,8 +119,7 @@ void WebServerClass::sendHttpPageBody(const String &url){
 
   //sendTag(FS(S_pre), HTTP_TAG_OPEN);
   if (isRootPage){
-    sendBriefStatus();
-    sendPinsStatus();   
+    sendStatusPage();
   } 
   else if (isLogPage){
     sendFullLog(true, true, true); // TODO use parameters
@@ -254,7 +252,7 @@ void WebServerClass::sendHttpPageBody(const String &url){
 
 
 /////////////////////////////////////////////////////////////////////
-//                    HTML SUPPLEMENTAL COMMANDS                   //
+//                               HTML                              //
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendRawData(const __FlashStringHelper* data){
@@ -292,119 +290,106 @@ void WebServerClass::sendTagButton(const __FlashStringHelper* buttonUrl, const _
 }
 
 /////////////////////////////////////////////////////////////////////
-//                          HTML PAGE PARTS                        //
+//                          STATUS PAGE                            //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendConfigurationForms(){
+void WebServerClass::sendStatusPage(){
+  sendRawData(F("<dl>"));
 
-  boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
+  sendRawData(F("<dt>Common</dt>"));
+  
+  sendRawData(F("<dd>")); 
+  sendRawData(g_isDayInGrowbox ? F("day") : F("night"));
+  sendRawData(F("mode</dd>"));
+  
+  sendRawData(F("<dd>Current time: ")); 
+  sendRawData(now());
+  sendRawData(F("</dd>")); 
+   
+  sendRawData(F("<dd>Last startup: ")); 
+  sendRawData(GB_StorageHelper.getLastStartupTimeStamp());
+  sendRawData(F("</dd>")); 
 
-  sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post'>"));
+  sendRawData(F("<dt>Scheduler</dt>"));
+  
+  sendRawData(F("<dd>Day mode up time: ")); 
+  sendRawData(UP_HOUR); 
+  sendRawData(F(":00</dd><dd>Night mode down time:"));
+  sendRawData(DOWN_HOUR);
+  sendRawData(F(":00</dd>"));
 
-  sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
 
-  sendRawData(F("<input type='radio' name='isWifiStationMode' value='0'")); 
-  if(!isWifiStationMode) {
-    sendRawData(F("checked='checked'")); 
-  } 
-  sendRawData(F("/>Create new Network (hidden, WPA2)<br/>"));
-  sendRawData(F("<input type='radio' name='isWifiStationMode' value='1'"));
-  if(isWifiStationMode) {
-    sendRawData(F("checked='checked'")); 
-  } 
-  sendRawData(F("/>Join existed Network<br/>"));
-
-  sendRawData(F("<table>"));
-  sendRawData(F("<tr><td><label for='wifiSSID'>SSID    </label></td><td><input type='text' name='wifiSSID' required value='"));
-  sendRawData(GB_StorageHelper.getWifiSSID());
-  sendRawData(F("' maxlength='"));
-  sendRawData(WIFI_SSID_LENGTH);
-  sendRawData(F("'/></td></tr>"));
-
-  sendRawData(F("<tr><td><label for='wifiPass'>Password</label></td><td><input type='text' name='wifiPass' required value='"));
-  sendRawData(GB_StorageHelper.getWifiPass());
-  sendRawData(F("' maxlength='"));
-  sendRawData(WIFI_PASS_LENGTH);
-  sendRawData(F("'/></td></tr>"));
-
-  sendRawData(F("</table>")); 
-
-  sendRawData(F("<input type='submit' value='Update'>"));
-
-  sendRawData(F("</fieldset>"));
-  sendRawData(F("</form>"));
-}
-
-String WebServerClass::applyPostParams(String& postParams){
-  boolean isAllParamsApplied = true;
-  int beginIndex = 0;  
-  int endIndex = postParams.indexOf('&');
-  while (beginIndex < (int) postParams.length()){
-    if (endIndex == -1){
-      endIndex = postParams.length();
-    }
-    String postParam = postParams.substring(beginIndex, endIndex);  
-    isAllParamsApplied &= applyPostParam(postParam);
-
-    beginIndex = endIndex+1;
-    endIndex = postParams.indexOf('&', beginIndex);
+  sendRawData(F("<dt>Logger</dt>"));
+  
+  sendRawData(F("<dd>"));  
+  sendRawData(GB_StorageHelper.isStoreLogRecordsEnabled() ? F("Enabled") : F("<b>Disabled</b>"));
+  sendRawData(F("</dd>")); 
+  
+  sendRawData(F("<dd>Stored records: "));
+  sendRawData(GB_StorageHelper.getLogRecordsCount());
+  sendRawData('/');
+  sendRawData(GB_StorageHelper.LOG_CAPACITY);
+  if (GB_StorageHelper.isLogOverflow()){
+    sendRawData(F(", <b>overflow</b>"));
   }
+  sendRawData(F("</dd>"));
 
-  String rez = StringUtils::flashStringLoad(FS(S_url_configuration));
-  if (isAllParamsApplied){
-    rez += StringUtils::flashStringLoad(F("/ok"));
-  } 
-  else {
-    rez += StringUtils::flashStringLoad(F("/error"));
-  }
-  return rez;
-}
-
-boolean WebServerClass::applyPostParam(String& postParam){
-  // isWifiStationMode=1&wifiSSID=Growbox%3C&wifiPass=ingodwetrust
-  boolean isOK = true;
-  //Serial.println(postParam);
-  int equalsCharIndex = postParam.indexOf('=');
-  if (equalsCharIndex == -1){
-    return false;
-  }
-  String paramName  = postParam.substring(0, equalsCharIndex);
-  String paramValue = postParam.substring(equalsCharIndex+1);
-
-  //Serial.print(paramName); Serial.print(" -> "); Serial.println(paramValue);
-
-  if (StringUtils::flashStringEquals(paramName, F("isWifiStationMode"))){
-    GB_StorageHelper.setWifiStationMode(paramValue[0]=='1');  
-  } 
-  else if (StringUtils::flashStringEquals(paramName, F("wifiSSID"))){
-    GB_StorageHelper.setWifiSSID(paramValue);
-  }
-  else if (StringUtils::flashStringEquals(paramName, F("wifiPass"))){
-    GB_StorageHelper.setWifiPass(paramValue);
-  }
-
-  return isOK;
-}
-
-void WebServerClass::sendBriefStatus(){
-  sendFreeMemory();
-  sendBootStatus();
-  sendTimeStatus();
-  sendTemperatureStatus();  
-  sendTag(FS(S_hr), HTTP_TAG_SINGLE); 
-}
-
-void WebServerClass::sendFreeMemory(){  
-  sendRawData(FS(S_Free_memory));
+  
+  sendRawData(F("<dt>Other</dt>"));
+  
+  sendRawData(F("<dd>Free memory: "));
   sendRawData(freeMemory()); 
-  sendRawData(FS(S_bytes));
+  sendRawData(F(" bytes</dd>"));
+
+  sendRawData(F("<dd>First startup: ")); 
+  sendRawData(GB_StorageHelper.getFirstStartupTimeStamp());
+  sendRawData(F("</dd>")); 
+
+
+
+
+  float workingTemperature, statisticsTemperature;
+  int statisticsCount;
+  GB_Thermometer.getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
+
+  sendRawData(F("<dd>Temperature: ")); 
+  sendRawData(F(": current ")); 
+  sendRawData(workingTemperature);
+  sendRawData(F(", next ")); 
+  sendRawData(statisticsTemperature);
+  sendRawData(F(" (count ")); 
+  sendRawData(statisticsCount);
+
+  sendRawData(F("), day "));
+  sendRawData(TEMPERATURE_DAY);
+  sendRawData(FS(S_PlusMinus));
+  sendRawData(TEMPERATURE_DELTA);
+  sendRawData(F(", night "));
+  sendRawData(TEMPERATURE_NIGHT);
+  sendRawData(FS(S_PlusMinus));
+  sendRawData(2*TEMPERATURE_DELTA);
+  sendRawData(F(", critical "));
+  sendRawData(TEMPERATURE_CRITICAL);
   sendRawData(FS(S_CRLF));
+
+
+
+ // sendBootStatus();
+//  sendTimeStatus();
+//  sendTemperatureStatus();  
+  sendRawData(F("</dl>"));
+  sendTag(FS(S_hr), HTTP_TAG_SINGLE); 
+  sendPinsStatus();   
+}
+
+void WebServerClass::sendFreeMemory(){ 
+  sendRawData(F("<dt>Hardware</dt><dd>Free memory: "));
+  sendRawData(freeMemory()); 
+  sendRawData(F(" bytes</dd>"));
 }
 
 void WebServerClass::sendBootStatus(){
-  sendRawData(F("Controller: startup: ")); 
+  sendRawData(F("<dt>Controller</dt><dd> startup: ")); 
   sendRawData(GB_StorageHelper.getLastStartupTimeStamp());
   sendRawData(F(", first startup: ")); 
   sendRawData(GB_StorageHelper.getFirstStartupTimeStamp());
@@ -422,7 +407,7 @@ void WebServerClass::sendBootStatus(){
   if (GB_StorageHelper.isLogOverflow()){
     sendRawData(F(", overflow"));
   } 
-  sendRawData(FS(S_CRLF));
+  sendRawData(F("</dd>"));
 }
 
 void WebServerClass::sendTimeStatus(){
@@ -546,6 +531,110 @@ void WebServerClass::sendPinsStatus(){
   }
 }
 
+/////////////////////////////////////////////////////////////////////
+//                      CONFIGURATION PAGE                         //
+/////////////////////////////////////////////////////////////////////
+
+void WebServerClass::sendConfigurationForms(){
+  sendWiFIConfigurationForm();
+}
+
+void WebServerClass::sendWiFIConfigurationForm(){
+
+  boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
+
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post'>"));
+
+  sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
+
+  sendRawData(F("<input type='radio' name='isWifiStationMode' value='0'")); 
+  if(!isWifiStationMode) {
+    sendRawData(F("checked='checked'")); 
+  } 
+  sendRawData(F("/>Create new Network<br/>Hidden, security WPA2, ip 192.168.0.1<br/>"));
+  sendRawData(F("<input type='radio' name='isWifiStationMode' value='1'"));
+  if(isWifiStationMode) {
+    sendRawData(F("checked='checked'")); 
+  } 
+  sendRawData(F("/>Join existed Network<br/>"));
+
+  sendRawData(F("<table>"));
+  sendRawData(F("<tr><td><label for='wifiSSID'>SSID</label></td><td><input type='text' name='wifiSSID' required value='"));
+  sendRawData(GB_StorageHelper.getWifiSSID());
+  sendRawData(F("' maxlength='"));
+  sendRawData(WIFI_SSID_LENGTH);
+  sendRawData(F("'/></td></tr>"));
+
+  sendRawData(F("<tr><td><label for='wifiPass'>Password</label></td><td><input type='text' name='wifiPass' required value='"));
+  sendRawData(GB_StorageHelper.getWifiPass());
+  sendRawData(F("' maxlength='"));
+  sendRawData(WIFI_PASS_LENGTH);
+  sendRawData(F("'/></td></tr>"));
+
+  sendRawData(F("</table>")); 
+
+  sendRawData(F("<input type='submit' value='Save'> and reboot device manually"));
+
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("</form>"));
+}
+
+String WebServerClass::applyPostParams(String& postParams){
+  boolean isAllParamsApplied = true;
+  int beginIndex = 0;  
+  int endIndex = postParams.indexOf('&');
+  while (beginIndex < (int) postParams.length()){
+    if (endIndex == -1){
+      endIndex = postParams.length();
+    }
+    String postParam = postParams.substring(beginIndex, endIndex);  
+    isAllParamsApplied &= applyPostParam(postParam);
+
+    beginIndex = endIndex+1;
+    endIndex = postParams.indexOf('&', beginIndex);
+  }
+
+  String rez = StringUtils::flashStringLoad(FS(S_url_configuration));
+  if (isAllParamsApplied){
+    rez += StringUtils::flashStringLoad(F("/ok"));
+  } 
+  else {
+    rez += StringUtils::flashStringLoad(F("/error"));
+  }
+  return rez;
+}
+
+boolean WebServerClass::applyPostParam(String& postParam){
+  // isWifiStationMode=1&wifiSSID=Growbox%3C&wifiPass=ingodwetrust
+  boolean isOK = true;
+  //Serial.println(postParam);
+  int equalsCharIndex = postParam.indexOf('=');
+  if (equalsCharIndex == -1){
+    return false;
+  }
+  String paramName  = postParam.substring(0, equalsCharIndex);
+  String paramValue = postParam.substring(equalsCharIndex+1);
+
+  //Serial.print(paramName); Serial.print(" -> "); Serial.println(paramValue);
+
+  if (StringUtils::flashStringEquals(paramName, F("isWifiStationMode"))){
+    GB_StorageHelper.setWifiStationMode(paramValue[0]=='1');  
+  } 
+  else if (StringUtils::flashStringEquals(paramName, F("wifiSSID"))){
+    GB_StorageHelper.setWifiSSID(paramValue);
+  }
+  else if (StringUtils::flashStringEquals(paramName, F("wifiPass"))){
+    GB_StorageHelper.setWifiPass(paramValue);
+  }
+
+  return isOK;
+}
+
+/////////////////////////////////////////////////////////////////////
+//                          OTHER PAGES                            //
+/////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendFullLog(boolean printEvents, boolean printErrors, boolean printTemperature){
   LogRecord logRecord;
@@ -638,9 +727,12 @@ void WebServerClass::sendStorageDump(){
   sendTag(FS(S_table), HTTP_TAG_CLOSED);
 }
 
-
-
 WebServerClass GB_WebServer;
+
+
+
+
+
 
 
 
