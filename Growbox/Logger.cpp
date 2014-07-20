@@ -66,10 +66,11 @@ LogRecord LoggerClass::getLogRecordByIndex(word index){
 
 String LoggerClass::getLogRecordPrefix(const LogRecord &logRecord){        
   String out;
+  out += '[';
   out += StringUtils::timeStampToString(logRecord.timeStamp);
-  out += ' '; 
+  out +=StringUtils::flashStringLoad(F("] ["));
   out += StringUtils::byteToHexString(logRecord.data, true);
-  out += ' '; 
+  out +=StringUtils::flashStringLoad(F("] "));
   return out;
 }
 

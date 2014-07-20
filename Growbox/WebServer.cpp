@@ -17,6 +17,8 @@ void WebServerClass::handleSerialEvent(){
   // HTTP response supplemental   
   RAK410_XBeeWifiClass::RequestType commandType = RAK410_XBeeWifi.handleSerialEvent(c_wifiPortDescriptor, url, getParams, postParams);
 
+  c_isWifiResponseError = false;
+
   switch(commandType){
     case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
     if (StringUtils::flashStringEquals(url, FS(S_url_root)) || 
@@ -28,12 +30,6 @@ void WebServerClass::handleSerialEvent(){
       sendHttpPageHeader();
       sendHttpPageBody(url, getParams);
       sendHttpPageComplete();
-
-      if(g_useSerialMonitor){ 
-        if (c_isWifiResponseError){
-          showWebMessage(F("Error occurred during sending responce"));
-        }
-      }
     } 
     else { // Unknown resource
       sendHttpNotFound();    
@@ -47,6 +43,13 @@ void WebServerClass::handleSerialEvent(){
   default:
     break;
   }
+
+  if(g_useSerialMonitor){ 
+    if (c_isWifiResponseError){
+      showWebMessage(F("Error occurred during sending responce"));
+    }
+  }
+
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -512,16 +515,16 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
 }
 
 /////////////////////////////////////////////////////////////////////
-//                          OTHER PAGES                            //
+//                             LOG PAGE                            //
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendLogPageHeader(){
-  sendRawData(F("  <style type='text/css'>"));
-  sendRawData(F("    table.log {border-spacing:5px; width:100%; text-align:center; }"));
-  //sendRawData(F("    table.log td.ref {}")); 
-  sendRawData(F("    table.log td.current {font-weight:bold;}"));
-  sendRawData(F("    table.log th {font-weight:bold;}"));  
-  sendRawData(F("  </style>"));
+  sendRawData(F("<style type='text/css'>"));
+  sendRawData(F("  table.log {border-spacing:5px; width:100%; text-align:center; }"));
+  //sendRawData(F("  table.log td.ref {}")); 
+  sendRawData(F("  table.log td.current {font-weight:bold;}"));
+  sendRawData(F("  table.log th {font-weight:bold;}"));  
+  sendRawData(F("</style>"));
 }
 
 void WebServerClass::sendLogPage(const String& getParams, boolean printEvents, boolean printErrors, boolean printTemperature){
@@ -532,14 +535,15 @@ void WebServerClass::sendLogPage(const String& getParams, boolean printEvents, b
   tmElements_t currentTm;
   tmElements_t previousTm;
 
+  // fill targetTm
   boolean isTargetTmWasSet = false;
   String dateFromQuery; 
   if (searchHttpParamByName(getParams, F("date"), dateFromQuery)){
 
-    if (dateFromQuery.length() == 8){
+    if (dateFromQuery.length() == 10){
       byte dayInt   = dateFromQuery.substring(0, 2).toInt();
-      byte monthInt = dateFromQuery.substring(2, 4).toInt();
-      word yearInt  = dateFromQuery.substring(4, 8).toInt();
+      byte monthInt = dateFromQuery.substring(3, 5).toInt();
+      word yearInt  = dateFromQuery.substring(6, 10).toInt();
 
       if (dayInt != 0 && monthInt != 0 && yearInt !=0){
         targetTm.Day = dayInt;
@@ -552,12 +556,50 @@ void WebServerClass::sendLogPage(const String& getParams, boolean printEvents, b
   if (!isTargetTmWasSet){
     breakTime(now(), targetTm);
   }
+  String requestDateString = StringUtils::timeStampToString(makeTime(targetTm), true, false);
 
+  // fill previousTm
   previousTm.Day = previousTm.Month = previousTm.Year = 0; //remove compiller warning
 
-  sendRawData(F("<table class='log'>"));
+
+
+  sendRawData(F("<table style='width:100%'><tr><td>"));
+
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_log));
+  sendRawData(F("' method='get'>"));
+  sendRawData(F("<select id='dateCombobox' name='date' value='"));
+  sendRawData(requestDateString);
+  sendRawData(F("'/><input type='submit' value='Show'/>"));
+  sendRawData(F("</form>"));
+
+  sendRawData(F("</td><td style='text-align:right;'>"));
+
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_log));
+  sendRawData(F("' method='post'>"));
+
+  sendRawData(F("Stored records: "));
+  sendRawData(GB_StorageHelper.getLogRecordsCount());
+  sendRawData('/');
+  sendRawData(GB_StorageHelper.LOG_CAPACITY);
+  if (GB_StorageHelper.isLogOverflow()){
+    sendRawData(F(", <b>overflow</b>"));
+  }
+
+  sendRawData(F("<input type='hidden' name='resetStoredLog'/>"));
+  sendRawData(F("<input type='submit' value='Delete all'/>"));
+  sendRawData(F("</form>"));
+
+  sendRawData(F("</td></table>"));
+
+
+
+  boolean isTableTagPrinted = false;   
   word index;
   for (index = 0; index < GB_Logger.getLogRecordsCount(); index++){
+
+    if (c_isWifiResponseError) return;
 
     logRecord = GB_Logger.getLogRecordByIndex(index);
     if (!printEvents && GB_Logger.isEvent(logRecord)){
@@ -571,62 +613,60 @@ void WebServerClass::sendLogPage(const String& getParams, boolean printEvents, b
     }
 
     breakTime(logRecord.timeStamp, currentTm);
-
     boolean isDaySwitch = !(currentTm.Day == previousTm.Day && currentTm.Month == previousTm.Month && currentTm.Year == previousTm.Year);
     if (isDaySwitch){
       previousTm = currentTm; 
     }
-
     boolean isTargetDay = (currentTm.Day == targetTm.Day && currentTm.Month == targetTm.Month && currentTm.Year == targetTm.Year);
 
+    String dateString = StringUtils::timeStampToString(logRecord.timeStamp, true, false);
+
     if (isDaySwitch){ 
-
+      sendRawData(F("<script type='text/javascript'>"));
+      sendRawData(F("var opt = document.createElement('option');"));
+      sendRawData(F("opt.text = '"));    //opt.value = i;
+      sendRawData(dateString);
+      sendRawData(F("';"));
       if (isTargetDay){
-        sendRawData(F("<tr><td class='current' colspan='3'>"));
-        sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
-        sendRawData(F("</td></tr>")); 
-        sendRawData(F("<tr><th>#</th><th>Time</th><th>Description</th></tr>"));
-      } 
-      else {
-        sendRawData(F("<tr><td class='ref' colspan='3'> "));
-        sendRawData(F("<a href='"));
-        sendRawData(FS(S_url_log));
-        sendRawData(F("?date="));
-        String dateInUrl = StringUtils::timeStampToString(logRecord.timeStamp, true, false);
-        dateInUrl.replace(String('.'), String());
-        sendRawData(dateInUrl);
-        sendRawData(F("'>"));
-        sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
-        sendRawData(F("</a>"));
-        sendRawData(F("</td></tr> "));
-      } 
-
+        sendRawData(F("opt.selected = true;"));
+        sendRawData(F("opt.style.fontWeight = 'bold';"));
+      }   
+      sendRawData(F("document.getElementById('dateCombobox').appendChild(opt);"));
+      sendRawData(F("</script>"));
     }
 
-    if (!isTargetDay){
-      continue;
+    if (isTargetDay){
+      if (!isTableTagPrinted){
+        isTableTagPrinted = true;
+        sendRawData(F("<table class='log'>"));
+        sendRawData(F("<tr><th>#</th><th>Time</th><th>Description</th></tr>"));
+      }
+      sendRawData(F("<tr><td>"));
+      sendRawData(index+1);
+      sendRawData(F("</td><td>"));
+      sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true)); 
+      sendRawData(F("</td><td style='text-align:left;'>"));
+      sendRawData(GB_Logger.getLogRecordDescription(logRecord));
+      sendRawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord));
+      sendRawData(F("</td></tr>")); // bug with linker was here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
     } 
-
-    sendRawData(F("<tr><td>"));
-    sendRawData(index+1);
-    sendRawData(F("</td><td>"));
-    sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true));  //print Time  
-    //sendRawData(F("</td><td>"));
-    //sendRawData(StringUtils::byteToHexString(logRecord.data, true));
-    sendRawData(F("</td><td style='text-align:left;'>"));
-    sendRawData(GB_Logger.getLogRecordDescription(logRecord));
-    sendRawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord));
-    sendRawData(F("</td></tr>")); // bug with linker was here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
-
-    if (c_isWifiResponseError) return;
-
+    else {
+      continue;
+    }
   }
-  sendRawData(F("</table>"));
-
-  if (index == 0){
-    sendRawData(F("No records"));
+  if (isTableTagPrinted) {
+    sendRawData(F("</table>"));
+  } 
+  else {
+    sendRawData(F("No log records stored on "));
+    sendRawData(requestDateString);  
   }
+
 }
+
+/////////////////////////////////////////////////////////////////////
+//                          OTHER PAGES                            //
+/////////////////////////////////////////////////////////////////////
 
 // TODO garbage?
 void WebServerClass::printStorage(word address, byte sizeOf){
@@ -725,6 +765,11 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
 }
 
 WebServerClass GB_WebServer;
+
+
+
+
+
 
 
 

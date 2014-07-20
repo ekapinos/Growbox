@@ -18,8 +18,9 @@ void ControllerClass::checkFreeMemory(){
     GB_Logger.stopLogError(ERROR_MEMORY_LOW); 
   }
   if (g_useSerialMonitor){
-    Serial.print(F("GB> Free memory: "));  
-    Serial.println(currentFreeMemory);
+    Serial.print(F("GB> Free memory: ["));  
+    Serial.print(currentFreeMemory);
+    Serial.println(']');
   }
 }
 

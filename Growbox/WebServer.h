@@ -94,11 +94,15 @@ private:
   void sendConfigurationPage(const String& getParams);
 
   /////////////////////////////////////////////////////////////////////
-  //                          OTHER PAGES                            //
+  //                             LOG PAGE                            //
   /////////////////////////////////////////////////////////////////////
+
   void sendLogPageHeader();
   void sendLogPage(const String& getParams, boolean printEvents, boolean printErrors, boolean printTemperature);
 
+  /////////////////////////////////////////////////////////////////////
+  //                          OTHER PAGES                            //
+  /////////////////////////////////////////////////////////////////////
   // TODO garbage?
   void printStorage(word address, byte sizeOf);
 
@@ -130,6 +134,7 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
 
 
 
