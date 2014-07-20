@@ -68,6 +68,8 @@ private:
   }
 
   void sendTagButton(const __FlashStringHelper* buttonUrl, const __FlashStringHelper* buttonTitle, boolean isSelected);
+  void sendTagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected, const __FlashStringHelper* extra = 0);
+  void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& optionText, boolean isSelected);
 
   template <class T> void sendTag(T tagName, HTTP_TAG type){
     sendRawData('<');
@@ -98,7 +100,7 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   void sendLogPageHeader();
-  void sendLogPage(const String& getParams, boolean printEvents, boolean printErrors, boolean printTemperature);
+  void sendLogPage(const String& getParams);
 
   /////////////////////////////////////////////////////////////////////
   //                          OTHER PAGES                            //
@@ -112,7 +114,7 @@ private:
   //                          POST HANDLING                          //
   /////////////////////////////////////////////////////////////////////
 
-  String applyPostParams(const String& postParams);
+  String applyPostParams(const String& url, const String& postParams);
   boolean applyPostParam(const String& name, const String& value);  
 
   /////////////////////////////////////////////////////////////////////
@@ -134,6 +136,8 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
+
 
 
 
