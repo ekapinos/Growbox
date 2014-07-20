@@ -92,10 +92,10 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
 //                               TCP                               //
 /////////////////////////////////////////////////////////////////////
 
-RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &wifiPortDescriptor, String &input, String &postParams){
+RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &wifiPortDescriptor, String &input, String &getParams, String &postParams){
 
   wifiPortDescriptor = 0xFF;
-  input = postParams = String();
+  input = getParams = postParams = String();
 
   input.reserve(100);
   Serial_readString(input, 13); // "at+recv_data="
@@ -157,7 +157,13 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
           lastIndex = input.length()-2; // \r\n
         }
         input = input.substring(firstIndex, lastIndex);             
-
+        
+        int indexOfQuestion = input.indexOf('?');
+        if (indexOfQuestion != -1){
+          getParams = input.substring(indexOfQuestion+1);    
+          input = input.substring(0, indexOfQuestion);   
+        }
+        
         if (isGet) {
           // We are not interested in this information
           Serial_skipBytes(dataLength); 

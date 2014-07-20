@@ -42,7 +42,7 @@ public:
   //                               TCP                               //
   /////////////////////////////////////////////////////////////////////
 
-  RequestType handleSerialEvent(byte &wifiPortDescriptor, String &input, String &postParams);
+  RequestType handleSerialEvent(byte &wifiPortDescriptor, String &input, String &getParams, String &postParams);
 
   void    sendFixedSizeData(const byte portDescriptor, const __FlashStringHelper* data);
 

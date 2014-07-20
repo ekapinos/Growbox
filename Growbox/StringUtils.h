@@ -13,7 +13,7 @@
 //#define PS(x) (reinterpret_cast<const char PROGMEM*>(x))
 
 namespace StringUtils {
-  
+
   /////////////////////////////////////////////////////////////////////
   //                         FLASH STRING UTILS                      //
   /////////////////////////////////////////////////////////////////////
@@ -29,7 +29,7 @@ namespace StringUtils {
 
   String flashStringLoad(const __FlashStringHelper* fstr);
   size_t flashStringLoad(char* cstr, size_t length, const __FlashStringHelper* fstr);
-  
+
   /////////////////////////////////////////////////////////////////////
   //                         STRING CLASS UTILS                      //
   /////////////////////////////////////////////////////////////////////
@@ -37,11 +37,12 @@ namespace StringUtils {
   String getFixedDigitsString(const int number, const byte numberOfDigits);
   String byteToHexString(byte number, boolean addPrefix = false);
   String floatToString(float number);
-  String timeToString(time_t time, boolean getDate=true, boolean getTime=true);
-
+  String timeStampToString(time_t time, boolean getDate=true, boolean getTime=true);
+  byte hexCharToByte(const char hexChar);
 }
 
 #endif
+
 
 
 

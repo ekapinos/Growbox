@@ -116,13 +116,13 @@ void initLoggerModel(){
 
   EVENT_FIRST_START_UP.init(1, F("First startup")), 
   EVENT_RESTART.init(2, F("Restart")), 
-  EVENT_MODE_DAY.init(3, F("DAY mode")), 
-  EVENT_MODE_NIGHT.init(4, F("NIGHT mode")), 
-  EVENT_LIGHT_OFF.init(5, F("Light OFF")), 
-  EVENT_LIGHT_ON.init(6, F("Light ON")), 
+  EVENT_MODE_DAY.init(3, F("Day mode")), 
+  EVENT_MODE_NIGHT.init(4, F("Night mode")), 
+  EVENT_LIGHT_OFF.init(5, F("Light off")), 
+  EVENT_LIGHT_ON.init(6, F("Light on")), 
   EVENT_FAN_OFF.init(7, F("Fan OFF")), 
-  EVENT_FAN_ON_MIN.init(8, F("Fan ON, MIN speed")), 
-  EVENT_FAN_ON_MAX.init(9, F("Fan ON, MAX speed"));//,
+  EVENT_FAN_ON_MIN.init(8, F("Fan on, min speed")), 
+  EVENT_FAN_ON_MAX.init(9, F("Fan on, max speed"));//,
   //EVENT_SERIAL_UNKNOWN_COMMAND.init(10, F("Unknown serial command"));
 }
 

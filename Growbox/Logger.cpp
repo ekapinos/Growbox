@@ -52,11 +52,11 @@ void LoggerClass::logTemperature(byte temperature){
 //                               READ                              //
 /////////////////////////////////////////////////////////////////////
 
-int LoggerClass::getLogRecordsCount(){
+word LoggerClass::getLogRecordsCount(){
   return GB_StorageHelper.getLogRecordsCount();
 }  
 
-LogRecord LoggerClass::getLogRecordByIndex(int index){
+LogRecord LoggerClass::getLogRecordByIndex(word index){
   return GB_StorageHelper.getLogRecordByIndex(index);
 }
 
@@ -66,7 +66,7 @@ LogRecord LoggerClass::getLogRecordByIndex(int index){
 
 String LoggerClass::getLogRecordPrefix(const LogRecord &logRecord){        
   String out;
-  out += StringUtils::timeToString(logRecord.timeStamp);
+  out += StringUtils::timeStampToString(logRecord.timeStamp);
   out += ' '; 
   out += StringUtils::byteToHexString(logRecord.data, true);
   out += ' '; 

@@ -23,8 +23,8 @@ public:
   //                               READ                              //
   /////////////////////////////////////////////////////////////////////
 
-  static int getLogRecordsCount(); 
-  static LogRecord getLogRecordByIndex(int index);
+  static word getLogRecordsCount(); 
+  static LogRecord getLogRecordByIndex(word index);
 
   /////////////////////////////////////////////////////////////////////
   //                              CHECK                              //

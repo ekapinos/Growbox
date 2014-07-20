@@ -48,7 +48,10 @@ private:
 
   void sendHttpPageHeader();
   void sendHttpPageComplete();
-  void sendHttpPageBody(const String &input);
+  void sendHttpPageBody(const String &input, const String &getParams);
+
+  String encodeHttpString(const String& dirtyValue);
+  boolean getHttpParamByIndex(const String& params, const word index, String& name, String& value);
 
   /////////////////////////////////////////////////////////////////////
   //                               HTML                              //
@@ -87,16 +90,16 @@ private:
   //                      CONFIGURATION PAGE                         //
   /////////////////////////////////////////////////////////////////////
 
-  void sendConfigurationForms();
-  void sendWiFIConfigurationForm();
-  String applyPostParams(String& postParams);
-  boolean applyPostParam(String& postParam);  
+  void sendConfigurationPage(const String& getParams);
+
+  String applyPostParams(const String& postParams);
+  boolean applyPostParam(const String& name, const String& value);  
 
   /////////////////////////////////////////////////////////////////////
   //                          OTHER PAGES                            //
   /////////////////////////////////////////////////////////////////////
-
-  void sendLogPage(boolean printEvents, boolean printErrors, boolean printTemperature);
+  void sendLogPageStyles();
+  void sendLogPage(String getParams, boolean printEvents, boolean printErrors, boolean printTemperature);
 
   // TODO garbage?
   void printStorage(word address, byte sizeOf);
@@ -122,6 +125,10 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
+
+
+
 
 
 

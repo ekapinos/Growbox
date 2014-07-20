@@ -12,11 +12,10 @@
 
 void WebServerClass::handleSerialEvent(){
 
-  String url;   
-  String postParams; 
+  String url, getParams, postParams; 
 
   // HTTP response supplemental   
-  RAK410_XBeeWifiClass::RequestType commandType = RAK410_XBeeWifi.handleSerialEvent(c_wifiPortDescriptor, url, postParams);
+  RAK410_XBeeWifiClass::RequestType commandType = RAK410_XBeeWifi.handleSerialEvent(c_wifiPortDescriptor, url, getParams, postParams);
 
   switch(commandType){
     case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
@@ -29,7 +28,7 @@ void WebServerClass::handleSerialEvent(){
       ){
 
       sendHttpPageHeader();
-      sendHttpPageBody(url);
+      sendHttpPageBody(url, getParams);
       sendHttpPageComplete();
 
       if(g_useSerialMonitor){ 
@@ -90,7 +89,7 @@ void WebServerClass::sendHttpPageComplete(){
   RAK410_XBeeWifi.sendCloseConnection(c_wifiPortDescriptor);
 }
 
-void WebServerClass::sendHttpPageBody(const String &url){
+void WebServerClass::sendHttpPageBody(const String& url, const String& getParams){
 
   boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
   //  boolean isPinsPage    = StringUtils::flashStringEquals(url, FS(S_url_pins));
@@ -101,7 +100,13 @@ void WebServerClass::sendHttpPageBody(const String &url){
   sendRawData(F("<html><head>"));
   sendRawData(F("  <title>Growbox</title>"));
   sendRawData(F("  <meta name='viewport' content='width=device-width, initial-scale=1'/>"));
+  if (isLogPage){
+    sendLogPageStyles();
+  }
   sendRawData(F("</head>"));
+  //<STYLE type="text/css">
+  //  #myid {border-width: 1; border: solid; text-align: center}
+  //</STYLE>
   sendRawData(F("<body style='font-family:Arial;'>"));
 
   sendRawData(F("<h1>Growbox</h1>"));   
@@ -121,10 +126,10 @@ void WebServerClass::sendHttpPageBody(const String &url){
   //    sendPinsStatus();
   //  } 
   else if (isLogPage){
-    sendLogPage(true, true, true); // TODO use parameters
+    sendLogPage(String(), true, true, true); // TODO use parameters
   }
   else if (isConfPage){
-    sendConfigurationForms();
+    sendConfigurationPage(getParams);
   } 
   else if (isStoragePage){
     sendStorageDump(); 
@@ -249,6 +254,64 @@ void WebServerClass::sendHttpPageBody(const String &url){
 
 }
 
+String WebServerClass::encodeHttpString(const String& dirtyValue){
+
+  String value;
+  for(unsigned int i = 0; i< dirtyValue.length(); i++){
+    if (dirtyValue[i] == '+'){
+      value += ' '; 
+    } 
+    else if (dirtyValue[i] == '%'){
+      if (i + 2 < dirtyValue.length()){
+        byte hiCharPart = StringUtils::hexCharToByte(dirtyValue[i+1]);
+        byte loCharPart = StringUtils::hexCharToByte(dirtyValue[i+2]);
+        if (hiCharPart != 0xFF && loCharPart != 0xFF){  
+          value += (char)((hiCharPart<<4) + loCharPart);   
+        }
+      }
+      i += 2;
+    } 
+    else {
+      value += dirtyValue[i];
+    }
+  }
+  return value;
+}
+
+boolean WebServerClass::getHttpParamByIndex(const String& params, const word index, String& name, String& value){
+
+  word paramsCount = 0;
+
+  int beginIndex = 0;
+  int endIndex = params.indexOf('&');
+  while (beginIndex < (int) params.length()){
+    if (endIndex == -1){
+      endIndex = params.length();
+    }
+
+    if (paramsCount == index){
+      String param = params.substring(beginIndex, endIndex);  
+
+      int equalsCharIndex = param.indexOf('=');
+      if (equalsCharIndex == -1){
+        name = encodeHttpString(param);
+        value = String();
+      } 
+      else {
+        name  = encodeHttpString(param.substring(0, equalsCharIndex));
+        value = encodeHttpString(param.substring(equalsCharIndex+1));
+      }
+      return true;
+    }
+
+    paramsCount++;
+
+    beginIndex = endIndex+1;
+    endIndex = params.indexOf('&', beginIndex);
+  } 
+
+  return false;
+}
 
 /////////////////////////////////////////////////////////////////////
 //                               HTML                              //
@@ -272,7 +335,7 @@ void WebServerClass::sendRawData(float data){
 }
 
 void WebServerClass::sendRawData(time_t data){
-  String str = StringUtils::timeToString(data);
+  String str = StringUtils::timeStampToString(data);
   sendRawData(str);
 }
 
@@ -287,6 +350,7 @@ void WebServerClass::sendTagButton(const __FlashStringHelper* buttonUrl, const _
   }
   sendRawData(F(" />"));
 }
+
 
 /////////////////////////////////////////////////////////////////////
 //                          STATUS PAGE                            //
@@ -394,11 +458,7 @@ void WebServerClass::sendStatusPage(){
 //                      CONFIGURATION PAGE                         //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendConfigurationForms(){
-  sendWiFIConfigurationForm();
-}
-
-void WebServerClass::sendWiFIConfigurationForm(){
+void WebServerClass::sendConfigurationPage(const String& getParams){
 
   boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
 
@@ -440,98 +500,151 @@ void WebServerClass::sendWiFIConfigurationForm(){
   sendRawData(F("</form>"));
 }
 
-String WebServerClass::applyPostParams(String& postParams){
-  boolean isAllParamsApplied = true;
-  int beginIndex = 0;  
-  int endIndex = postParams.indexOf('&');
-  while (beginIndex < (int) postParams.length()){
-    if (endIndex == -1){
-      endIndex = postParams.length();
+String WebServerClass::applyPostParams(const String& postParams){
+
+  String queryStr;
+
+  word index = 0;  
+  String name, value;
+  while(getHttpParamByIndex(postParams, index, name, value)){
+
+    if (queryStr.length() > 0){
+      queryStr += '&';
     }
-    String postParam = postParams.substring(beginIndex, endIndex);  
-    isAllParamsApplied &= applyPostParam(postParam);
+    queryStr += name;
+    queryStr += '=';   
+    queryStr += applyPostParam(name, value);
 
-    beginIndex = endIndex+1;
-    endIndex = postParams.indexOf('&', beginIndex);
+    index++;
   }
 
-  String rez = StringUtils::flashStringLoad(FS(S_url_configuration));
-  if (isAllParamsApplied){
-    rez += StringUtils::flashStringLoad(F("/ok"));
-  } 
+  if (index > 0){
+    return StringUtils::flashStringLoad(FS(S_url_configuration)) + String('?') + queryStr;
+  }
   else {
-    rez += StringUtils::flashStringLoad(F("/error"));
+    return StringUtils::flashStringLoad(FS(S_url_configuration));
   }
-  return rez;
 }
 
-boolean WebServerClass::applyPostParam(String& postParam){
-  // isWifiStationMode=1&wifiSSID=Growbox%3C&wifiPass=ingodwetrust
-  boolean isOK = true;
-  //Serial.println(postParam);
-  int equalsCharIndex = postParam.indexOf('=');
-  if (equalsCharIndex == -1){
+boolean WebServerClass::applyPostParam(const String& name, const String& value){
+
+  if (StringUtils::flashStringEquals(name, F("isWifiStationMode"))){
+    if (value.length() != 1){
+      return false;
+    }
+    GB_StorageHelper.setWifiStationMode(value[0]=='1'); 
+
+  } 
+  else if (StringUtils::flashStringEquals(name, F("wifiSSID"))){
+    GB_StorageHelper.setWifiSSID(value);
+
+  }
+  else if (StringUtils::flashStringEquals(name, F("wifiPass"))){
+    GB_StorageHelper.setWifiPass(value);
+
+  } 
+  else {
     return false;
   }
-  String paramName  = postParam.substring(0, equalsCharIndex);
-  String paramValue = postParam.substring(equalsCharIndex+1);
 
-  //Serial.print(paramName); Serial.print(" -> "); Serial.println(paramValue);
-
-  if (StringUtils::flashStringEquals(paramName, F("isWifiStationMode"))){
-    GB_StorageHelper.setWifiStationMode(paramValue[0]=='1');  
-  } 
-  else if (StringUtils::flashStringEquals(paramName, F("wifiSSID"))){
-    GB_StorageHelper.setWifiSSID(paramValue);
-  }
-  else if (StringUtils::flashStringEquals(paramName, F("wifiPass"))){
-    GB_StorageHelper.setWifiPass(paramValue);
-  }
-
-  return isOK;
+  return true;
 }
 
 /////////////////////////////////////////////////////////////////////
 //                          OTHER PAGES                            //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendLogPage(boolean printEvents, boolean printErrors, boolean printTemperature){
-  LogRecord logRecord;
-  boolean isEmpty = true;
+void WebServerClass::sendLogPageStyles(){
+  sendRawData(F("  <style type='text/css'>"));
+  sendRawData(F("    table.log {border-spacing: 5px;}"));
+  sendRawData(F("    table.log td.ref {text-align: center;}")); 
+  sendRawData(F("    table.log td.current {text-align: center; font-weight: bold;}"));
+  sendRawData(F("    table.log th {text-align: center; font-weight: bold;}"));  
+  sendRawData(F("  </style>"));
+}
 
-  sendRawData(F("<table>"));
-  for (int i = 0; i < GB_Logger.getLogRecordsCount(); i++){
-    
-    logRecord = GB_Logger.getLogRecordByIndex(i);
+void WebServerClass::sendLogPage(String getParams, boolean printEvents, boolean printErrors, boolean printTemperature){
+
+  LogRecord logRecord;
+
+  tmElements_t previousTm;
+  tmElements_t currentTm;
+  tmElements_t targetTm;
+
+  previousTm.Day = previousTm.Month = previousTm.Year = 0; //remove compiller warning
+  breakTime(now(), targetTm);
+
+
+  sendRawData(F("<table class='log'>"));
+  word index;
+  for (index = 0; index < GB_Logger.getLogRecordsCount(); index++){
+
+    logRecord = GB_Logger.getLogRecordByIndex(index);
     if (!printEvents && GB_Logger.isEvent(logRecord)){
       continue;
-    }
-    if (!printErrors && GB_Logger.isError(logRecord)){
+    } 
+    else if (!printErrors && GB_Logger.isError(logRecord)){
+      continue;
+    } 
+    else if (!printTemperature && GB_Logger.isTemperature(logRecord)){
       continue;
     }
-    if (!printTemperature && GB_Logger.isTemperature(logRecord)){
-      continue;
+
+    breakTime(logRecord.timeStamp, currentTm);
+
+    boolean isDaySwitch = !(currentTm.Day == previousTm.Day && currentTm.Month == previousTm.Month && currentTm.Year == previousTm.Year);
+    if (isDaySwitch){
+      previousTm = currentTm; 
     }
+
+    boolean isTargetDay = (currentTm.Day == targetTm.Day && currentTm.Month == targetTm.Month && currentTm.Year == targetTm.Year);
+
+    if (isDaySwitch){ 
+
+      if (isTargetDay){
+        sendRawData(F("<tr><td class='current' colspan='3'> "));
+        sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
+        sendRawData(F("</td></tr>")); 
+        sendRawData(F("<tr><th>#</th><th>Time</th><th>Description</th></tr>"));
+      } 
+      else {
+        sendRawData(F("<tr><td class='ref' colspan='3'> "));
+        sendRawData(F("<a href='"));
+        sendRawData(FS(S_url_log));
+        sendRawData(F("&date="));
+        String dateInUrl = StringUtils::timeStampToString(logRecord.timeStamp, true, false);
+        dateInUrl.replace(String('.'), String());
+        sendRawData(dateInUrl);
+        sendRawData(F("'>"));
+        sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
+        sendRawData(F("</a>"));
+        sendRawData(F("</td></tr> "));
+      } 
+
+    }
+
+    if (!isTargetDay){
+      continue;
+    } 
+
     sendRawData(F("<tr><td>"));
-    sendRawData(i+1);
+    sendRawData(index+1);
     sendRawData(F("</td><td>"));
-    sendRawData(StringUtils::timeToString(logRecord.timeStamp));    
+    sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true));  //print Time  
     //sendRawData(F("</td><td>"));
     //sendRawData(StringUtils::byteToHexString(logRecord.data, true));
     sendRawData(F("</td><td>"));
     sendRawData(GB_Logger.getLogRecordDescription(logRecord));
     sendRawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord));
-    sendRawData(F("</td></tr>")); // bug with linker is here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
-
-    isEmpty = false;
+    sendRawData(F("</td></tr>")); // bug with linker was here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
 
     if (c_isWifiResponseError) return;
 
   }
   sendRawData(F("</table>"));
-  
-  if (isEmpty){
-    sendRawData(F("Log empty"));
+
+  if (index == 0){
+    sendRawData(F("No records"));
   }
 }
 
@@ -583,6 +696,17 @@ void WebServerClass::sendStorageDump(){
 }
 
 WebServerClass GB_WebServer;
+
+
+
+
+
+
+
+
+
+
+
 
 
 

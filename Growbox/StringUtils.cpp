@@ -144,7 +144,7 @@ String StringUtils::floatToString(float number){
 }
 
 
-String StringUtils::timeToString(time_t time, boolean getDate, boolean getTime){
+String StringUtils::timeStampToString(time_t time, boolean getDate, boolean getTime){
   String out;
 
   tmElements_t tm;
@@ -171,6 +171,22 @@ String StringUtils::timeToString(time_t time, boolean getDate, boolean getTime){
   //out += ']';
   return out;
 } 
+
+byte StringUtils::hexCharToByte(const char hexChar){
+  if (hexChar >='0' && hexChar <='9') {
+    return hexChar-'0';
+  } 
+  if (hexChar >='a' && hexChar <='f') {
+    return hexChar-'a';
+  } 
+  if (hexChar >='A' && hexChar <='F') {
+    return hexChar-'A';
+  } 
+  else {
+    return 0xFF;
+  }
+}
+
 
 
 
