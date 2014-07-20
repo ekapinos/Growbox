@@ -54,11 +54,11 @@ private:
   boolean getHttpParamByIndex(const String& params, const word index, String& name, String& value);
   boolean searchHttpParamByName(const String& params, const __FlashStringHelper* targetName, String& targetValue);
 
-    /////////////////////////////////////////////////////////////////////
-    //                               HTML                              //
-    /////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////
+  //                               HTML                              //
+  /////////////////////////////////////////////////////////////////////
 
-    void sendRawData(const __FlashStringHelper* data);
+  void sendRawData(const __FlashStringHelper* data);
   void sendRawData(const String &data);
   void sendRawData(float data);
   void sendRawData(time_t data);
@@ -93,19 +93,23 @@ private:
 
   void sendConfigurationPage(const String& getParams);
 
-  String applyPostParams(const String& postParams);
-  boolean applyPostParam(const String& name, const String& value);  
-
   /////////////////////////////////////////////////////////////////////
   //                          OTHER PAGES                            //
   /////////////////////////////////////////////////////////////////////
-  void sendLogPageStyles();
+  void sendLogPageHeader();
   void sendLogPage(const String& getParams, boolean printEvents, boolean printErrors, boolean printTemperature);
 
   // TODO garbage?
   void printStorage(word address, byte sizeOf);
 
   void sendStorageDump();
+
+  /////////////////////////////////////////////////////////////////////
+  //                          POST HANDLING                          //
+  /////////////////////////////////////////////////////////////////////
+
+  String applyPostParams(const String& postParams);
+  boolean applyPostParam(const String& name, const String& value);  
 
   /////////////////////////////////////////////////////////////////////
   //                              OTHER                              //
@@ -126,6 +130,7 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
 
 
 

@@ -99,7 +99,7 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   sendRawData(F("  <title>Growbox</title>"));
   sendRawData(F("  <meta name='viewport' content='width=device-width, initial-scale=1'/>"));
   if (isLogPage){
-    sendLogPageStyles();
+    sendLogPageHeader();
   }
   sendRawData(F("</head>"));
   //<STYLE type="text/css">
@@ -511,56 +511,11 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("</form>"));
 }
 
-String WebServerClass::applyPostParams(const String& postParams){
-  String queryStr;
-  word index = 0;  
-  String name, value;
-  while(getHttpParamByIndex(postParams, index, name, value)){
-    if (queryStr.length() > 0){
-      queryStr += '&';
-    }
-    queryStr += name;
-    queryStr += '=';   
-    queryStr += applyPostParam(name, value);
-    index++;
-  }
-  if (index > 0){
-    return StringUtils::flashStringLoad(FS(S_url_configuration)) + String('?') + queryStr;
-  }
-  else {
-    return StringUtils::flashStringLoad(FS(S_url_configuration));
-  }
-}
-
-boolean WebServerClass::applyPostParam(const String& name, const String& value){
-
-  if (StringUtils::flashStringEquals(name, F("isWifiStationMode"))){
-    if (value.length() != 1){
-      return false;
-    }
-    GB_StorageHelper.setWifiStationMode(value[0]=='1'); 
-
-  } 
-  else if (StringUtils::flashStringEquals(name, F("wifiSSID"))){
-    GB_StorageHelper.setWifiSSID(value);
-
-  }
-  else if (StringUtils::flashStringEquals(name, F("wifiPass"))){
-    GB_StorageHelper.setWifiPass(value);
-
-  } 
-  else {
-    return false;
-  }
-
-  return true;
-}
-
 /////////////////////////////////////////////////////////////////////
 //                          OTHER PAGES                            //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendLogPageStyles(){
+void WebServerClass::sendLogPageHeader(){
   sendRawData(F("  <style type='text/css'>"));
   sendRawData(F("    table.log {border-spacing:5px; width:100%; text-align:center; }"));
   //sendRawData(F("    table.log td.ref {}")); 
@@ -718,6 +673,55 @@ void WebServerClass::sendStorageDump(){
   }
   sendTag(FS(S_tr), HTTP_TAG_CLOSED);
   sendTag(FS(S_table), HTTP_TAG_CLOSED);
+}
+
+/////////////////////////////////////////////////////////////////////
+//                          POST HANDLING                          //
+/////////////////////////////////////////////////////////////////////
+
+String WebServerClass::applyPostParams(const String& postParams){
+  String queryStr;
+  word index = 0;  
+  String name, value;
+  while(getHttpParamByIndex(postParams, index, name, value)){
+    if (queryStr.length() > 0){
+      queryStr += '&';
+    }
+    queryStr += name;
+    queryStr += '=';   
+    queryStr += applyPostParam(name, value);
+    index++;
+  }
+  if (index > 0){
+    return StringUtils::flashStringLoad(FS(S_url_configuration)) + String('?') + queryStr;
+  }
+  else {
+    return StringUtils::flashStringLoad(FS(S_url_configuration));
+  }
+}
+
+boolean WebServerClass::applyPostParam(const String& name, const String& value){
+
+  if (StringUtils::flashStringEquals(name, F("isWifiStationMode"))){
+    if (value.length() != 1){
+      return false;
+    }
+    GB_StorageHelper.setWifiStationMode(value[0]=='1'); 
+
+  } 
+  else if (StringUtils::flashStringEquals(name, F("wifiSSID"))){
+    GB_StorageHelper.setWifiSSID(value);
+
+  }
+  else if (StringUtils::flashStringEquals(name, F("wifiPass"))){
+    GB_StorageHelper.setWifiPass(value);
+
+  } 
+  else {
+    return false;
+  }
+
+  return true;
 }
 
 WebServerClass GB_WebServer;
