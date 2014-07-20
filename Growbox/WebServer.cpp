@@ -19,13 +19,11 @@ void WebServerClass::handleSerialEvent(){
 
   switch(commandType){
     case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
-    if (
-    StringUtils::flashStringEquals(url, FS(S_url_root)) || 
+    if (StringUtils::flashStringEquals(url, FS(S_url_root)) || 
       //StringUtils::flashStringEquals(url, FS(S_url_pins)) || 
     StringUtils::flashStringEquals(url, FS(S_url_log)) ||
-      StringUtils::flashStringStartsWith(url,FS(S_url_configuration)) ||
-      StringUtils::flashStringEquals(url, FS(S_url_storage))
-      ){
+      StringUtils::flashStringEquals(url,FS(S_url_configuration)) ||
+      StringUtils::flashStringEquals(url, FS(S_url_storage))){
 
       sendHttpPageHeader();
       sendHttpPageBody(url, getParams);
@@ -94,7 +92,7 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
   //  boolean isPinsPage    = StringUtils::flashStringEquals(url, FS(S_url_pins));
   boolean isLogPage     = StringUtils::flashStringEquals(url, FS(S_url_log));
-  boolean isConfPage    = StringUtils::flashStringStartsWith(url, FS(S_url_configuration));
+  boolean isConfPage    = StringUtils::flashStringEquals(url, FS(S_url_configuration));
   boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
 
   sendRawData(F("<html><head>"));
@@ -126,7 +124,7 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   //    sendPinsStatus();
   //  } 
   else if (isLogPage){
-    sendLogPage(String(), true, true, true); // TODO use parameters
+    sendLogPage(getParams , true, true, true); // TODO use parameters
   }
   else if (isConfPage){
     sendConfigurationPage(getParams);
@@ -313,6 +311,19 @@ boolean WebServerClass::getHttpParamByIndex(const String& params, const word ind
   return false;
 }
 
+boolean WebServerClass::searchHttpParamByName(const String& params, const __FlashStringHelper* targetName, String& targetValue){
+  String name, value;
+  word index = 0;
+  while(getHttpParamByIndex(params, index, name, value)){
+    if (StringUtils::flashStringEquals(name, targetName)){
+      targetValue = value;
+      return true;
+    }
+    index++;
+  }
+  return false;
+}
+
 /////////////////////////////////////////////////////////////////////
 //                               HTML                              //
 /////////////////////////////////////////////////////////////////////
@@ -472,7 +483,7 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   if(!isWifiStationMode) {
     sendRawData(F("checked='checked'")); 
   } 
-  sendRawData(F("/>Create new Network<br/>Hidden, security WPA2, ip 192.168.0.1<br/>"));
+  sendRawData(F("/>Create new Network<br/><span style='color:gray;'>Hidden, security WPA2, ip 192.168.0.1</span><br/>"));
   sendRawData(F("<input type='radio' name='isWifiStationMode' value='1'"));
   if(isWifiStationMode) {
     sendRawData(F("checked='checked'")); 
@@ -494,30 +505,25 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
 
   sendRawData(F("</table>")); 
 
-  sendRawData(F("<input type='submit' value='Save'> and reboot device manually"));
+  sendRawData(F("<input type='submit' value='Save'><span style='color:gray;'>and reboot device manually</span>"));
 
   sendRawData(F("</fieldset>"));
   sendRawData(F("</form>"));
 }
 
 String WebServerClass::applyPostParams(const String& postParams){
-
   String queryStr;
-
   word index = 0;  
   String name, value;
   while(getHttpParamByIndex(postParams, index, name, value)){
-
     if (queryStr.length() > 0){
       queryStr += '&';
     }
     queryStr += name;
     queryStr += '=';   
     queryStr += applyPostParam(name, value);
-
     index++;
   }
-
   if (index > 0){
     return StringUtils::flashStringLoad(FS(S_url_configuration)) + String('?') + queryStr;
   }
@@ -556,24 +562,43 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
 
 void WebServerClass::sendLogPageStyles(){
   sendRawData(F("  <style type='text/css'>"));
-  sendRawData(F("    table.log {border-spacing: 5px;}"));
-  sendRawData(F("    table.log td.ref {text-align: center;}")); 
-  sendRawData(F("    table.log td.current {text-align: center; font-weight: bold;}"));
-  sendRawData(F("    table.log th {text-align: center; font-weight: bold;}"));  
+  sendRawData(F("    table.log {border-spacing:5px; width:100%; text-align:center; }"));
+  //sendRawData(F("    table.log td.ref {}")); 
+  sendRawData(F("    table.log td.current {font-weight:bold;}"));
+  sendRawData(F("    table.log th {font-weight:bold;}"));  
   sendRawData(F("  </style>"));
 }
 
-void WebServerClass::sendLogPage(String getParams, boolean printEvents, boolean printErrors, boolean printTemperature){
+void WebServerClass::sendLogPage(const String& getParams, boolean printEvents, boolean printErrors, boolean printTemperature){
 
   LogRecord logRecord;
 
-  tmElements_t previousTm;
-  tmElements_t currentTm;
   tmElements_t targetTm;
+  tmElements_t currentTm;
+  tmElements_t previousTm;
+
+  boolean isTargetTmWasSet = false;
+  String dateFromQuery; 
+  if (searchHttpParamByName(getParams, F("date"), dateFromQuery)){
+
+    if (dateFromQuery.length() == 8){
+      byte dayInt   = dateFromQuery.substring(0, 2).toInt();
+      byte monthInt = dateFromQuery.substring(2, 4).toInt();
+      word yearInt  = dateFromQuery.substring(4, 8).toInt();
+
+      if (dayInt != 0 && monthInt != 0 && yearInt !=0){
+        targetTm.Day = dayInt;
+        targetTm.Month = monthInt;
+        targetTm.Year = CalendarYrToTm(yearInt);
+        isTargetTmWasSet = true;
+      }
+    }
+  } 
+  if (!isTargetTmWasSet){
+    breakTime(now(), targetTm);
+  }
 
   previousTm.Day = previousTm.Month = previousTm.Year = 0; //remove compiller warning
-  breakTime(now(), targetTm);
-
 
   sendRawData(F("<table class='log'>"));
   word index;
@@ -602,7 +627,7 @@ void WebServerClass::sendLogPage(String getParams, boolean printEvents, boolean 
     if (isDaySwitch){ 
 
       if (isTargetDay){
-        sendRawData(F("<tr><td class='current' colspan='3'> "));
+        sendRawData(F("<tr><td class='current' colspan='3'>"));
         sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
         sendRawData(F("</td></tr>")); 
         sendRawData(F("<tr><th>#</th><th>Time</th><th>Description</th></tr>"));
@@ -611,7 +636,7 @@ void WebServerClass::sendLogPage(String getParams, boolean printEvents, boolean 
         sendRawData(F("<tr><td class='ref' colspan='3'> "));
         sendRawData(F("<a href='"));
         sendRawData(FS(S_url_log));
-        sendRawData(F("&date="));
+        sendRawData(F("?date="));
         String dateInUrl = StringUtils::timeStampToString(logRecord.timeStamp, true, false);
         dateInUrl.replace(String('.'), String());
         sendRawData(dateInUrl);
@@ -633,7 +658,7 @@ void WebServerClass::sendLogPage(String getParams, boolean printEvents, boolean 
     sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true));  //print Time  
     //sendRawData(F("</td><td>"));
     //sendRawData(StringUtils::byteToHexString(logRecord.data, true));
-    sendRawData(F("</td><td>"));
+    sendRawData(F("</td><td style='text-align:left;'>"));
     sendRawData(GB_Logger.getLogRecordDescription(logRecord));
     sendRawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord));
     sendRawData(F("</td></tr>")); // bug with linker was here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
@@ -696,6 +721,14 @@ void WebServerClass::sendStorageDump(){
 }
 
 WebServerClass GB_WebServer;
+
+
+
+
+
+
+
+
 
 
 

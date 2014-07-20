@@ -172,8 +172,11 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
           if (g_useSerialMonitor) {
             showWifiMessage(F("Recive from "), false);
             Serial.print(wifiPortDescriptor);
-            Serial.print(F(" GET "));
-            Serial.println(input);
+            Serial.print(F(" GET ["));
+            Serial.print(input);
+            Serial.print(F("], getParams ["));
+            Serial.println(getParams);
+            Serial.println(']');
           }
 
           return RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET;
@@ -203,10 +206,13 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
           if (g_useSerialMonitor) {
             showWifiMessage(F("Recive from "), false);
             Serial.print(wifiPortDescriptor);
-            Serial.print(F(" POST "));
+            Serial.print(F(" POST ["));
             Serial.print(input);
-            Serial.print(F(", params "));
-            Serial.println(postParams);
+            Serial.print(F("], getParams ["));
+            Serial.print(getParams);
+            Serial.print(F("], postParams ["));
+            Serial.print(postParams);
+            Serial.println(']');
           }
 
           return RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST; 

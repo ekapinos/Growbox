@@ -9,11 +9,17 @@ void ControllerClass::rebootController() {
 }
 
 void ControllerClass::checkFreeMemory(){
-  if(freeMemory() < 200){ 
+
+  int currentFreeMemory = freeMemory();
+  if(currentFreeMemory< 200){ 
     GB_Logger.logError(ERROR_MEMORY_LOW);   
   } 
   else {
     GB_Logger.stopLogError(ERROR_MEMORY_LOW); 
+  }
+  if (g_useSerialMonitor){
+    Serial.print(F("GB> Free memory: "));  
+    Serial.println(currentFreeMemory);
   }
 }
 
@@ -41,4 +47,5 @@ void ControllerClass::updateSerialMonitorStatus(){
 }
 
 ControllerClass GB_Controller;
+
 

@@ -52,12 +52,13 @@ private:
 
   String encodeHttpString(const String& dirtyValue);
   boolean getHttpParamByIndex(const String& params, const word index, String& name, String& value);
+  boolean searchHttpParamByName(const String& params, const __FlashStringHelper* targetName, String& targetValue);
 
-  /////////////////////////////////////////////////////////////////////
-  //                               HTML                              //
-  /////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////
+    //                               HTML                              //
+    /////////////////////////////////////////////////////////////////////
 
-  void sendRawData(const __FlashStringHelper* data);
+    void sendRawData(const __FlashStringHelper* data);
   void sendRawData(const String &data);
   void sendRawData(float data);
   void sendRawData(time_t data);
@@ -99,7 +100,7 @@ private:
   //                          OTHER PAGES                            //
   /////////////////////////////////////////////////////////////////////
   void sendLogPageStyles();
-  void sendLogPage(String getParams, boolean printEvents, boolean printErrors, boolean printTemperature);
+  void sendLogPage(const String& getParams, boolean printEvents, boolean printErrors, boolean printTemperature);
 
   // TODO garbage?
   void printStorage(word address, byte sizeOf);
@@ -125,6 +126,11 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
+
+
+
+
 
 
 
