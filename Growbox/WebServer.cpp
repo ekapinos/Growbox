@@ -365,19 +365,26 @@ void WebServerClass::sendTagButton(const __FlashStringHelper* buttonUrl, const _
   sendRawData(F(" />"));
 }
 
-void WebServerClass::sendTagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected, const __FlashStringHelper* extra ){
+void WebServerClass::sendTagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected){
   sendRawData(F("<label><input type='checkbox' "));
   if (isSelected){
     sendRawData(F("checked "));
   }
-  if (extra != 0){
-    sendRawData(extra);
-  }
-  sendRawData(F(" name='"));
+  sendRawData(F("onchange='document.getElementById(\""));
   sendRawData(name);
+  sendRawData(F("\").value = (this.checked?1:0)'"));
   sendRawData(F("'/>"));
   sendRawData(text);
   sendRawData(F("</label>"));
+
+  sendRawData(F("<input type='hidden' name='"));
+  sendRawData(name);
+  sendRawData(F("' id='"));
+  sendRawData(name);
+  sendRawData(F("' value='"));
+  sendRawData(isSelected?'1':'0');
+  sendRawData(F("'>"));  
+
 }
 
 void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& optionText, boolean isSelected){
@@ -513,20 +520,19 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
 
   boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
 
+  sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post'>"));
+  sendRawData(F("' method='post' style='margin: 0px;'>"));
 
-  sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
-
-  sendRawData(F("<input type='radio' name='isWifiStationMode' value='0'")); 
+  sendRawData(F("<input type='radio' name='isWifiStationMode' value='0' ")); 
   if(!isWifiStationMode) {
-    sendRawData(F("checked='checked'")); 
+    sendRawData(F("checked='checked' ")); 
   } 
-  sendRawData(F("/>Create new Network<br/><span style='color:gray;'>Hidden, security WPA2, ip 192.168.0.1</span><br/>"));
-  sendRawData(F("<input type='radio' name='isWifiStationMode' value='1'"));
+  sendRawData(F("/>Create new Network<br/><small>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hidden, security WPA2, ip 192.168.0.1</small><br/>"));
+  sendRawData(F("<input type='radio' name='isWifiStationMode' value='1' "));
   if(isWifiStationMode) {
-    sendRawData(F("checked='checked'")); 
+    sendRawData(F("checked='checked' ")); 
   } 
   sendRawData(F("/>Join existed Network<br/>"));
 
@@ -537,7 +543,7 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(WIFI_SSID_LENGTH);
   sendRawData(F("'/></td></tr>"));
 
-  sendRawData(F("<tr><td><label for='wifiPass'>Password</label></td><td><input type='text' name='wifiPass' required value='"));
+  sendRawData(F("<tr><td><label for='wifiPass'>Password</label></td><td><input type='password' name='wifiPass' required value='"));
   sendRawData(GB_StorageHelper.getWifiPass());
   sendRawData(F("' maxlength='"));
   sendRawData(WIFI_PASS_LENGTH);
@@ -545,10 +551,34 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
 
   sendRawData(F("</table>")); 
 
-  sendRawData(F("<input type='submit' value='Save'><span style='color:gray;'>and reboot device manually</span>"));
+  sendRawData(F("<input type='submit' value='Save'><small>and reboot device manually</small>"));
 
-  sendRawData(F("</fieldset>"));
   sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+
+
+
+  sendRawData(F("<br/>"));
+  
+  
+
+  sendRawData(F("<fieldset><legend>Logger</legend>"));
+
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post' style='margin: 0px;'>"));
+
+  sendTagCheckbox(F("isStoreLogRecordsEnabled"), F("Enabled"), GB_StorageHelper.isStoreLogRecordsEnabled());
+
+  //  sendRawData(F("<input id='isStoreLogRecordsEnabledField' name='isStoreLogRecordsEnabled' type='hidden' value='"));
+  //  sendRawData(GB_StorageHelper.isStoreLogRecordsEnabled()?'1':'0');
+  //  sendRawData(F("'>"));
+
+  sendRawData(F("<br/><input type='submit' value='Save'>"));
+
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -557,9 +587,8 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
 
 void WebServerClass::sendLogPageHeader(){
   sendRawData(F("<style type='text/css'>"));
-  sendRawData(F("  table.log {border-spacing:5px; width:100%; text-align:center; }"));
-  //sendRawData(F("  table.log td.ref {}")); 
-  sendRawData(F("  table.log td.current {font-weight:bold;}"));
+  sendRawData(F("  table.log {border-spacing:5px; width:100%; text-align:center; }")); 
+  sendRawData(F("  table.log td {}"));
   sendRawData(F("  table.log th {font-weight:bold;}"));  
   sendRawData(F("</style>"));
 }
@@ -625,7 +654,7 @@ void WebServerClass::sendLogPage(const String& getParams){
   // fill previousTm
   previousTm.Day = previousTm.Month = previousTm.Year = 0; //remove compiller warning
 
-  sendRawData(F("<table style='width:100%'><col width='60%'/><col width='40%'/><tr><td>"));
+  sendRawData(F("<table style='width:100%'><colgroup><col width='60%'/><col width='40%'/></colgroup><tr><td>"));
 
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_log));
@@ -635,13 +664,13 @@ void WebServerClass::sendLogPage(const String& getParams){
   sendRawData(F("<select id='dateCombobox' name='dateFilter'></select>"));
   sendRawData(F("<input type='submit' value='Show'/>"));
   sendRawData(F("</form>"));
-  
+
   // out of form
   sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F(""), StringUtils::flashStringLoad(F("All types")), printEvents && printErrors && printTemperature);
   sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("events"), StringUtils::flashStringLoad(F("Events only")), printEvents && !printErrors && !printTemperature);
   sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("errors"), StringUtils::flashStringLoad(F("Errors only")), !printEvents && printErrors && !printTemperature);
   sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("temperature"), StringUtils::flashStringLoad(F("Temperature only")), !printEvents && !printErrors && printTemperature);
-  
+
 
   sendRawData(F("</td><td style='text-align:right;'>"));
 
@@ -670,10 +699,10 @@ void WebServerClass::sendLogPage(const String& getParams){
   for (index = 0; index < GB_Logger.getLogRecordsCount(); index++){
 
     if (c_isWifiResponseError) return;
-    
+
     logRecord = GB_Logger.getLogRecordByIndex(index);
     breakTime(logRecord.timeStamp, currentTm);
-    
+
     boolean isDaySwitch = !(currentTm.Day == previousTm.Day && currentTm.Month == previousTm.Month && currentTm.Year == previousTm.Year);
     if (isDaySwitch){
       previousTm = currentTm; 
@@ -696,7 +725,7 @@ void WebServerClass::sendLogPage(const String& getParams){
       continue;
     }
 
-   if (isTargetDay){
+    if (isTargetDay){
       if (!isTableTagPrinted){
         isTableTagPrinted = true;
         sendRawData(F("<table class='log'>"));
@@ -823,6 +852,12 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
     GB_StorageHelper.resetStoredLog();
 
   } 
+  else if (StringUtils::flashStringEquals(name, F("isStoreLogRecordsEnabled"))){
+    if (value.length() != 1){
+      return false;
+    }
+    GB_StorageHelper.setStoreLogRecordsEnabled(value[0]=='1'); 
+  }
   else {
     return false;
   }
@@ -831,6 +866,8 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
 }
 
 WebServerClass GB_WebServer;
+
+
 
 
 
