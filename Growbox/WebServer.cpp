@@ -662,7 +662,6 @@ void WebServerClass::sendLogPage(const String& getParams){
       continue;
     }
 
-
     if (!isTableTagPrinted){
       isTableTagPrinted = true;
       sendRawData(F("<table class='log'>"));
@@ -756,8 +755,8 @@ String WebServerClass::applyPostParams(const String& url, const String& postPara
     //queryStr += name;
     //queryStr += '=';   
     //queryStr += applyPostParam(name, value);
-    //index++;
     applyPostParam(name, value);
+    index++;
   }
   //if (index > 0){
   //  return url + String('?') + queryStr;
