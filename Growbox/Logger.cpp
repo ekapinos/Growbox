@@ -49,18 +49,6 @@ void LoggerClass::logTemperature(byte temperature){
 }
 
 /////////////////////////////////////////////////////////////////////
-//                               READ                              //
-/////////////////////////////////////////////////////////////////////
-
-word LoggerClass::getLogRecordsCount(){
-  return GB_StorageHelper.getLogRecordsCount();
-}  
-
-LogRecord LoggerClass::getLogRecordByIndex(word index){
-  return GB_StorageHelper.getLogRecordByIndex(index);
-}
-
-/////////////////////////////////////////////////////////////////////
 //                              CHECK                              //
 /////////////////////////////////////////////////////////////////////
 

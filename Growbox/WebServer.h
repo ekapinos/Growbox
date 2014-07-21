@@ -50,6 +50,10 @@ private:
   void sendHttpPageComplete();
   void sendHttpPageBody(const String &input, const String &getParams);
 
+  /////////////////////////////////////////////////////////////////////
+  //                         HTTP PARAMETERS                         //
+  /////////////////////////////////////////////////////////////////////
+
   String encodeHttpString(const String& dirtyValue);
   boolean getHttpParamByIndex(const String& params, const word index, String& name, String& value);
   boolean searchHttpParamByName(const String& params, const __FlashStringHelper* targetName, String& targetValue);
@@ -67,9 +71,11 @@ private:
     sendRawData(str);
   }
 
-  void sendTagButton(const __FlashStringHelper* buttonUrl, const __FlashStringHelper* buttonTitle, boolean isSelected);
+  void sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* text, boolean isSelected);
   void sendTagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected);
+  void sendTagRadioButton(const __FlashStringHelper* name, const __FlashStringHelper* text, const __FlashStringHelper* value, boolean isSelected);
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& optionText, boolean isSelected);
+  void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected);
 
   template <class T> void sendTag(T tagName, HTTP_TAG type){
     sendRawData('<');
@@ -99,7 +105,7 @@ private:
   //                             LOG PAGE                            //
   /////////////////////////////////////////////////////////////////////
 
-  void sendLogPageHeader();
+  void sendLogPageCSS();
   void sendLogPage(const String& getParams);
 
   /////////////////////////////////////////////////////////////////////
@@ -136,6 +142,8 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
+
 
 
 

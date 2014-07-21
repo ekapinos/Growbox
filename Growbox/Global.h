@@ -11,17 +11,21 @@
 /////////////////////////////////////////////////////////////////////
 
 // relay pins
-const byte LIGHT_PIN = 3;
-const byte FAN_PIN = 4;
-const byte FAN_SPEED_PIN = 5;
+const byte LIGHT_PIN = 2;
+const byte FAN_PIN = 3;
+const byte FAN_SPEED_PIN = 4;
 
 // 1-Wire pins
-const byte ONE_WIRE_PIN = 8;
+const byte ONE_WIRE_PIN = 11;
 
 // status pins
-const byte USE_SERIAL_MONOTOR_PIN = 11;
 const byte ERROR_PIN = 12;
 const byte BREEZE_PIN = LED_BUILTIN; //13
+
+// hardware buttons
+const byte HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN = 23; // pullup used, 0 - enabled, 1 - disabled
+const byte HARDWARE_BUTTON_RESET_FIRMWARE_PIN = 25;     // pullup used, 0 - enabled, 1 - disabled (works when Serial Monitor enabled)
+
 
 /////////////////////////////////////////////////////////////////////
 //                     SOFTWARE CONFIGURATION                      //
@@ -44,7 +48,7 @@ const float TEMPERATURE_DELTA = 3.0;   // +/-(3-4) Ok
 const byte RELAY_ON = LOW, RELAY_OFF = HIGH;
 
 // Serial consts
-const byte SERIAL_MONITOR_ON = HIGH, SERIAL_MONITOR_OFF = LOW;
+const byte HARDWARE_BUTTON_OFF = HIGH, HARDWARE_BUTTON_ON = LOW;
 
 // Fun speed
 const byte FAN_SPEED_MIN = RELAY_OFF;

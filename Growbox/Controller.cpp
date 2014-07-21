@@ -2,6 +2,7 @@
 
 #include "Controller.h"
 #include "Logger.h"
+#include "StorageHelper.h"
 
 void ControllerClass::rebootController() {
   void(* resetFunc) (void) = 0; // Reset MC function
@@ -24,11 +25,11 @@ void ControllerClass::checkFreeMemory(){
   }
 }
 
-void ControllerClass::updateSerialMonitorStatus(){
+void ControllerClass::updateHardwareInputStatus(){
 
   boolean oldUseSerialMonitor  = g_useSerialMonitor;
 
-  g_useSerialMonitor = (digitalRead(USE_SERIAL_MONOTOR_PIN) == SERIAL_MONITOR_ON);
+  g_useSerialMonitor = (digitalRead(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN) == HARDWARE_BUTTON_ON);
 
   if (oldUseSerialMonitor != g_useSerialMonitor){
 
@@ -37,16 +38,42 @@ void ControllerClass::updateSerialMonitorStatus(){
       while (!Serial) {
         ; // wait for serial port to connect. Needed for Leonardo only
       } 
-      Serial.print(F("Serial monitor: "));
-      Serial.println(FS(S_Enabled)); // shows when useSerialMonitor=false
+      showControllerMessage(F("Serial monitor enabled"));
     } 
     else {
-      Serial.println(FS(S_Disabled));
+      showControllerMessage(F("Serial monitor disabled"));
       Serial.end();
     }
-  } 
+  }
+
+  if (g_useSerialMonitor && digitalRead(HARDWARE_BUTTON_RESET_FIRMWARE_PIN) == HARDWARE_BUTTON_ON){ 
+    showControllerMessage("Reset firmware...");
+    byte counter;
+    for (counter = 5; counter>0; counter--){
+      Serial.println(counter);
+      delay(1000);
+      if (digitalRead(HARDWARE_BUTTON_RESET_FIRMWARE_PIN) != HARDWARE_BUTTON_ON){
+        break;
+      }
+    }
+    if (counter == 0){
+      GB_StorageHelper.resetFirmware();
+      showControllerMessage("Operation finished succesfully. Remove wire from Reset pin. Device will reboot automatically");
+      while(digitalRead(HARDWARE_BUTTON_RESET_FIRMWARE_PIN) == HARDWARE_BUTTON_ON) {
+        delay(1000);
+      }
+      rebootController();
+    } 
+    else {
+      showControllerMessage("Operation aborted");
+    }
+  }
 }
 
 ControllerClass GB_Controller;
+
+
+
+
 
 

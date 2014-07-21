@@ -1,6 +1,7 @@
 #include "StorageHelper.h" 
 
 #include "StringUtils.h"
+#include "Logger.h"
 #include "EEPROM_ARDUINO.h"
 #include "EEPROM_AT24C32.h"
 
@@ -64,8 +65,18 @@ time_t StorageHelperClass::getLastStartupTimeStamp(){
 
 void StorageHelperClass::setStoreLogRecordsEnabled(boolean flag){
   BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  if (boolPreferencies.isLoggerEnabled == flag){
+    return;
+  }
+  boolean isEnabled = (!boolPreferencies.isLoggerEnabled && flag);
+  if (!isEnabled){
+    GB_Logger.logEvent(EVENT_LOGGER_DISABLED);
+  } 
   boolPreferencies.isLoggerEnabled = flag;
   setBoolPreferencies(boolPreferencies);
+  if (isEnabled) {
+    GB_Logger.logEvent(EVENT_LOGGER_ENABLED);
+  }
 }
 
 boolean StorageHelperClass::isStoreLogRecordsEnabled(){
@@ -157,33 +168,17 @@ boolean StorageHelperClass::isWifiStationMode(){
   return getBoolPreferencies().isWifiStationMode; 
 }
 String StorageHelperClass::getWifiSSID(){ 
-  byte buffer[WIFI_SSID_LENGTH];
-  EEPROM.readBlock<byte>(OFFSETOF(BootRecord, wifiSSID), buffer, WIFI_SSID_LENGTH);
-
-  String str;
-  for (word i = 0; i< WIFI_SSID_LENGTH; i++){
-    char c = buffer[i];
-    if (c == 0){
-      break;
-    }
-    str += c; 
-  }
-  return str;
+  char buffer[WIFI_SSID_LENGTH+1];
+  EEPROM.readBlock<char>(OFFSETOF(BootRecord, wifiSSID), buffer, WIFI_SSID_LENGTH);
+  buffer[WIFI_SSID_LENGTH] = 0x00;
+  return String(buffer);
 }
 
 String StorageHelperClass::getWifiPass(){
-  byte buffer[WIFI_PASS_LENGTH];
-  EEPROM.readBlock<byte>(OFFSETOF(BootRecord, wifiPass), buffer, WIFI_PASS_LENGTH);
-
-  String str;
-  for (word i = 0; i< WIFI_PASS_LENGTH; i++){
-    char c = buffer[i];
-    if (c == 0){
-      break;
-    }
-    str += c; 
-  }
-  return str;
+  char buffer[WIFI_PASS_LENGTH+1];
+  EEPROM.readBlock<char>(OFFSETOF(BootRecord, wifiPass), buffer, WIFI_PASS_LENGTH);
+  buffer[WIFI_PASS_LENGTH] = 0x00;
+  return String(buffer);
 }
 
 void  StorageHelperClass::setWifiStationMode(boolean isWifiStationMode){
@@ -238,6 +233,7 @@ void StorageHelperClass::setBoolPreferencies(BootRecord::BoolPreferencies boolPr
 }
 
 StorageHelperClass GB_StorageHelper;
+
 
 
 

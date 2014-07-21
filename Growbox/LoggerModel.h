@@ -19,7 +19,7 @@ public:
   const __FlashStringHelper* description; // FLASH
   boolean isStored; // should be stored in Log only once, but notification should repeated
 
-  Error();
+    Error();
 
   void init(byte sequence, byte sequenceSize, const __FlashStringHelper* description) ;
 
@@ -80,11 +80,14 @@ EVENT_LIGHT_ON,
 EVENT_FAN_OFF, 
 EVENT_FAN_ON_MIN, 
 EVENT_FAN_ON_MAX,
-EVENT_SERIAL_UNKNOWN_COMMAND;
+EVENT_SERIAL_UNKNOWN_COMMAND,
+EVENT_LOGGER_ENABLED,
+EVENT_LOGGER_DISABLED;
 
 void initLoggerModel();
 
 #endif
+
 
 
 

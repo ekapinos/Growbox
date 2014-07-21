@@ -85,7 +85,10 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT); // brease
   pinMode(BREEZE_PIN, OUTPUT);  // brease
   pinMode(ERROR_PIN, OUTPUT);
-  pinMode(USE_SERIAL_MONOTOR_PIN, INPUT_PULLUP);
+  
+  // Hardware buttons
+  pinMode(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN, INPUT_PULLUP);
+  pinMode(HARDWARE_BUTTON_RESET_FIRMWARE_PIN, INPUT_PULLUP);
 
   // Initialize the reley pins
   pinMode(LIGHT_PIN, OUTPUT);   
@@ -105,7 +108,7 @@ void setup() {
   // We need to check Wi-Fi before use print to SerialMonitor
   int controllerFreeMemoryBeforeBoot = freeMemory();
 
-  GB_Controller.updateSerialMonitorStatus();
+  GB_Controller.updateHardwareInputStatus();
   RAK410_XBeeWifi.init();
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
@@ -222,7 +225,7 @@ void setup() {
 
   // Create main life circle timer
   Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
-  Alarm.timerRepeat(UPDATE_SERIAL_MONITOR_STATUS_DELAY, updateSerialMonitorStatus);
+  Alarm.timerRepeat(UPDATE_SERIAL_MONITOR_STATUS_DELAY, updateControllerHardwareInputStatus);
   Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
   Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
 
@@ -348,8 +351,8 @@ void updateWiFiStatus(){ // should return void
   RAK410_XBeeWifi.updateWiFiStatus(); 
 }
 
-void updateSerialMonitorStatus(){ // should return void
-  GB_Controller.updateSerialMonitorStatus(); 
+void updateControllerHardwareInputStatus(){ // should return void
+  GB_Controller.updateHardwareInputStatus(); 
 }
 
 void updateBreezeStatus() {

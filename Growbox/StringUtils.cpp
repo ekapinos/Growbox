@@ -89,19 +89,19 @@ String StringUtils::flashStringLoad(const __FlashStringHelper* fstr){
   return str; 
 }
 
-size_t StringUtils::flashStringLoad(char* cstr, size_t cstrLength, const __FlashStringHelper* fstr){
-  size_t length = flashStringLength(fstr);
+size_t StringUtils::flashStringLoad(char* cstr, size_t cLength, const __FlashStringHelper* fstr){
+  size_t fLength = flashStringLength(fstr);
 
-  size_t loadedBytes = 0;
-  for (size_t i = 0; i < length && i < cstrLength; i++){
+  for (size_t i = 0; (i < fLength) && (i < cLength); i++){
     cstr[i] = flashStringCharAt(fstr, i, false);
-    loadedBytes++;
   }
-  if (loadedBytes < cstrLength){
-    loadedBytes++;
-    cstr[loadedBytes] = 0x00; // null terminal  
-  }
-  return loadedBytes; 
+  
+  if (fLength < cLength){
+    cstr[fLength] = 0x00; // null terminal
+     return fLength; 
+  } else {
+     return cLength;
+  } 
 }
 
 /////////////////////////////////////////////////////////////////////

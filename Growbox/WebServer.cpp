@@ -98,26 +98,29 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   boolean isConfPage    = StringUtils::flashStringEquals(url, FS(S_url_configuration));
   boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
 
+  sendRawData(F("<!DOCTYPE html>")); // HTML 5
   sendRawData(F("<html><head>"));
-  sendRawData(F("  <title>Growbox</title>"));
-  sendRawData(F("  <meta name='viewport' content='width=device-width, initial-scale=1'/>"));
+  sendRawData(F("<title>Growbox</title>"));
+  sendRawData(F("<meta name='viewport' content='width=device-width, initial-scale=1'/>"));  
+  sendRawData(F("<style type='text/css'>"));
+  sendRawData(F("form {margin: 0px;}"));
+  sendRawData(F(".red {color: red;}"));
+  sendRawData(F("dt {font-weight: bold; margin-top: 5px;}")); 
   if (isLogPage){
-    sendLogPageHeader();
+    sendLogPageCSS();
   }
+  sendRawData(F("</style>"));  
   sendRawData(F("</head>"));
-  //<STYLE type="text/css">
-  //  #myid {border-width: 1; border: solid; text-align: center}
-  //</STYLE>
+
   sendRawData(F("<body style='font-family:Arial;'>"));
-
   sendRawData(F("<h1>Growbox</h1>"));   
-
+  sendRawData(F("<form>"));   // HTML Validator warning
   sendTagButton(FS(S_url_root), F("Status"), isRootPage);
   //sendTagButton(FS(S_url_pins), F("Pins status"), isPinsPage);  
   sendTagButton(FS(S_url_log), F("Daily log"), isLogPage);
   sendTagButton(FS(S_url_configuration), F("Configuration"), isConfPage);
   sendTagButton(FS(S_url_storage), F("Storage dump"), isStoragePage);
-
+  sendRawData(F("</form>")); 
   sendRawData(F("<hr/>"));
 
   if (isRootPage){
@@ -140,64 +143,15 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
 
   sendRawData(F("</body></html>"));
   /*
-    // read the incoming byte:
-   char firstChar = 0, secondChar = 0; 
-   firstChar = input[0];
-   if (input.length() > 1){
-   secondChar = input[1];
-   }
+
    
-   Serial.print(F("COMMAND>"));
-   Serial.print(firstChar);
-   if (secondChar != 0){
-   Serial.print(secondChar);
-   }
-   Serial.println();
-   
-   boolean printEvents = true; // can't put in switch, Arduino bug
-   boolean printErrors = true;
-   boolean printTemperature = true;
-   
-   switch(firstChar){
-   case 's':
-   printprintSendFullStatus(); 
-   break;  
-   
-   case 'l':
-   switch(secondChar){
-   case 'c': 
-   Serial.println(F("Stored log records cleaned"));
-   GB_StorageHelper.resetStoredLog();
-   break;
-   case 'e':
-   Serial.println(F("Logger store enabled"));
-   GB_StorageHelper.setStoreLogRecordsEnabled(true);
-   break;
-   case 'd':
-   Serial.println(F("Logger store disabled"));
-   GB_StorageHelper.setStoreLogRecordsEnabled(false);
-   break;
-   case 't': 
-   printErrors = printEvents = false;
-   break;
-   case 'r': 
-   printEvents = printTemperature = false;
-   break;
-   case 'v': 
-   printTemperature = printErrors = false;
-   break;
-   } 
-   if ((secondChar != 'c') && (secondChar != 'e') && (secondChar != 'd')){
-   GB_Logger.printFullLog(printEvents,  printErrors,  printTemperature );
-   }
-   break; 
    
    case 'b': 
    switch(secondChar){
    case 'c': 
    Serial.println(F("Cleaning boot record"));
    
-   GB_StorageHelper.resetFirmware();
+   GB_StorageHe lper.resetFirmware();
    Serial.println(F("Magic number corrupted, reseting"));
    
    Serial.println('5');
@@ -254,6 +208,10 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
    */
 
 }
+
+/////////////////////////////////////////////////////////////////////
+//                         HTTP PARAMETERS                         //
+/////////////////////////////////////////////////////////////////////
 
 String WebServerClass::encodeHttpString(const String& dirtyValue){
 
@@ -353,27 +311,40 @@ void WebServerClass::sendRawData(time_t data){
   sendRawData(str);
 }
 
-void WebServerClass::sendTagButton(const __FlashStringHelper* buttonUrl, const __FlashStringHelper* buttonTitle, boolean isSelected){
+void WebServerClass::sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* text, boolean isSelected){
   sendRawData(F("<input type='button' onclick='document.location=\""));
-  sendRawData(buttonUrl);
+  sendRawData(url);
   sendRawData(F("\"' value='"));
-  sendRawData(buttonTitle);
-  sendRawData(F("'"));
+  sendRawData(text);
+  sendRawData(F("' "));
   if (isSelected) {
-    sendRawData(F(" style='text-decoration:underline;'"));
+    sendRawData(F("style='text-decoration:underline;' "));
   }
-  sendRawData(F(" />"));
+  sendRawData(F("/>"));
+}
+
+void WebServerClass::sendTagRadioButton(const __FlashStringHelper* name, const __FlashStringHelper* text, const __FlashStringHelper* value, boolean isSelected){
+  sendRawData(F("<label><input type='radio' name='"));
+  sendRawData(name);
+  sendRawData(F("' value='"));
+  sendRawData(value);
+  sendRawData(F("' "));
+  if (isSelected){
+    sendRawData(F("checked='checked' "));
+  }
+  sendRawData(F("/>"));
+  sendRawData(text);
+  sendRawData(F("</label>")); 
 }
 
 void WebServerClass::sendTagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected){
   sendRawData(F("<label><input type='checkbox' "));
   if (isSelected){
-    sendRawData(F("checked "));
+    sendRawData(F("checked='checked' "));
   }
   sendRawData(F("onchange='document.getElementById(\""));
   sendRawData(name);
-  sendRawData(F("\").value = (this.checked?1:0)'"));
-  sendRawData(F("'/>"));
+  sendRawData(F("\").value = (this.checked?1:0)'/>"));
   sendRawData(text);
   sendRawData(F("</label>"));
 
@@ -387,7 +358,7 @@ void WebServerClass::sendTagCheckbox(const __FlashStringHelper* name, const __Fl
 
 }
 
-void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& optionText, boolean isSelected){
+void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected){
   sendRawData(F("<script type='text/javascript'>"));
   sendRawData(F("var opt = document.createElement('option');"));
   if (value != 0){
@@ -397,7 +368,7 @@ void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* 
   }
 
   sendRawData(F("opt.text = '"));    //opt.value = i;
-  sendRawData(optionText);
+  sendRawData(text);
   sendRawData(F("';"));
   if (isSelected){
     sendRawData(F("opt.selected = true;"));
@@ -408,7 +379,9 @@ void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* 
   sendRawData(F("').appendChild(opt);"));
   sendRawData(F("</script>"));
 }
-
+void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected){
+  sendAppendOptionToSelectDynamic(selectId, value, StringUtils::flashStringLoad(text), isSelected);
+}
 
 /////////////////////////////////////////////////////////////////////
 //                          STATUS PAGE                            //
@@ -418,17 +391,13 @@ void WebServerClass::sendStatusPage(){
 
   sendRawData(F("<dl>"));
 
-
   sendRawData(F("<dt>Common</dt>"));
-
   sendRawData(F("<dd>")); 
   sendRawData(g_isDayInGrowbox ? F("Day") : F("Night"));
   sendRawData(F(" mode</dd>"));
-
   sendRawData(F("<dd>Light: ")); 
   sendRawData((digitalRead(LIGHT_PIN) == RELAY_ON) ? F("enabled") : F("disabled"));
   sendRawData(F("</dd>"));
-
   sendRawData(F("<dd>Fan: ")); 
   boolean isFanEnabled = (digitalRead(FAN_PIN) == RELAY_ON);
   sendRawData(isFanEnabled ? F("enabled, ") : F("disabled"));
@@ -436,11 +405,9 @@ void WebServerClass::sendStatusPage(){
     sendRawData((digitalRead(FAN_SPEED_PIN) == FAN_SPEED_MIN) ? F("min") : F("max"));
   }
   sendRawData(F(" speed</dd>"));
-
   sendRawData(F("<dd>Current time: ")); 
   sendRawData(now());
   sendRawData(F("</dd>")); 
-
   sendRawData(F("<dd>Last startup: ")); 
   sendRawData(GB_StorageHelper.getLastStartupTimeStamp());
   sendRawData(F("</dd>")); 
@@ -449,11 +416,11 @@ void WebServerClass::sendStatusPage(){
   float workingTemperature, statisticsTemperature;
   int statisticsCount;
   GB_Thermometer.getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
-
   sendRawData(F("<dt>Temperature</dt>")); 
   sendRawData(F("<dd>Current: ")); 
   sendRawData(workingTemperature);
-  sendRawData(F(" C</dd><dd>Forecast: ")); 
+  sendRawData(F(" C</dd>")); 
+  sendRawData(F("<dd>Forecast: ")); 
   sendRawData(statisticsTemperature);
   sendRawData(F(" C (")); 
   sendRawData(statisticsCount);
@@ -461,30 +428,28 @@ void WebServerClass::sendStatusPage(){
 
 
   sendRawData(F("<dt>Logger</dt>"));
-
-  sendRawData(F("<dd>"));  
-  sendRawData(GB_StorageHelper.isStoreLogRecordsEnabled() ? F("Enabled") : F("<b>Disabled</b>"));
-  sendRawData(F("</dd>")); 
-
+  if (GB_StorageHelper.isStoreLogRecordsEnabled()){
+    sendRawData(F("<dd>Enabled</dd>"));
+  } 
+  else {
+    sendRawData(F("<dd class='red'>Disabled</dd>"));
+  }
   sendRawData(F("<dd>Stored records: "));
   sendRawData(GB_StorageHelper.getLogRecordsCount());
   sendRawData('/');
   sendRawData(GB_StorageHelper.LOG_CAPACITY);
   if (GB_StorageHelper.isLogOverflow()){
-    sendRawData(F(", <b>overflow</b>"));
+    sendRawData(F(", <span class='red'>overflow</span>"));
   }
   sendRawData(F("</dd>"));
 
 
-  // TODO remove it
   sendRawData(F("<dt>Configuration</dt>"));  
-
   sendRawData(F("<dd>Turn to Day mode at: ")); 
   sendRawData(UP_HOUR); 
   sendRawData(F(":00</dd><dd>Turn to Night mode at: "));
   sendRawData(DOWN_HOUR);
   sendRawData(F(":00</dd>"));
-
   sendRawData(F("<dd>Day temperature: "));
   sendRawData(TEMPERATURE_DAY);
   sendRawData(FS(S_PlusMinus));
@@ -497,17 +462,13 @@ void WebServerClass::sendStatusPage(){
   sendRawData(TEMPERATURE_CRITICAL);
   sendRawData(F("</dd>"));
 
-
   sendRawData(F("<dt>Other</dt>"));
-
   sendRawData(F("<dd>Free memory: "));
   sendRawData(freeMemory()); 
   sendRawData(F(" bytes</dd>"));
-
   sendRawData(F("<dd>First startup: ")); 
   sendRawData(GB_StorageHelper.getFirstStartupTimeStamp());
   sendRawData(F("</dd>")); 
-
 
   sendRawData(F("</dl>")); 
 }
@@ -523,74 +484,57 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post' style='margin: 0px;'>"));
-
-  sendRawData(F("<input type='radio' name='isWifiStationMode' value='0' ")); 
-  if(!isWifiStationMode) {
-    sendRawData(F("checked='checked' ")); 
-  } 
-  sendRawData(F("/>Create new Network<br/><small>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hidden, security WPA2, ip 192.168.0.1</small><br/>"));
-  sendRawData(F("<input type='radio' name='isWifiStationMode' value='1' "));
-  if(isWifiStationMode) {
-    sendRawData(F("checked='checked' ")); 
-  } 
-  sendRawData(F("/>Join existed Network<br/>"));
-
+  sendRawData(F("' method='post'>"));
+  sendTagRadioButton(F("isWifiStationMode"), F("Create new Network"), F("0"),!isWifiStationMode);
+  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Hidden, security WPA2, ip 192.168.0.1</small><br/>"));
+  sendTagRadioButton(F("isWifiStationMode"), F("Join existed Network"), F("1"), isWifiStationMode);
   sendRawData(F("<table>"));
   sendRawData(F("<tr><td><label for='wifiSSID'>SSID</label></td><td><input type='text' name='wifiSSID' required value='"));
   sendRawData(GB_StorageHelper.getWifiSSID());
   sendRawData(F("' maxlength='"));
   sendRawData(WIFI_SSID_LENGTH);
   sendRawData(F("'/></td></tr>"));
-
   sendRawData(F("<tr><td><label for='wifiPass'>Password</label></td><td><input type='password' name='wifiPass' required value='"));
   sendRawData(GB_StorageHelper.getWifiPass());
   sendRawData(F("' maxlength='"));
   sendRawData(WIFI_PASS_LENGTH);
   sendRawData(F("'/></td></tr>"));
-
   sendRawData(F("</table>")); 
-
   sendRawData(F("<input type='submit' value='Save'><small>and reboot device manually</small>"));
-
   sendRawData(F("</form>"));
   sendRawData(F("</fieldset>"));
-
-
-
   sendRawData(F("<br/>"));
-  
-  
 
   sendRawData(F("<fieldset><legend>Logger</legend>"));
-
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post' style='margin: 0px;'>"));
-
+  sendRawData(F("' method='post'>"));
   sendTagCheckbox(F("isStoreLogRecordsEnabled"), F("Enabled"), GB_StorageHelper.isStoreLogRecordsEnabled());
-
-  //  sendRawData(F("<input id='isStoreLogRecordsEnabledField' name='isStoreLogRecordsEnabled' type='hidden' value='"));
-  //  sendRawData(GB_StorageHelper.isStoreLogRecordsEnabled()?'1':'0');
-  //  sendRawData(F("'>"));
-
   sendRawData(F("<br/><input type='submit' value='Save'>"));
-
   sendRawData(F("</form>"));
   sendRawData(F("</fieldset>"));
+  sendRawData(F("<br/>"));
 
+  sendRawData(F("<!--<fieldset><legend>Firmware</legend>"));
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post'>"));
+  sendRawData(F("<input type='hidden' name='resetFirmware'/>"));
+  sendRawData(F("<input type='submit' value='Reset Firmware' onSubmit='return confirm(\"Are you seriously?\")'>"));
+  sendRawData(F("<small>and reboot device manually</small>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("<br/>-->"));
 }
 
 /////////////////////////////////////////////////////////////////////
 //                             LOG PAGE                            //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendLogPageHeader(){
-  sendRawData(F("<style type='text/css'>"));
-  sendRawData(F("  table.log {border-spacing:5px; width:100%; text-align:center; }")); 
-  sendRawData(F("  table.log td {}"));
-  sendRawData(F("  table.log th {font-weight:bold;}"));  
-  sendRawData(F("</style>"));
+void WebServerClass::sendLogPageCSS(){
+  sendRawData(F("table.log {border-spacing:5px; width:100%; text-align:center; }")); 
+  //sendRawData(F("  table.log td {}"));
+  //sendRawData(F("  table.log th {font-weight:bold;}"));  
 }
 
 void WebServerClass::sendLogPage(const String& getParams){
@@ -604,7 +548,7 @@ void WebServerClass::sendLogPage(const String& getParams){
   String paramValue; 
 
   // fill targetTm
-  boolean isTargetTmWasSet = false;
+  boolean isTargetDayFound = false;
   if (searchHttpParamByName(getParams, F("dateFilter"), paramValue)){
 
     if (paramValue.length() == 10){
@@ -616,14 +560,14 @@ void WebServerClass::sendLogPage(const String& getParams){
         targetTm.Day = dayInt;
         targetTm.Month = monthInt;
         targetTm.Year = CalendarYrToTm(yearInt);
-        isTargetTmWasSet = true;
+        isTargetDayFound = true;
       }
     }
   } 
-  if (!isTargetTmWasSet){
+  if (!isTargetDayFound){
     breakTime(now(), targetTm);
   }
-  String requestDateString = StringUtils::timeStampToString(makeTime(targetTm), true, false);
+  String targetDateAsString = StringUtils::timeStampToString(makeTime(targetTm), true, false);
 
   boolean printEvents, printErrors, printTemperature;
   printEvents = printErrors = printTemperature = true;
@@ -655,104 +599,95 @@ void WebServerClass::sendLogPage(const String& getParams){
   previousTm.Day = previousTm.Month = previousTm.Year = 0; //remove compiller warning
 
   sendRawData(F("<table style='width:100%'><colgroup><col width='60%'/><col width='40%'/></colgroup><tr><td>"));
-
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_log));
   sendRawData(F("' method='get'>"));
-
   sendRawData(F("<select id='typesFilterCombobox' name='typesFilter'></select>"));
   sendRawData(F("<select id='dateCombobox' name='dateFilter'></select>"));
   sendRawData(F("<input type='submit' value='Show'/>"));
   sendRawData(F("</form>"));
-
   // out of form
-  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F(""), StringUtils::flashStringLoad(F("All types")), printEvents && printErrors && printTemperature);
-  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("events"), StringUtils::flashStringLoad(F("Events only")), printEvents && !printErrors && !printTemperature);
-  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("errors"), StringUtils::flashStringLoad(F("Errors only")), !printEvents && printErrors && !printTemperature);
-  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("temperature"), StringUtils::flashStringLoad(F("Temperature only")), !printEvents && !printErrors && printTemperature);
-
+  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F(""), F("All types"), printEvents && printErrors && printTemperature);
+  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("events"), F("Events only"), printEvents && !printErrors && !printTemperature);
+  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("errors"), F("Errors only"), !printEvents && printErrors && !printTemperature);
+  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("temperature"), F("Temperature only"), !printEvents && !printErrors && printTemperature);
 
   sendRawData(F("</td><td style='text-align:right;'>"));
-
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_log));
   sendRawData(F("' method='post' onSubmit='return confirm(\"Delete all stored records?\")'>"));
-
   sendRawData(F("Stored records: "));
   sendRawData(GB_StorageHelper.getLogRecordsCount());
   sendRawData('/');
   sendRawData(GB_StorageHelper.LOG_CAPACITY);
   if (GB_StorageHelper.isLogOverflow()){
-    sendRawData(F(", <b>overflow</b>"));
+    sendRawData(F(", <span class='red'>overflow</span>"));
   }
-
   sendRawData(F("<input type='hidden' name='resetStoredLog'/>"));
   sendRawData(F("<input type='submit' value='Delete all'/>"));
   sendRawData(F("</form>"));
-
   sendRawData(F("</td></table>"));
-
-
 
   boolean isTableTagPrinted = false;   
   word index;
-  for (index = 0; index < GB_Logger.getLogRecordsCount(); index++){
+  for (index = 0; index < GB_StorageHelper.getLogRecordsCount(); index++){
 
     if (c_isWifiResponseError) return;
 
-    logRecord = GB_Logger.getLogRecordByIndex(index);
+    logRecord = GB_StorageHelper.getLogRecordByIndex(index);
     breakTime(logRecord.timeStamp, currentTm);
 
     boolean isDaySwitch = !(currentTm.Day == previousTm.Day && currentTm.Month == previousTm.Month && currentTm.Year == previousTm.Year);
     if (isDaySwitch){
       previousTm = currentTm; 
     }
-    boolean isTargetDay = (currentTm.Day == targetTm.Day && currentTm.Month == targetTm.Month && currentTm.Year == targetTm.Year);
-
-    String dateString = StringUtils::timeStampToString(logRecord.timeStamp, true, false);
+    boolean isTargetDay = (currentTm.Day == targetTm.Day && currentTm.Month == targetTm.Month && currentTm.Year == targetTm.Year);  
+    String currentDateAsString = StringUtils::timeStampToString(logRecord.timeStamp, true, false);
 
     if (isDaySwitch){ 
-      sendAppendOptionToSelectDynamic(F("dateCombobox"), 0, dateString, isTargetDay);
+      sendAppendOptionToSelectDynamic(F("dateCombobox"), 0, currentDateAsString, isTargetDay);
     }
 
+    if (!isTargetDay){
+      continue;
+    }
     if (!printEvents && GB_Logger.isEvent(logRecord)){
       continue;
     } 
-    else if (!printErrors && GB_Logger.isError(logRecord)){
+    boolean isError = GB_Logger.isError(logRecord);
+    if (!printErrors && isError){
       continue;
     } 
-    else if (!printTemperature && GB_Logger.isTemperature(logRecord)){
+    if (!printTemperature && GB_Logger.isTemperature(logRecord)){
       continue;
     }
 
-    if (isTargetDay){
-      if (!isTableTagPrinted){
-        isTableTagPrinted = true;
-        sendRawData(F("<table class='log'>"));
-        sendRawData(F("<tr><th>#</th><th>Time</th><th>Description</th></tr>"));
-      }
-      sendRawData(F("<tr><td>"));
-      sendRawData(index+1);
-      sendRawData(F("</td><td>"));
-      sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true)); 
-      sendRawData(F("</td><td style='text-align:left;'>"));
-      sendRawData(GB_Logger.getLogRecordDescription(logRecord));
-      sendRawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord));
-      sendRawData(F("</td></tr>")); // bug with linker was here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
-    } 
-    else {
-      continue;
+
+    if (!isTableTagPrinted){
+      isTableTagPrinted = true;
+      sendRawData(F("<table class='log'>"));
+      sendRawData(F("<tr><th>#</th><th>Time</th><th>Description</th></tr>"));
     }
+    sendRawData(F("<tr"));
+    if (isError){
+      sendRawData(F(" class='red'"));
+    }
+    sendRawData(F("><td>"));
+    sendRawData(index+1);
+    sendRawData(F("</td><td>"));
+    sendRawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true)); 
+    sendRawData(F("</td><td style='text-align:left;'>"));
+    sendRawData(GB_Logger.getLogRecordDescription(logRecord));
+    sendRawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord));
+    sendRawData(F("</td></tr>")); // bug with linker was here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
   }
   if (isTableTagPrinted) {
     sendRawData(F("</table>"));
   } 
-  else {
-    sendAppendOptionToSelectDynamic(F("dateCombobox"), 0, requestDateString, true);
-
-    sendRawData(F("No stored log records found"));
+  else {  
+    sendRawData(F("No stored log records found during "));
+    sendRawData(targetDateAsString);
   }
-
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -811,24 +746,25 @@ void WebServerClass::sendStorageDump(){
 /////////////////////////////////////////////////////////////////////
 
 String WebServerClass::applyPostParams(const String& url, const String& postParams){
-  String queryStr;
+  //String queryStr;
   word index = 0;  
   String name, value;
   while(getHttpParamByIndex(postParams, index, name, value)){
-    if (queryStr.length() > 0){
-      queryStr += '&';
-    }
-    queryStr += name;
-    queryStr += '=';   
-    queryStr += applyPostParam(name, value);
-    index++;
+    //if (queryStr.length() > 0){
+    //  queryStr += '&';
+    //}
+    //queryStr += name;
+    //queryStr += '=';   
+    //queryStr += applyPostParam(name, value);
+    //index++;
+    applyPostParam(name, value);
   }
-  if (index > 0){
-    return url + String('?') + queryStr;
-  }
-  else {
-    return url;
-  }
+  //if (index > 0){
+  //  return url + String('?') + queryStr;
+  //}
+  //else {
+  return url;
+  //}
 }
 
 boolean WebServerClass::applyPostParam(const String& name, const String& value){
@@ -858,6 +794,9 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
     }
     GB_StorageHelper.setStoreLogRecordsEnabled(value[0]=='1'); 
   }
+  else if (StringUtils::flashStringEquals(name, F("resetFirmware"))){
+    GB_StorageHelper.resetFirmware(); 
+  }
   else {
     return false;
   }
@@ -866,6 +805,8 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
 }
 
 WebServerClass GB_WebServer;
+
+
 
 
 

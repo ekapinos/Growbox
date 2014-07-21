@@ -101,8 +101,10 @@ EVENT_LIGHT_OFF,
 EVENT_LIGHT_ON, 
 EVENT_FAN_OFF, 
 EVENT_FAN_ON_MIN, 
-EVENT_FAN_ON_MAX;//,
-//EVENT_SERIAL_UNKNOWN_COMMAND;
+EVENT_FAN_ON_MAX,
+EVENT_LOGGER_ENABLED,
+EVENT_LOGGER_DISABLED;
+
 
 void initLoggerModel(){
 
@@ -114,17 +116,19 @@ void initLoggerModel(){
   ERROR_TERMOMETER_CRITICAL_VALUE.init(B000, 3, F("Error: Termometer returned CRITICAL value"));
   ERROR_MEMORY_LOW.init(B111, 3, F("Error: Memory remained less 200 bytes"));
 
-  EVENT_FIRST_START_UP.init(1, F("First startup")), 
-  EVENT_RESTART.init(2, F("Restart")), 
-  EVENT_MODE_DAY.init(3, F("Day mode")), 
-  EVENT_MODE_NIGHT.init(4, F("Night mode")), 
-  EVENT_LIGHT_OFF.init(5, F("Light off")), 
-  EVENT_LIGHT_ON.init(6, F("Light on")), 
-  EVENT_FAN_OFF.init(7, F("Fan off")), 
-  EVENT_FAN_ON_MIN.init(8, F("Fan min speed")), 
-  EVENT_FAN_ON_MAX.init(9, F("Fan max speed"));//,
-  //EVENT_SERIAL_UNKNOWN_COMMAND.init(10, F("Unknown serial command"));
+  EVENT_FIRST_START_UP.init(1, F("First startup"));
+  EVENT_RESTART.init(2, F("Restart"));
+  EVENT_MODE_DAY.init(3, F("Day mode"));
+  EVENT_MODE_NIGHT.init(4, F("Night mode"));
+  EVENT_LIGHT_OFF.init(5, F("Light off"));
+  EVENT_LIGHT_ON.init(6, F("Light on"));
+  EVENT_FAN_OFF.init(7, F("Fan off"));
+  EVENT_FAN_ON_MIN.init(8, F("Fan min speed")); 
+  EVENT_FAN_ON_MAX.init(9, F("Fan max speed"));
+  EVENT_LOGGER_ENABLED.init(10, F("Logger enabled"));
+  EVENT_LOGGER_DISABLED.init(11, F("Logger disabled"));
 }
+
 
 
 
