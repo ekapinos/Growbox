@@ -1,6 +1,7 @@
 #include "WebServer.h"
 
 #include <MemoryFree.h>
+#include "Controller.h"
 #include "StorageHelper.h" 
 #include "Thermometer.h" 
 #include "RAK410_XBeeWifi.h" 
@@ -88,100 +89,6 @@ void WebServerClass::sendHttpPageHeader(){
 void WebServerClass::sendHttpPageComplete(){  
   RAK410_XBeeWifi.sendAutoSizeFrameStop();
   RAK410_XBeeWifi.sendCloseConnection(c_wifiPortDescriptor);
-}
-
-void WebServerClass::sendHttpPageBody(const String& url, const String& getParams){
-
-  boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
-  //  boolean isPinsPage    = StringUtils::flashStringEquals(url, FS(S_url_pins));
-  boolean isLogPage     = StringUtils::flashStringEquals(url, FS(S_url_log));
-  boolean isConfPage    = StringUtils::flashStringEquals(url, FS(S_url_configuration));
-  boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
-
-  sendRawData(F("<!DOCTYPE html>")); // HTML 5
-  sendRawData(F("<html><head>"));
-  sendRawData(F("<title>Growbox</title>"));
-  sendRawData(F("<meta name='viewport' content='width=device-width, initial-scale=1'/>"));  
-  sendRawData(F("<style type='text/css'>"));
-  sendRawData(F("form {margin: 0px;}"));
-  sendRawData(F(".red {color: red;}"));
-  sendRawData(F("dt {font-weight: bold; margin-top: 5px;}")); 
-  if (isLogPage){
-    sendLogPageCSS();
-  }
-  sendRawData(F("</style>"));  
-  sendRawData(F("</head>"));
-
-  sendRawData(F("<body style='font-family:Arial;'>"));
-  sendRawData(F("<h1>Growbox</h1>"));   
-  sendRawData(F("<form>"));   // HTML Validator warning
-  sendTagButton(FS(S_url_root), F("Status"), isRootPage);
-  //sendTagButton(FS(S_url_pins), F("Pins status"), isPinsPage);  
-  sendTagButton(FS(S_url_log), F("Daily log"), isLogPage);
-  sendTagButton(FS(S_url_configuration), F("Configuration"), isConfPage);
-  sendTagButton(FS(S_url_storage), F("Storage dump"), isStoragePage);
-  sendRawData(F("</form>")); 
-  sendRawData(F("<hr/>"));
-
-  if (isRootPage){
-    sendStatusPage();
-  } 
-  //  if (isPinsPage){
-  //    sendPinsStatus();
-  //  } 
-  else if (isLogPage){
-    sendLogPage(getParams);
-  }
-  else if (isConfPage){
-    sendConfigurationPage(getParams);
-  } 
-  else if (isStoragePage){
-    sendStorageDumpPage(); 
-  }
-
-  if (c_isWifiResponseError) return;
-
-  sendRawData(F("</body></html>"));
-  
-  /*   
-   Serial.println(F("Currnet boot record"));
-   Serial.print(F("-Memory : ")); 
-   {// TODO compilator madness
-   BootRecord bootRecord = GB_StorageHelper.getBootRecord();
-   GB_PrintUtils.printRAM(&bootRecord, sizeof(BootRecord));
-   Serial.println();
-   }
-   Serial.print(F("-Storage: ")); 
-   printSendStorage(0, sizeof(BootRecord));
-   
-   break;  
-   
-   case 'm':    
-   switch(secondChar){
-   case '0': 
-   AT24C32_EEPROM.fillStorage(0x00); 
-   break; 
-   case 'a': 
-   AT24C32_EEPROM.fillStorage(0xAA); 
-   break; 
-   case 'f': 
-   AT24C32_EEPROM.fillStorage(0xFF); 
-   break; 
-   case 'i': 
-   AT24C32_EEPROM.fillStorageIncremental(); 
-   break; 
-   }
-   printSendStorage();
-   break; 
-   case 'r':        
-   Serial.println(F("Rebooting..."));
-   GB_Controller::rebootController();
-   break; 
-   default: 
-   GB_Logger.logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
-   }
-   */
-
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -332,10 +239,10 @@ void WebServerClass::sendTagCheckbox(const __FlashStringHelper* name, const __Fl
 
 }
 
-void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected){
+void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected){
   sendRawData(F("<script type='text/javascript'>"));
   sendRawData(F("var opt = document.createElement('option');"));
-  if (value != 0){
+  if (value.length() != 0){
     sendRawData(F("opt.value = '"));   
     sendRawData(value);
     sendRawData(F("';"));
@@ -353,8 +260,109 @@ void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* 
   sendRawData(F("</script>"));
 }
 
+void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected){
+  sendAppendOptionToSelectDynamic(selectId, StringUtils::flashStringLoad(value), text, isSelected);
+}
+
 void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected){
-  sendAppendOptionToSelectDynamic(selectId, value, StringUtils::flashStringLoad(text), isSelected);
+  sendAppendOptionToSelectDynamic(selectId, StringUtils::flashStringLoad(value), StringUtils::flashStringLoad(text), isSelected);
+}
+
+/////////////////////////////////////////////////////////////////////
+//                        COMMON FOR PAGES                         //
+/////////////////////////////////////////////////////////////////////
+
+void WebServerClass::sendHttpPageBody(const String& url, const String& getParams){
+
+  boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
+  //  boolean isPinsPage    = StringUtils::flashStringEquals(url, FS(S_url_pins));
+  boolean isLogPage     = StringUtils::flashStringEquals(url, FS(S_url_log));
+  boolean isConfPage    = StringUtils::flashStringEquals(url, FS(S_url_configuration));
+  boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
+
+  sendRawData(F("<!DOCTYPE html>")); // HTML 5
+  sendRawData(F("<html><head>"));
+  sendRawData(F("  <title>Growbox</title>"));
+  sendRawData(F("  <meta name='viewport' content='width=device-width, initial-scale=1'/>"));  
+  sendRawData(F("<style type='text/css'>"));
+  sendRawData(F("  body {font-family:Arial;}"));
+  sendRawData(F("  form {margin: 0px;}"));
+  sendRawData(F("  .red {color: red;}"));
+  sendRawData(F("  table.grab {border-spacing:5px; width:100%; text-align:center; }")); 
+  sendRawData(F("  dt {font-weight: bold; margin-top: 5px;}")); 
+  sendRawData(F("</style>"));  
+  sendRawData(F("</head>"));
+
+  sendRawData(F("<body>"));
+  sendRawData(F("<h1>Growbox</h1>"));   
+  sendRawData(F("<form>"));   // HTML Validator warning
+  sendTagButton(FS(S_url_root), F("Status"), isRootPage);
+  //sendTagButton(FS(S_url_pins), F("Pins status"), isPinsPage);  
+  sendTagButton(FS(S_url_log), F("Daily log"), isLogPage);
+  sendTagButton(FS(S_url_configuration), F("Configuration"), isConfPage || isStoragePage);
+  //sendTagButton(FS(S_url_storage), F("Storage dump"), isStoragePage);
+  sendRawData(F("</form>")); 
+  sendRawData(F("<hr/>"));
+
+  if (isRootPage){
+    sendStatusPage();
+  } 
+  //  if (isPinsPage){
+  //    sendPinsStatus();
+  //  } 
+  else if (isLogPage){
+    sendLogPage(getParams);
+  }
+  else if (isConfPage){
+    sendConfigurationPage(getParams);
+  } 
+  else if (isStoragePage){
+    sendStorageDumpPage(getParams); 
+  }
+
+  if (c_isWifiResponseError) return;
+
+  sendRawData(F("</body></html>"));
+
+  /*   
+   Serial.println(F("Currnet boot record"));
+   Serial.print(F("-Memory : ")); 
+   {// TODO compilator madness
+   BootRecord bootRecord = GB_StorageHelper.getBootRecord();
+   GB_PrintUtils.printRAM(&bootRecord, sizeof(BootRecord));
+   Serial.println();
+   }
+   Serial.print(F("-Storage: ")); 
+   printSendStorage(0, sizeof(BootRecord));
+   
+   break;  
+   
+   case 'm':    
+   switch(secondChar){
+   case '0': 
+   AT24C32_EEPROM.fillStorage(0x00); 
+   break; 
+   case 'a': 
+   AT24C32_EEPROM.fillStorage(0xAA); 
+   break; 
+   case 'f': 
+   AT24C32_EEPROM.fillStorage(0xFF); 
+   break; 
+   case 'i': 
+   AT24C32_EEPROM.fillStorageIncremental(); 
+   break; 
+   }
+   printSendStorage();
+   break; 
+   case 'r':        
+   Serial.println(F("Rebooting..."));
+   GB_Controller::rebootController();
+   break; 
+   default: 
+   GB_Logger.logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
+   }
+   */
+
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -451,12 +459,6 @@ void WebServerClass::sendStatusPage(){
 //                             LOG PAGE                            //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendLogPageCSS(){
-  sendRawData(F("table.log {border-spacing:5px; width:100%; text-align:center; }")); 
-  //sendRawData(F("  table.log td {}"));
-  //sendRawData(F("  table.log th {font-weight:bold;}"));  
-}
-
 void WebServerClass::sendLogPage(const String& getParams){
 
   LogRecord logRecord;
@@ -469,7 +471,7 @@ void WebServerClass::sendLogPage(const String& getParams){
 
   // fill targetTm
   boolean isTargetDayFound = false;
-  if (searchHttpParamByName(getParams, F("dateFilter"), paramValue)){
+  if (searchHttpParamByName(getParams, F("date"), paramValue)){
 
     if (paramValue.length() == 10){
       byte dayInt   = paramValue.substring(0, 2).toInt();
@@ -492,7 +494,7 @@ void WebServerClass::sendLogPage(const String& getParams){
   boolean printEvents, printErrors, printTemperature;
   printEvents = printErrors = printTemperature = true;
 
-  if (searchHttpParamByName(getParams, F("typesFilter"), paramValue)){
+  if (searchHttpParamByName(getParams, F("type"), paramValue)){
     if (StringUtils::flashStringEquals(paramValue, F("events"))){
       printEvents = true; 
       printErrors = false; 
@@ -522,15 +524,15 @@ void WebServerClass::sendLogPage(const String& getParams){
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_log));
   sendRawData(F("' method='get'>"));
-  sendRawData(F("<select id='typesFilterCombobox' name='typesFilter'></select>"));
-  sendRawData(F("<select id='dateCombobox' name='dateFilter'></select>"));
+  sendRawData(F("<select id='typeCombobox' name='type'></select>"));
+  sendRawData(F("<select id='dateCombobox' name='date'></select>"));
   sendRawData(F("<input type='submit' value='Show'/>"));
   sendRawData(F("</form>"));
   // out of form
-  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F(""), F("All types"), printEvents && printErrors && printTemperature);
-  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("events"), F("Events only"), printEvents && !printErrors && !printTemperature);
-  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("errors"), F("Errors only"), !printEvents && printErrors && !printTemperature);
-  sendAppendOptionToSelectDynamic(F("typesFilterCombobox"), F("temperature"), F("Temperature only"), !printEvents && !printErrors && printTemperature);
+  sendAppendOptionToSelectDynamic(F("typeCombobox"), F(""), F("All types"), printEvents && printErrors && printTemperature);
+  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("events"), F("Events only"), printEvents && !printErrors && !printTemperature);
+  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("errors"), F("Errors only"), !printEvents && printErrors && !printTemperature);
+  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("temperature"), F("Temperature only"), !printEvents && !printErrors && printTemperature);
 
   sendRawData(F("</td><td style='text-align:right;'>"));
   sendRawData(F("<form action='"));
@@ -565,7 +567,7 @@ void WebServerClass::sendLogPage(const String& getParams){
     String currentDateAsString = StringUtils::timeStampToString(logRecord.timeStamp, true, false);
 
     if (isDaySwitch){ 
-      sendAppendOptionToSelectDynamic(F("dateCombobox"), 0, currentDateAsString, isTargetDay);
+      sendAppendOptionToSelectDynamic(F("dateCombobox"), F(""), currentDateAsString, isTargetDay);
     }
 
     if (!isTargetDay){
@@ -584,7 +586,7 @@ void WebServerClass::sendLogPage(const String& getParams){
 
     if (!isTableTagPrinted){
       isTableTagPrinted = true;
-      sendRawData(F("<table class='log'>"));
+      sendRawData(F("<table class='grab'>"));
       sendRawData(F("<tr><th>#</th><th>Time</th><th>Description</th></tr>"));
     }
     sendRawData(F("<tr"));
@@ -615,6 +617,16 @@ void WebServerClass::sendLogPage(const String& getParams){
 
 void WebServerClass::sendConfigurationPage(const String& getParams){
 
+  sendRawData(F("<fieldset><legend>Growing</legend>"));
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post'>"));
+  sendTagCheckbox(F("isStoreLogRecordsEnabled"), F("Enable logger"), GB_StorageHelper.isStoreLogRecordsEnabled());
+  sendRawData(F("<br/><input type='submit' value='Save'>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("<br/>"));
+
   boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
 
   sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
@@ -636,77 +648,141 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(WIFI_PASS_LENGTH);
   sendRawData(F("'/></td></tr>"));
   sendRawData(F("</table>")); 
-  sendRawData(F("<input type='submit' value='Save'><small>and reboot device manually</small>"));
+  sendRawData(F("<input type='submit' value='Save'><small>and reboot Growbox manually</small>"));
   sendRawData(F("</form>"));
   sendRawData(F("</fieldset>"));
   sendRawData(F("<br/>"));
 
-  sendRawData(F("<fieldset><legend>Logger</legend>"));
+  sendRawData(F("<fieldset><legend>Other</legend>"));  
+  sendRawData(F("<a href='"));
+  sendRawData(FS(S_url_storage));
+  sendRawData(F("'>View EEPROM dumps</a><br/><br/>")); 
+  sendRawData(F("<table style='vertical-align:top; border-spacing:0px;'><tr><td>"));
   sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post'>"));
-  sendTagCheckbox(F("isStoreLogRecordsEnabled"), F("Enabled"), GB_StorageHelper.isStoreLogRecordsEnabled());
-  sendRawData(F("<br/><input type='submit' value='Save'>"));
+  sendRawData(FS(S_url_root));
+  sendRawData(F("' method='post' onSubmit='return confirm(\"Reboot Growbox?\")'>"));
+  sendRawData(F("<input type='hidden' name='rebootController'/><input type='submit' value='Reboot Growbox'>"));
+  sendRawData(F("</td><td>"));
+  sendRawData(F("<small> and update page manually</small>"));
+  sendRawData(F("</td></tr><tr><td>"));
+  sendRawData(F("</form>")); 
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_root));
+  sendRawData(F("' method='post' onSubmit='return confirm(\"Are you seriously want to reset Firmware and reboot?\")'>"));
+  sendRawData(F("<input type='hidden' name='resetFirmware'/><input type='submit' value='Reset Firmware'>"));
+  sendRawData(F("</td><td>"));
+  sendRawData(F("<small>and update page manually. Default Wi-Fi SSID and pass will be used</small>"));
   sendRawData(F("</form>"));
-  sendRawData(F("</fieldset>"));
-  sendRawData(F("<br/>"));
-
-  sendRawData(F("<fieldset><legend>Device</legend>"));
-
-//  sendRawData(F("<form>"));
-//  sendTagButton(FS(S_url_storage), F("Storage dump"), false);
-//  sendRawData(F("</form>"));
-  
-  sendRawData(F("<!--<form action='"));
-  sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post'>"));
-  sendRawData(F("<input type='hidden' name='resetFirmware'/>"));
-  sendRawData(F("<input type='submit' value='Reset Firmware' onSubmit='return confirm(\"Are you seriously?\")'>"));
-  sendRawData(F("<small>and reboot device manually</small>"));
-  sendRawData(F("</form>-->"));
+  sendRawData(F("</td></tr></table>"));
   sendRawData(F("</fieldset>"));
   sendRawData(F("<br/>"));
 }
 
-void WebServerClass::sendStorageDumpPage(){
-  sendTag(FS(S_table), HTTP_TAG_OPEN);
-  sendTag(FS(S_tr), HTTP_TAG_OPEN);
-  sendTag(FS(S_td), HTTP_TAG_OPEN);
-  sendTag(FS(S_td), HTTP_TAG_CLOSED);
-  for (word i = 0; i < 16 ; i++){
-    sendTag(FS(S_td), HTTP_TAG_OPEN);
-    sendTag('b', HTTP_TAG_OPEN);
-    sendRawData(StringUtils::byteToHexString(i));
-    sendTag('b', HTTP_TAG_CLOSED); 
-    sendTag(FS(S_td), HTTP_TAG_CLOSED);
-  }
-  sendTag(FS(S_tr), HTTP_TAG_CLOSED);
+void WebServerClass::sendStorageDumpPage(const String& getParams){
 
-  for (word i = 0; i < EEPROM_AT24C32.getCapacity() ; i++){
-    
-    if (c_isWifiResponseError) return;
-    
-    byte value = EEPROM_AT24C32.read(i);
-
-    if (i% 16 ==0){
-      if (i>0){
-        sendTag(FS(S_tr), HTTP_TAG_CLOSED);
+  String paramValue;
+  boolean isArduino = true;
+  if (searchHttpParamByName(getParams, F("type"), paramValue)){
+    if (paramValue.length()==1){
+      if (paramValue[0]=='r'){
+        isArduino = false;
       }
-      sendTag(FS(S_tr), HTTP_TAG_OPEN);
-      sendTag(FS(S_td), HTTP_TAG_OPEN);
-      sendTag('b', HTTP_TAG_OPEN);
-      sendRawData(StringUtils::byteToHexString(i/16));
-      sendTag('b', HTTP_TAG_CLOSED);
-      sendTag(FS(S_td), HTTP_TAG_CLOSED);
+    } 
+  }
+  byte rangeStart=0x0; //0x[0]00
+  byte rangeEnd=0x0;   //0x[0]FF
+  byte temp;
+  if (searchHttpParamByName(getParams, F("rangeStart"), paramValue)){
+    if (paramValue.length() == 1) {
+      temp = StringUtils::hexCharToByte(paramValue[0]);
+      if (temp != 0xFF) {
+        rangeStart = temp;
+      }
     }
-    sendTag(FS(S_td), HTTP_TAG_OPEN);
+  }
+  if (searchHttpParamByName(getParams, F("rangeEnd"), paramValue)){
+    if (paramValue.length() == 1) {
+      temp = StringUtils::hexCharToByte(paramValue[0]);
+      if (temp != 0xFF) {
+        rangeEnd = temp;
+      }
+    }
+  }
+  if (rangeStart > rangeEnd){
+    rangeEnd = rangeStart;
+  }
+
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_storage));
+  sendRawData(F("' method='get' onSubmit='if (document.getElementById(\"rangeStartCombobox\").value > document.getElementById(\"rangeEndCombobox\").value){ alert(\"Address range is incorrect\"); return false;}'>"));
+  sendRawData(F("EEPROM Dump for "));
+  sendRawData(F("<select id='typeOfStorageCombobox' name='type'></select>"));
+  sendRawData(F("<br/>Address from "));
+  sendRawData(F("<select id='rangeStartCombobox' name='rangeStart'></select>"));
+  sendRawData(F(" to "));
+  sendRawData(F("<select id='rangeEndCombobox' name='rangeEnd'></select>"));
+  sendRawData(F("<input type='submit' value='Show'/>"));
+  sendRawData(F("</form>"));
+
+  // out of form
+  sendAppendOptionToSelectDynamic(F("typeOfStorageCombobox"), F("a"), F("Arduino (internal)"), isArduino);
+  sendAppendOptionToSelectDynamic(F("typeOfStorageCombobox"), F("r"), F("RTC (external)"), !isArduino);
+
+  String stringValue;
+  for (byte counter = 0; counter< 0x10; counter++){
+    stringValue = StringUtils::byteToHexString(counter, true);
+    stringValue += '0';
+    stringValue += '0';
+    sendAppendOptionToSelectDynamic(F("rangeStartCombobox"), String(counter, HEX), stringValue, rangeStart==counter);
+  }
+
+  for (byte counter = 0; counter< 0x10; counter++){
+    stringValue = StringUtils::byteToHexString(counter, true);
+    stringValue += 'F';
+    stringValue += 'F';
+    sendAppendOptionToSelectDynamic(F("rangeEndCombobox"), String(counter, HEX), stringValue, rangeEnd==counter);
+  }
+
+  sendRawData(F("<table class='grab'><tr><th/>"));
+  for (word i = 0; i < 0x10 ; i++){
+    sendRawData(F("<th>"));
+    String colName(i, HEX);
+    colName.toUpperCase();
+    sendRawData(colName);
+    sendRawData(F("</th>"));
+  }
+  sendRawData(F("</tr>"));
+  
+  word realRangeStart = ((word)(rangeStart)<<8);
+  word realRangeEnd   = ((word)(rangeEnd)<<8) + 0xFF;
+  byte value; 
+  for (word i = realRangeStart; i <= realRangeEnd/*EEPROM_AT24C32.getCapacity()*/ ; i++){
+
+    if (c_isWifiResponseError) return;
+
+    if (isArduino){
+      value = EEPROM.read(i);
+    } 
+    else {
+      value = EEPROM_AT24C32.read(i);
+    }
+
+    if ( i%16 == 0){
+      if (i > 0){
+        sendRawData(F("</tr>"));
+      }
+      sendRawData(F("<tr><td><b>"));
+      sendRawData(StringUtils::byteToHexString(i/16));
+      sendRawData(F("</b></td>"));
+    }
+    sendRawData(F("<td>"));
     sendRawData(StringUtils::byteToHexString(value));
-    sendTag(FS(S_td), HTTP_TAG_CLOSED);
+    sendRawData(F("</td>"));
 
   }
-  sendTag(FS(S_tr), HTTP_TAG_CLOSED);
-  sendTag(FS(S_table), HTTP_TAG_CLOSED);
+  sendRawData(F("</tr></table>"));
 }
+
 
 /////////////////////////////////////////////////////////////////////
 //                          OTHER PAGES                            //
@@ -756,8 +832,13 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
     GB_StorageHelper.setWifiPass(value);
 
   } 
+  else if (StringUtils::flashStringEquals(name, F("rebootController"))){
+    GB_Controller.rebootController();
+
+  } 
   else if (StringUtils::flashStringEquals(name, F("resetStoredLog"))){
     GB_StorageHelper.resetStoredLog();
+    GB_Controller.rebootController();
 
   } 
   else if (StringUtils::flashStringEquals(name, F("isStoreLogRecordsEnabled"))){
@@ -777,4 +858,7 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
 }
 
 WebServerClass GB_WebServer;
+
+
+
 

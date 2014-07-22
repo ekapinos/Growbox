@@ -48,7 +48,6 @@ private:
 
   void sendHttpPageHeader();
   void sendHttpPageComplete();
-  void sendHttpPageBody(const String &input, const String &getParams);
 
   /////////////////////////////////////////////////////////////////////
   //                         HTTP PARAMETERS                         //
@@ -74,7 +73,8 @@ private:
   void sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* text, boolean isSelected);
   void sendTagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected);
   void sendTagRadioButton(const __FlashStringHelper* name, const __FlashStringHelper* text, const __FlashStringHelper* value, boolean isSelected);
-  void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& optionText, boolean isSelected);
+  void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected);
+  void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected);
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected);
 
   template <class T> void sendTag(T tagName, HTTP_TAG type){
@@ -90,6 +90,12 @@ private:
   }
 
   /////////////////////////////////////////////////////////////////////
+  //                        COMMON FOR PAGES                         //
+  /////////////////////////////////////////////////////////////////////
+  
+  void sendHttpPageBody(const String &input, const String &getParams);
+
+  /////////////////////////////////////////////////////////////////////
   //                          STATUS PAGE                            //
   /////////////////////////////////////////////////////////////////////
 
@@ -100,13 +106,12 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   void sendConfigurationPage(const String& getParams);
-  void sendStorageDumpPage();
-  
+  void sendStorageDumpPage(const String& getParams);
+
   /////////////////////////////////////////////////////////////////////
   //                             LOG PAGE                            //
   /////////////////////////////////////////////////////////////////////
 
-  void sendLogPageCSS();
   void sendLogPage(const String& getParams);
 
   /////////////////////////////////////////////////////////////////////
@@ -140,6 +145,7 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
 
 
 

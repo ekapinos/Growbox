@@ -79,11 +79,14 @@ boolean StringUtils::flashStringEndsWith(const String &str, const __FlashStringH
 }
 
 String StringUtils::flashStringLoad(const __FlashStringHelper* fstr){
-  size_t length = flashStringLength(fstr);
+  size_t fLength = flashStringLength(fstr);
+  if (fLength==0){
+    return String();
+  }
 
   String str;
-  str.reserve(length);
-  for (size_t i = 0; i< length; i++){
+  str.reserve(fLength);
+  for (size_t i = 0; i< fLength; i++){
     str += flashStringCharAt(fstr, i, false);
   }
   return str; 
@@ -177,10 +180,10 @@ byte StringUtils::hexCharToByte(const char hexChar){
     return hexChar-'0';
   } 
   if (hexChar >='a' && hexChar <='f') {
-    return hexChar-'a';
+    return hexChar-'a'+10;
   } 
   if (hexChar >='A' && hexChar <='F') {
-    return hexChar-'A';
+    return hexChar-'A'+10;
   } 
   else {
     return 0xFF;

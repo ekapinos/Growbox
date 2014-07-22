@@ -99,9 +99,6 @@ void setup() {
 
   g_isGrowboxStarted = false;
 
-  // We need to check Wi-Fi before use print to SerialMonitor
-  int controllerFreeMemoryBeforeBoot = freeMemory();
-
   GB_Controller.updateHardwareInputStatus();
   RAK410_XBeeWifi.init();
 
