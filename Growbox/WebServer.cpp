@@ -136,39 +136,14 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
     sendConfigurationPage(getParams);
   } 
   else if (isStoragePage){
-    sendStorageDump(); 
+    sendStorageDumpPage(); 
   }
 
   if (c_isWifiResponseError) return;
 
   sendRawData(F("</body></html>"));
-  /*
-
-   
-   
-   case 'b': 
-   switch(secondChar){
-   case 'c': 
-   Serial.println(F("Cleaning boot record"));
-   
-   GB_StorageHe lper.resetFirmware();
-   Serial.println(F("Magic number corrupted, reseting"));
-   
-   Serial.println('5');
-   delay(1000);
-   Serial.println('4');
-   delay(1000);
-   Serial.println('3');
-   delay(1000);
-   Serial.println('2');
-   delay(1000);
-   Serial.println('1');
-   delay(1000);
-   Serial.println(F("Rebooting..."));
-   GB_Controller::rebootController();
-   break;
-   } 
-   
+  
+  /*   
    Serial.println(F("Currnet boot record"));
    Serial.print(F("-Memory : ")); 
    {// TODO compilator madness
@@ -347,7 +322,6 @@ void WebServerClass::sendTagCheckbox(const __FlashStringHelper* name, const __Fl
   sendRawData(F("\").value = (this.checked?1:0)'/>"));
   sendRawData(text);
   sendRawData(F("</label>"));
-
   sendRawData(F("<input type='hidden' name='"));
   sendRawData(name);
   sendRawData(F("' id='"));
@@ -366,7 +340,6 @@ void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* 
     sendRawData(value);
     sendRawData(F("';"));
   }
-
   sendRawData(F("opt.text = '"));    //opt.value = i;
   sendRawData(text);
   sendRawData(F("';"));
@@ -379,6 +352,7 @@ void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* 
   sendRawData(F("').appendChild(opt);"));
   sendRawData(F("</script>"));
 }
+
 void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected){
   sendAppendOptionToSelectDynamic(selectId, value, StringUtils::flashStringLoad(text), isSelected);
 }
@@ -471,60 +445,6 @@ void WebServerClass::sendStatusPage(){
   sendRawData(F("</dd>")); 
 
   sendRawData(F("</dl>")); 
-}
-
-/////////////////////////////////////////////////////////////////////
-//                      CONFIGURATION PAGE                         //
-/////////////////////////////////////////////////////////////////////
-
-void WebServerClass::sendConfigurationPage(const String& getParams){
-
-  boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
-
-  sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
-  sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post'>"));
-  sendTagRadioButton(F("isWifiStationMode"), F("Create new Network"), F("0"),!isWifiStationMode);
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Hidden, security WPA2, ip 192.168.0.1</small><br/>"));
-  sendTagRadioButton(F("isWifiStationMode"), F("Join existed Network"), F("1"), isWifiStationMode);
-  sendRawData(F("<table>"));
-  sendRawData(F("<tr><td><label for='wifiSSID'>SSID</label></td><td><input type='text' name='wifiSSID' required value='"));
-  sendRawData(GB_StorageHelper.getWifiSSID());
-  sendRawData(F("' maxlength='"));
-  sendRawData(WIFI_SSID_LENGTH);
-  sendRawData(F("'/></td></tr>"));
-  sendRawData(F("<tr><td><label for='wifiPass'>Password</label></td><td><input type='password' name='wifiPass' required value='"));
-  sendRawData(GB_StorageHelper.getWifiPass());
-  sendRawData(F("' maxlength='"));
-  sendRawData(WIFI_PASS_LENGTH);
-  sendRawData(F("'/></td></tr>"));
-  sendRawData(F("</table>")); 
-  sendRawData(F("<input type='submit' value='Save'><small>and reboot device manually</small>"));
-  sendRawData(F("</form>"));
-  sendRawData(F("</fieldset>"));
-  sendRawData(F("<br/>"));
-
-  sendRawData(F("<fieldset><legend>Logger</legend>"));
-  sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post'>"));
-  sendTagCheckbox(F("isStoreLogRecordsEnabled"), F("Enabled"), GB_StorageHelper.isStoreLogRecordsEnabled());
-  sendRawData(F("<br/><input type='submit' value='Save'>"));
-  sendRawData(F("</form>"));
-  sendRawData(F("</fieldset>"));
-  sendRawData(F("<br/>"));
-
-  sendRawData(F("<!--<fieldset><legend>Firmware</legend>"));
-  sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post'>"));
-  sendRawData(F("<input type='hidden' name='resetFirmware'/>"));
-  sendRawData(F("<input type='submit' value='Reset Firmware' onSubmit='return confirm(\"Are you seriously?\")'>"));
-  sendRawData(F("<small>and reboot device manually</small>"));
-  sendRawData(F("</form>"));
-  sendRawData(F("</fieldset>"));
-  sendRawData(F("<br/>-->"));
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -690,18 +610,65 @@ void WebServerClass::sendLogPage(const String& getParams){
 }
 
 /////////////////////////////////////////////////////////////////////
-//                          OTHER PAGES                            //
+//                      CONFIGURATION PAGE                         //
 /////////////////////////////////////////////////////////////////////
 
-// TODO garbage?
-void WebServerClass::printStorage(word address, byte sizeOf){
-  byte buffer[sizeOf];
-  EEPROM_AT24C32.readBlock<byte>(address, buffer, sizeOf);
-  PrintUtils::printRAM(buffer, sizeOf);
-  Serial.println();
+void WebServerClass::sendConfigurationPage(const String& getParams){
+
+  boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
+
+  sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post'>"));
+  sendTagRadioButton(F("isWifiStationMode"), F("Create new Network"), F("0"),!isWifiStationMode);
+  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Hidden, security WPA2, ip 192.168.0.1</small><br/>"));
+  sendTagRadioButton(F("isWifiStationMode"), F("Join existed Network"), F("1"), isWifiStationMode);
+  sendRawData(F("<table>"));
+  sendRawData(F("<tr><td><label for='wifiSSID'>SSID</label></td><td><input type='text' name='wifiSSID' required value='"));
+  sendRawData(GB_StorageHelper.getWifiSSID());
+  sendRawData(F("' maxlength='"));
+  sendRawData(WIFI_SSID_LENGTH);
+  sendRawData(F("'/></td></tr>"));
+  sendRawData(F("<tr><td><label for='wifiPass'>Password</label></td><td><input type='password' name='wifiPass' required value='"));
+  sendRawData(GB_StorageHelper.getWifiPass());
+  sendRawData(F("' maxlength='"));
+  sendRawData(WIFI_PASS_LENGTH);
+  sendRawData(F("'/></td></tr>"));
+  sendRawData(F("</table>")); 
+  sendRawData(F("<input type='submit' value='Save'><small>and reboot device manually</small>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("<br/>"));
+
+  sendRawData(F("<fieldset><legend>Logger</legend>"));
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post'>"));
+  sendTagCheckbox(F("isStoreLogRecordsEnabled"), F("Enabled"), GB_StorageHelper.isStoreLogRecordsEnabled());
+  sendRawData(F("<br/><input type='submit' value='Save'>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("<br/>"));
+
+  sendRawData(F("<fieldset><legend>Device</legend>"));
+
+//  sendRawData(F("<form>"));
+//  sendTagButton(FS(S_url_storage), F("Storage dump"), false);
+//  sendRawData(F("</form>"));
+  
+  sendRawData(F("<!--<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post'>"));
+  sendRawData(F("<input type='hidden' name='resetFirmware'/>"));
+  sendRawData(F("<input type='submit' value='Reset Firmware' onSubmit='return confirm(\"Are you seriously?\")'>"));
+  sendRawData(F("<small>and reboot device manually</small>"));
+  sendRawData(F("</form>-->"));
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("<br/>"));
 }
 
-void WebServerClass::sendStorageDump(){
+void WebServerClass::sendStorageDumpPage(){
   sendTag(FS(S_table), HTTP_TAG_OPEN);
   sendTag(FS(S_tr), HTTP_TAG_OPEN);
   sendTag(FS(S_td), HTTP_TAG_OPEN);
@@ -716,6 +683,9 @@ void WebServerClass::sendStorageDump(){
   sendTag(FS(S_tr), HTTP_TAG_CLOSED);
 
   for (word i = 0; i < EEPROM_AT24C32.getCapacity() ; i++){
+    
+    if (c_isWifiResponseError) return;
+    
     byte value = EEPROM_AT24C32.read(i);
 
     if (i% 16 ==0){
@@ -733,12 +703,15 @@ void WebServerClass::sendStorageDump(){
     sendRawData(StringUtils::byteToHexString(value));
     sendTag(FS(S_td), HTTP_TAG_CLOSED);
 
-    if (c_isWifiResponseError) return;
-
   }
   sendTag(FS(S_tr), HTTP_TAG_CLOSED);
   sendTag(FS(S_table), HTTP_TAG_CLOSED);
 }
+
+/////////////////////////////////////////////////////////////////////
+//                          OTHER PAGES                            //
+/////////////////////////////////////////////////////////////////////
+
 
 /////////////////////////////////////////////////////////////////////
 //                          POST HANDLING                          //
@@ -804,64 +777,4 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
 }
 
 WebServerClass GB_WebServer;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

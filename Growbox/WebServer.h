@@ -25,7 +25,7 @@ const char S_url_root[] PROGMEM  = "/";
 //const char S_url_pins[] PROGMEM  = "/pins";
 const char S_url_log[] PROGMEM  = "/log";
 const char S_url_configuration[] PROGMEM  = "/conf";
-const char S_url_storage[] PROGMEM  = "/storage";
+const char S_url_storage[] PROGMEM  = "/conf/storage";
 
 class WebServerClass{
 private:  
@@ -100,7 +100,8 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   void sendConfigurationPage(const String& getParams);
-
+  void sendStorageDumpPage();
+  
   /////////////////////////////////////////////////////////////////////
   //                             LOG PAGE                            //
   /////////////////////////////////////////////////////////////////////
@@ -111,10 +112,7 @@ private:
   /////////////////////////////////////////////////////////////////////
   //                          OTHER PAGES                            //
   /////////////////////////////////////////////////////////////////////
-  // TODO garbage?
-  void printStorage(word address, byte sizeOf);
 
-  void sendStorageDump();
 
   /////////////////////////////////////////////////////////////////////
   //                          POST HANDLING                          //
