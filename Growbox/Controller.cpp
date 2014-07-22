@@ -4,13 +4,18 @@
 #include "Logger.h"
 #include "StorageHelper.h"
 
+
+ControllerClass::ControllerClass(): 
+freeMemoryLastCheck(0){
+}
+
 void ControllerClass::rebootController() {
   void(* resetFunc) (void) = 0; // Reset MC function
   resetFunc(); // call
 }
 
 void ControllerClass::checkFreeMemory(){
-
+  
   int currentFreeMemory = freeMemory();
   if(currentFreeMemory< 200){ 
     GB_Logger.logError(ERROR_MEMORY_LOW);   
@@ -18,36 +23,43 @@ void ControllerClass::checkFreeMemory(){
   else {
     GB_Logger.stopLogError(ERROR_MEMORY_LOW); 
   }
-  if (g_useSerialMonitor){
-    Serial.print(F("GB> Free memory: ["));  
-    Serial.print(currentFreeMemory);
-    Serial.println(']');
+  
+  if (freeMemoryLastCheck != currentFreeMemory){
+    if (g_useSerialMonitor){
+      showControllerMessage(F("Free memory: ["), false);  
+      Serial.print(currentFreeMemory);
+      Serial.println(']');
+    }
+    freeMemoryLastCheck = currentFreeMemory;
   }
 }
 
 void ControllerClass::updateHardwareInputStatus(){
 
-  boolean oldUseSerialMonitor  = g_useSerialMonitor;
+  checkFreeMemory();
 
-  g_useSerialMonitor = (digitalRead(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN) == HARDWARE_BUTTON_ON);
+  boolean newUseSerialMonitor = (digitalRead(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN) == HARDWARE_BUTTON_ON);
 
-  if (oldUseSerialMonitor != g_useSerialMonitor){
+  if (newUseSerialMonitor != g_useSerialMonitor){
 
-    if (g_useSerialMonitor){
+    if (newUseSerialMonitor){
       Serial.begin(9600);
       while (!Serial) {
         ; // wait for serial port to connect. Needed for Leonardo only
       } 
+      g_useSerialMonitor = newUseSerialMonitor; // true
       showControllerMessage(F("Serial monitor enabled"));
     } 
     else {
       showControllerMessage(F("Serial monitor disabled"));
+      Serial.flush();
       Serial.end();
+      g_useSerialMonitor = newUseSerialMonitor; // false
     }
   }
 
   if (g_useSerialMonitor && digitalRead(HARDWARE_BUTTON_RESET_FIRMWARE_PIN) == HARDWARE_BUTTON_ON){ 
-    showControllerMessage("Reset firmware...");
+    showControllerMessage("Resetting firmware...");
     byte counter;
     for (counter = 5; counter>0; counter--){
       Serial.println(counter);
@@ -71,6 +83,7 @@ void ControllerClass::updateHardwareInputStatus(){
 }
 
 ControllerClass GB_Controller;
+
 
 
 

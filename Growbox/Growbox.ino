@@ -68,12 +68,6 @@ void stopOnFatalError(const __FlashStringHelper* str){ //TODO
   while(true) delay(5000); // Stop boot process
 }
 
-void printFreeMemory(){  
-  Serial.print(FS(S_Free_memory));
-  Serial.print(freeMemory()); 
-  Serial.println(FS(S_bytes));
-}
-
 /////////////////////////////////////////////////////////////////////
 //                                MAIN                             //
 /////////////////////////////////////////////////////////////////////
@@ -113,7 +107,6 @@ void setup() {
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
   if(g_useSerialMonitor){
-    printFreeMemory();
     printStatusOnBoot(F("software configuration"));
   }
 
@@ -175,35 +168,6 @@ void setup() {
 
   g_isGrowboxStarted = true;
 
-//
-//  Serial.println(GB_StorageHelper.LOG_CAPACITY);
-//  Serial.println(GB_StorageHelper.LOG_CAPACITY_ARDUINO);
-//  Serial.println(GB_StorageHelper.LOG_CAPACITY_AT24C32);
-//  
-//  byte test [] ={200, 200, 200, 200, 200};
-//  EEPROM_AT24C32.writeBlock<byte>(0, test, 5);
-//
-//  for (word i=0; i< GB_StorageHelper.LOG_CAPACITY; i++){
-//    LogRecord logRecord(i);//(B11000000|(i%B00111111));
-//    GB_StorageHelper.storeLogRecord(logRecord);
-//    Serial.print(F("SERIAL HELPER> Write ")); 
-//    Serial.println(i); 
-//  }
-//
-//  for (word i=0; i< GB_StorageHelper.getLogRecordsCount(); i++){
-//    LogRecord logRecord;
-//    GB_StorageHelper.getLogRecordByIndex(i, logRecord);
-//    Serial.print(i); 
-//    Serial.print(" - ");     
-//    Serial.print(StringUtils::timeToString(logRecord.timeStamp)); 
-//    Serial.print(" - "); 
-//    Serial.println(logRecord.data); 
-//  }
-//
-//  while(true) delay(5000);
-//  return;
-
-
   // Now we can use logger
   if (itWasRestart){
     GB_Logger.logEvent(EVENT_RESTART);
@@ -212,8 +176,12 @@ void setup() {
     GB_Logger.logEvent(EVENT_FIRST_START_UP);
   }
 
+  GB_Controller.checkFreeMemory();
+
   // Log current temeperature
   GB_Thermometer.getTemperature(); // forceLog?
+
+  GB_Controller.checkFreeMemory();
 
   // Init/Restore growbox state
   if (isDayInGrowbox()){
@@ -222,6 +190,8 @@ void setup() {
   else {
     switchToNightMode();
   }
+
+  GB_Controller.checkFreeMemory();
 
   // Create main life circle timer
   Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
@@ -235,16 +205,17 @@ void setup() {
   Alarm.alarmRepeat(UP_HOUR, 00, 00, switchToDayMode);      // repeat once every day
   Alarm.alarmRepeat(DOWN_HOUR, 00, 00, switchToNightMode);  // repeat once every day
 
+  GB_Controller.checkFreeMemory();
+
   if(g_useSerialMonitor){ 
-    if (controllerFreeMemoryBeforeBoot != freeMemory()){
-      printFreeMemory();
-    }
     Serial.println(F("Growbox successfully started"));
   }
 
   if (RAK410_XBeeWifi.isPresent()){ 
     RAK410_XBeeWifi.updateWiFiStatus(); // start Web server
   }
+  
+  GB_Controller.checkFreeMemory();
 
 }
 
@@ -271,8 +242,6 @@ void serialEvent1(){
 /////////////////////////////////////////////////////////////////////
 
 void updateGrowboxState() {
-
-  GB_Controller.checkFreeMemory();
 
   float temperature = GB_Thermometer.getTemperature();
 

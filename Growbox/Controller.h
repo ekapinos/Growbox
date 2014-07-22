@@ -4,9 +4,11 @@
 #include "Global.h"
 
 class ControllerClass{
-
+  
+  int freeMemoryLastCheck;
   
 public:
+  ControllerClass();
 
   void rebootController();
 
