@@ -23,10 +23,19 @@ boolean isLoggerEnabled :
     2;      
 boolean isWifiStationMode :
 // false - Access point, true - Station mode
-    3;          
+    3;    
   } 
-  boolPreferencies;                 //  1 
-  byte reserved[145];               //  <----reserved
+  boolPreferencies;                 // 1
+  
+  word turnToDayModeAt;             // 2
+  word turnToNightModeAt;           // 2
+  byte normalTemperatueDayMin;      // 1
+  byte normalTemperatueDayMax;      // 1
+  byte normalTemperatueNightMin;    // 1
+  byte normalTemperatueNightMax;    // 1
+  byte criticalTemperatue;          // 1
+
+  byte reserved[136];               //  <----reserved
   char wifiSSID[WIFI_SSID_LENGTH];  // 32  
   char wifiPass[WIFI_PASS_LENGTH];  // 64
   word last_magic;                  //  2  

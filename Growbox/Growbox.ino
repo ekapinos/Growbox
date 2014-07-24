@@ -26,7 +26,7 @@
 //                              STATUS                             //
 /////////////////////////////////////////////////////////////////////
 
-boolean isDayInGrowbox(){
+boolean isDayInGrowbox(const byte upHour, const byte upMinute, const byte downHour, const byte downMinute){
   if(timeStatus() == timeNeedsSync){
     GB_Logger.logError(ERROR_TIMER_NEEDS_SYNC);
   } 
@@ -34,16 +34,18 @@ boolean isDayInGrowbox(){
     GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
   }
 
-  int currentHour = hour();
+  word upTime = upHour * 60 + upMinute;
+  word downTime = downHour * 60 + downMinute;
+  word currentTime = hour() * 60 + minute();
 
   boolean isDayInGrowbox = false;
-  if (UP_HOUR < DOWN_HOUR){
-    if (UP_HOUR < currentHour && currentHour < DOWN_HOUR ){
+  if (upTime < downTime){
+    if (upTime < currentTime && currentTime < downTime ){
       isDayInGrowbox = true;
     }
   } 
-  else { // UP_HOUR > DOWN_HOUR
-    if (UP_HOUR < currentHour || currentHour < DOWN_HOUR ){
+  else { // upTime > downTime
+    if (upTime < currentTime || currentTime < downTime ){
       isDayInGrowbox = true;
     }
   } 
@@ -79,7 +81,7 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT); // brease
   pinMode(BREEZE_PIN, OUTPUT);  // brease
   pinMode(ERROR_PIN, OUTPUT);
-  
+
   // Hardware buttons
   pinMode(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN, INPUT_PULLUP);
   pinMode(HARDWARE_BUTTON_RESET_FIRMWARE_PIN, INPUT_PULLUP);
@@ -157,8 +159,6 @@ void setup() {
   if(g_useSerialMonitor){ 
     printStatusOnBoot(F("storage"));
   }
-  
-  //GB_StorageHelper.resetFirmware();
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean itWasRestart = GB_StorageHelper.init();
@@ -175,18 +175,9 @@ void setup() {
 
   GB_Controller.checkFreeMemory();
 
+  updateGrowboxState();
   // Log current temeperature
-  GB_Thermometer.getTemperature(); // forceLog?
-
-  GB_Controller.checkFreeMemory();
-
-  // Init/Restore growbox state
-  if (isDayInGrowbox()){
-    switchToDayMode();
-  } 
-  else {
-    switchToNightMode();
-  }
+  //GB_Thermometer.getTemperature(); // forceLog?
 
   GB_Controller.checkFreeMemory();
 
@@ -198,9 +189,10 @@ void setup() {
 
   Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);  // repeat every N seconds
 
+  // TODO update if configuration changed
   // Create suolemental rare switching
-  Alarm.alarmRepeat(UP_HOUR, 00, 00, switchToDayMode);      // repeat once every day
-  Alarm.alarmRepeat(DOWN_HOUR, 00, 00, switchToNightMode);  // repeat once every day
+  //Alarm.alarmRepeat(upHour, upMinute, 00, switchToDayMode);      // repeat once every day
+  //Alarm.alarmRepeat(downHour, downMinute, 00, switchToNightMode);  // repeat once every day
 
   GB_Controller.checkFreeMemory();
 
@@ -211,7 +203,7 @@ void setup() {
   if (RAK410_XBeeWifi.isPresent()){ 
     RAK410_XBeeWifi.updateWiFiStatus(); // start Web server
   }
-  
+
   GB_Controller.checkFreeMemory();
 
 }
@@ -229,8 +221,13 @@ void serialEvent1(){
     // We will not handle external events during startup
     return;
   }
-
-  GB_WebServer.handleSerialEvent();
+  //  String input;
+  //  Serial_readString(input); // at first we should read, after manipulate  
+  //  Serial.println(input);
+  boolean forceUpdate = GB_WebServer.handleSerialEvent();
+  if (forceUpdate){
+    updateGrowboxState();
+  }
 }
 
 
@@ -240,9 +237,29 @@ void serialEvent1(){
 
 void updateGrowboxState() {
 
+  byte upHour, upMinute, downHour, downMinute;
+  GB_StorageHelper.getTurnToDayAndNightTime(upHour, upMinute, downHour, downMinute);
+
+  // Init/Restore growbox state
+  if (isDayInGrowbox(upHour, upMinute, downHour, downMinute)){
+    if (g_isDayInGrowbox != true){
+      g_isDayInGrowbox = true;
+      GB_Logger.logEvent(EVENT_MODE_DAY);
+    }
+  } 
+  else {
+    if (g_isDayInGrowbox != false){
+      g_isDayInGrowbox = false;
+      GB_Logger.logEvent(EVENT_MODE_NIGHT);
+    }
+  }
+
+  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
+  GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
+
   float temperature = GB_Thermometer.getTemperature();
 
-  if (temperature >= TEMPERATURE_CRITICAL){
+  if (temperature >= criticalTemperatue){
     turnOffLight();
     turnOnFan(FAN_SPEED_MAX);
     GB_Logger.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
@@ -250,11 +267,11 @@ void updateGrowboxState() {
   else if (g_isDayInGrowbox) {
     // Day mode
     turnOnLight();
-    if (temperature < (TEMPERATURE_DAY - TEMPERATURE_DELTA)) {
+    if (temperature < normalTemperatueDayMin) {
       // Too cold, no heater
       turnOnFan(FAN_SPEED_MIN); // no wind, no grow
     } 
-    else if (temperature > (TEMPERATURE_DAY + TEMPERATURE_DELTA)){
+    else if (temperature > normalTemperatueDayMax){
       // Too hot
       turnOnFan(FAN_SPEED_MAX);    
     } 
@@ -266,15 +283,11 @@ void updateGrowboxState() {
   else { 
     // Night mode
     turnOffLight(); 
-    if (temperature < (TEMPERATURE_NIGHT - TEMPERATURE_DELTA)) {
+    if (temperature < normalTemperatueNightMin) {
       // Too cold, Nothig to do, no heater
       turnOffFan(); 
     } 
-    else if (temperature > (TEMPERATURE_NIGHT + 2*TEMPERATURE_DELTA)){
-      // Too hot
-      turnOnFan(FAN_SPEED_MAX);    
-    } 
-    else if (temperature > (TEMPERATURE_NIGHT + TEMPERATURE_DELTA)){
+    else if (temperature > normalTemperatueNightMax){
       // Too hot
       turnOnFan(FAN_SPEED_MIN);    
     } 
@@ -283,26 +296,6 @@ void updateGrowboxState() {
       turnOffFan(); 
     }
   }
-}
-
-void switchToDayMode(){
-  if (g_isDayInGrowbox == true){
-    return;
-  }
-  g_isDayInGrowbox = true;
-  GB_Logger.logEvent(EVENT_MODE_DAY);
-
-  updateGrowboxState();
-}
-
-void switchToNightMode(){
-  if (g_isDayInGrowbox == false){
-    return;
-  }
-  g_isDayInGrowbox = false;
-  GB_Logger.logEvent(EVENT_MODE_NIGHT);
-
-  updateGrowboxState();
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -369,11 +362,5 @@ void turnOffFan(){
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
   GB_Logger.logEvent(EVENT_FAN_OFF);
 }
-
-
-
-
-
-
 
 

@@ -21,6 +21,17 @@ public:
   time_t getFirstStartupTimeStamp();
   time_t getLastStartupTimeStamp();
 
+  void getTurnToDayAndNightTime(byte& upHour, byte& upMinute, byte& downHour, byte& downMinute);
+  void setTurnToDayModeTime(const byte upHour, const byte upMinute);
+  void setTurnToNightModeTime(const byte downHour, const byte downMinute);
+  
+  void getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatue);
+  void setNormalTemperatueDayMin(const byte normalTemperatueDayMin);
+  void setNormalTemperatueDayMax(const byte normalTemperatueDayMax);
+  void setNormalTemperatueNightMin(const byte normalTemperatueNightMin);
+  void setNormalTemperatueNightMax(const byte normalTemperatueNightMax);
+  void setCriticalTemperatue(const byte criticalTemperatue);
+
   /////////////////////////////////////////////////////////////////////
   //                            LOG RECORDS                          //
   /////////////////////////////////////////////////////////////////////
@@ -51,7 +62,7 @@ public:
   boolean isWifiStationMode();
   String getWifiSSID();
   String getWifiPass();
-  
+
   void setWifiStationMode(boolean);
   void setWifiSSID(String);
   void setWifiPass(String);
@@ -68,6 +79,9 @@ private :
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
+
+
+
 
 
 

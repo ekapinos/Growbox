@@ -11,7 +11,7 @@
 //                           HTTP PROTOCOL                         //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::handleSerialEvent(){
+boolean WebServerClass::handleSerialEvent(){
 
   String url, getParams, postParams; 
 
@@ -19,12 +19,12 @@ void WebServerClass::handleSerialEvent(){
   RAK410_XBeeWifiClass::RequestType commandType = RAK410_XBeeWifi.handleSerialEvent(c_wifiPortDescriptor, url, getParams, postParams);
 
   c_isWifiResponseError = false;
+  c_isWifiForceUpdateGrowboxState = false;
 
   switch(commandType){
     case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
     if (StringUtils::flashStringEquals(url, FS(S_url_root)) || 
-      //StringUtils::flashStringEquals(url, FS(S_url_pins)) || 
-    StringUtils::flashStringEquals(url, FS(S_url_log)) ||
+      StringUtils::flashStringEquals(url, FS(S_url_log)) ||
       StringUtils::flashStringEquals(url,FS(S_url_configuration)) ||
       StringUtils::flashStringEquals(url, FS(S_url_storage))){
 
@@ -50,7 +50,7 @@ void WebServerClass::handleSerialEvent(){
       showWebMessage(F("Error occurred during sending responce"));
     }
   }
-
+  return c_isWifiForceUpdateGrowboxState;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -425,23 +425,33 @@ void WebServerClass::sendStatusPage(){
   }
   sendRawData(F("</dd>"));
 
+  byte upHour, upMinute, downHour, downMinute;
+  GB_StorageHelper.getTurnToDayAndNightTime(upHour, upMinute, downHour, downMinute);
 
   sendRawData(F("<dt>Configuration</dt>"));  
   sendRawData(F("<dd>Turn to Day mode at: ")); 
-  sendRawData(UP_HOUR); 
-  sendRawData(F(":00</dd><dd>Turn to Night mode at: "));
-  sendRawData(DOWN_HOUR);
-  sendRawData(F(":00</dd>"));
+  sendRawData(StringUtils::getFixedDigitsString(upHour, 2));
+  sendRawData(':'); 
+  sendRawData(StringUtils::getFixedDigitsString(upMinute, 2));
+  sendRawData(F("</dd><dd>Turn to Night mode at: "));
+  sendRawData(StringUtils::getFixedDigitsString(downHour, 2));
+  sendRawData(':'); 
+  sendRawData(StringUtils::getFixedDigitsString(downMinute, 2));
+  sendRawData(F("</dd>"));
+
+  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
+  GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
+
   sendRawData(F("<dd>Day temperature: "));
-  sendRawData(TEMPERATURE_DAY);
-  sendRawData(FS(S_PlusMinus));
-  sendRawData(TEMPERATURE_DELTA);
-  sendRawData(F("</dd><dd>Night temperature: "));
-  sendRawData(TEMPERATURE_NIGHT);
-  sendRawData(FS(S_PlusMinus));
-  sendRawData(2*TEMPERATURE_DELTA);
-  sendRawData(F("</dd><dd>Critical temperature: "));
-  sendRawData(TEMPERATURE_CRITICAL);
+  sendRawData(normalTemperatueDayMin);
+  sendRawData(F(".."));
+  sendRawData(normalTemperatueDayMax);
+  sendRawData(F(" C</dd><dd>Night temperature: "));
+  sendRawData(normalTemperatueNightMin);
+  sendRawData(F(".."));
+  sendRawData(normalTemperatueNightMax);
+  sendRawData(F(" C</dd><dd>Critical temperature: "));
+  sendRawData(criticalTemperatue);
   sendRawData(F("</dd>"));
 
   sendRawData(F("<dt>Other</dt>"));
@@ -529,7 +539,7 @@ void WebServerClass::sendLogPage(const String& getParams){
   sendRawData(F("<input type='submit' value='Show'/>"));
   sendRawData(F("</form>"));
   // out of form
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F(""), F("All types"), printEvents && printErrors && printTemperature);
+  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("all"), F("All records"), printEvents && printErrors && printTemperature);
   sendAppendOptionToSelectDynamic(F("typeCombobox"), F("events"), F("Events only"), printEvents && !printErrors && !printTemperature);
   sendAppendOptionToSelectDynamic(F("typeCombobox"), F("errors"), F("Errors only"), !printEvents && printErrors && !printTemperature);
   sendAppendOptionToSelectDynamic(F("typeCombobox"), F("temperature"), F("Temperature only"), !printEvents && !printErrors && printTemperature);
@@ -617,7 +627,66 @@ void WebServerClass::sendLogPage(const String& getParams){
 
 void WebServerClass::sendConfigurationPage(const String& getParams){
 
-  sendRawData(F("<fieldset><legend>Growing</legend>"));
+  byte upHour, upMinute, downHour, downMinute;
+  GB_StorageHelper.getTurnToDayAndNightTime(upHour, upMinute, downHour, downMinute);
+
+  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
+  GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
+
+
+  sendRawData(F("<fieldset><legend>Scheduler</legend>"));
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post'>"));
+  sendRawData(F("<table>"));
+  sendRawData(F("<tr><td>Turn to Day mode at</td>"));
+  sendRawData(F("<td><input name='turnToDayModeAt' type='time' step='60' value='"));
+  sendRawData(StringUtils::getFixedDigitsString(upHour,2));
+  sendRawData(':');
+  sendRawData(StringUtils::getFixedDigitsString(upMinute,2));
+  sendRawData(F("'/></td></tr>"));
+  sendRawData(F("<tr><td>Turn to Night mode at</td>"));
+  sendRawData(F("<td><input name='turnToNightModeAt' type='time' step='60' value='"));
+  sendRawData(StringUtils::getFixedDigitsString(downHour,2));
+  sendRawData(':');
+  sendRawData(StringUtils::getFixedDigitsString(downMinute,2));
+  sendRawData(F("'/></td></tr>"));
+  sendRawData(F("</table>"));
+  sendRawData(F("<input type='submit' value='Save'>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("<br/>"));
+
+  sendRawData(F("<fieldset><legend>Temperature</legend>"));
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post'>"));
+  sendRawData(F("<table>"));
+  sendRawData(F("<tr><td>Normal Day temperature</td>"));
+  sendRawData(F("<td><input name='normalTemperatueDayMin' type='number' min='1' max='50' value='"));
+  sendRawData(normalTemperatueDayMin);
+  sendRawData(F("'/> .. "));
+  sendRawData(F("<input name='normalTemperatueDayMax' type='number' min='1' max='50' value='"));
+  sendRawData(normalTemperatueDayMax);
+  sendRawData(F("'/> C</td></tr>"));
+  sendRawData(F("<tr><td>Normal Night temperature</td>"));
+  sendRawData(F("<td><input name='normalTemperatueNightMin' type='number' min='1' max='50' value='"));
+  sendRawData(normalTemperatueNightMin);
+  sendRawData(F("'/> .. "));
+  sendRawData(F("<input name='normalTemperatueNightMax' type='number' min='1' max='50' value='"));
+  sendRawData(normalTemperatueNightMax);
+  sendRawData(F("'/> C</td></tr>"));
+  sendRawData(F("<tr><td>Critical temperature</td>"));
+  sendRawData(F("<td><input name='criticalTemperatue' type='number' min='1' max='50' value='"));
+  sendRawData(criticalTemperatue);
+  sendRawData(F("'/> C</td></tr>"));
+  sendRawData(F("</table>"));
+  sendRawData(F("<input type='submit' value='Save'>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("<br/>"));
+
+  sendRawData(F("<fieldset><legend>Logger</legend>"));
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
   sendRawData(F("' method='post'>"));
@@ -656,7 +725,7 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<fieldset><legend>Other</legend>"));  
   sendRawData(F("<a href='"));
   sendRawData(FS(S_url_storage));
-  sendRawData(F("'>View EEPROM dumps</a><br/><br/>")); 
+  sendRawData(F("'>View EEPROM dump</a><br/><br/>")); 
   sendRawData(F("<table style='vertical-align:top; border-spacing:0px;'><tr><td>"));
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_root));
@@ -752,7 +821,7 @@ void WebServerClass::sendStorageDumpPage(const String& getParams){
     sendRawData(F("</th>"));
   }
   sendRawData(F("</tr>"));
-  
+
   word realRangeStart = ((word)(rangeStart)<<8);
   word realRangeEnd   = ((word)(rangeEnd)<<8) + 0xFF;
   byte value; 
@@ -832,14 +901,8 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
     GB_StorageHelper.setWifiPass(value);
 
   } 
-  else if (StringUtils::flashStringEquals(name, F("rebootController"))){
-    GB_Controller.rebootController();
-
-  } 
   else if (StringUtils::flashStringEquals(name, F("resetStoredLog"))){
     GB_StorageHelper.resetStoredLog();
-    GB_Controller.rebootController();
-
   } 
   else if (StringUtils::flashStringEquals(name, F("isStoreLogRecordsEnabled"))){
     if (value.length() != 1){
@@ -847,9 +910,74 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
     }
     GB_StorageHelper.setStoreLogRecordsEnabled(value[0]=='1'); 
   }
+  else if (StringUtils::flashStringEquals(name, F("rebootController"))){
+    GB_Controller.rebootController();
+  } 
   else if (StringUtils::flashStringEquals(name, F("resetFirmware"))){
     GB_StorageHelper.resetFirmware(); 
+    GB_Controller.rebootController();
   }
+
+  else if (StringUtils::flashStringEquals(name, F("turnToDayModeAt"))){
+    if (value.length() == 5){
+      if (value[2]==':'){
+        byte upHour   = (value[0]-'0') * 10 + (value[1]-'0');
+        byte upMinute = (value[3]-'0') * 10 + (value[4]-'0');
+        GB_StorageHelper.setTurnToDayModeTime(upHour, upMinute);
+        c_isWifiForceUpdateGrowboxState = true;
+      }
+    }
+  } 
+  else if (StringUtils::flashStringEquals(name, F("turnToNightModeAt"))){
+    if (value.length() == 5){
+      if (value[2]==':'){
+        byte downHour   = (value[0]-'0') * 10 + (value[1]-'0');
+        byte downMinute = (value[3]-'0') * 10 + (value[4]-'0');
+        GB_StorageHelper.setTurnToNightModeTime(downHour, downMinute);
+        c_isWifiForceUpdateGrowboxState = true;
+      }
+    }
+  } 
+  else if (StringUtils::flashStringEquals(name, F("normalTemperatueDayMin"))){
+    byte temp = value.toInt();
+    if (temp == 0){
+      return false;
+    }
+    GB_StorageHelper.setNormalTemperatueDayMin(temp);
+    c_isWifiForceUpdateGrowboxState = true;
+  }   
+  else if (StringUtils::flashStringEquals(name, F("normalTemperatueDayMax"))){
+    byte temp = value.toInt();
+    if (temp == 0){
+      return false;
+    }
+    GB_StorageHelper.setNormalTemperatueDayMax(temp);
+    c_isWifiForceUpdateGrowboxState = true;
+  } 
+  else if (StringUtils::flashStringEquals(name, F("normalTemperatueNightMin"))){
+    byte temp = value.toInt();
+    if (temp == 0){
+      return false;
+    }
+    GB_StorageHelper.setNormalTemperatueNightMin(temp);
+    c_isWifiForceUpdateGrowboxState = true;
+  } 
+  else if (StringUtils::flashStringEquals(name, F("normalTemperatueNightMax"))){
+    byte temp = value.toInt();
+    if (temp == 0){
+      return false;
+    }
+    GB_StorageHelper.setNormalTemperatueNightMax(temp);
+    c_isWifiForceUpdateGrowboxState = true;
+  } 
+  else if (StringUtils::flashStringEquals(name, F("criticalTemperatue"))){
+    byte temp = value.toInt();
+    if (temp == 0){
+      return false;
+    }
+    GB_StorageHelper.setCriticalTemperatue(temp);
+    c_isWifiForceUpdateGrowboxState = true;
+  } 
   else {
     return false;
   }
@@ -858,6 +986,9 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
 }
 
 WebServerClass GB_WebServer;
+
+
+
 
 
 

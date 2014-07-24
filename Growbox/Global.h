@@ -26,20 +26,6 @@ const byte BREEZE_PIN = LED_BUILTIN; //13
 const byte HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN = 53; // pullup used, 0 - enabled, 1 - disabled
 const byte HARDWARE_BUTTON_RESET_FIRMWARE_PIN = 52;     // pullup used, 0 - enabled, 1 - disabled (works when Serial Monitor enabled)
 
-
-/////////////////////////////////////////////////////////////////////
-//                     SOFTWARE CONFIGURATION                      //
-/////////////////////////////////////////////////////////////////////
-
-// Light scheduler
-const byte UP_HOUR = 1;
-const byte DOWN_HOUR = 9;  // 16/8
-
-const float TEMPERATURE_DAY = 26.0;  //23-25, someone 27 
-const float TEMPERATURE_NIGHT = 22.0;  // 18-22, someone 22
-const float TEMPERATURE_CRITICAL = 35.0; // 35 max, 40 die
-const float TEMPERATURE_DELTA = 3.0;   // +/-(3-4) Ok
-
 /////////////////////////////////////////////////////////////////////
 //                          PIN CONSTANTCS                         //
 /////////////////////////////////////////////////////////////////////

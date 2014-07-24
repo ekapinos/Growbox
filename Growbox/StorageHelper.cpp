@@ -33,6 +33,17 @@ boolean StorageHelperClass::init(){
     bootRecord.boolPreferencies.isLoggerEnabled = true;
 
     bootRecord.boolPreferencies.isWifiStationMode = false; // AP by default
+
+
+    bootRecord.turnToDayModeAt = 9*60;
+    bootRecord.turnToNightModeAt = 21*60;
+    bootRecord.normalTemperatueDayMin = 22;
+    bootRecord.normalTemperatueDayMax = 26;
+    bootRecord.normalTemperatueNightMin = 17;
+    bootRecord.normalTemperatueNightMax = 21;
+    bootRecord.criticalTemperatue = 35;
+
+
     StringUtils::flashStringLoad(bootRecord.wifiSSID, WIFI_SSID_LENGTH, FS(S_WIFI_DEFAULT_SSID));
     StringUtils::flashStringLoad(bootRecord.wifiPass, WIFI_PASS_LENGTH, FS(S_WIFI_DEFAULT_PASS)); 
 
@@ -58,6 +69,46 @@ time_t StorageHelperClass::getFirstStartupTimeStamp(){
 time_t StorageHelperClass::getLastStartupTimeStamp(){
   return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp));
 }
+
+void StorageHelperClass::getTurnToDayAndNightTime(byte& upHour, byte& upMinute, byte& downHour, byte& downMinute){
+  word turnToDayModeAt   = EEPROM.readBlock<word>(OFFSETOF(BootRecord, turnToDayModeAt));
+  word turnToNightModeAt = EEPROM.readBlock<word>(OFFSETOF(BootRecord, turnToNightModeAt));
+  upHour     = (turnToDayModeAt / 60);
+  upMinute   = (turnToDayModeAt % 60);
+  downHour   = (turnToNightModeAt / 60);
+  downMinute = (turnToNightModeAt % 60);
+}
+void StorageHelperClass::setTurnToDayModeTime(const byte upHour, const byte upMinute){
+  EEPROM.writeBlock<word>(OFFSETOF(BootRecord, turnToDayModeAt), upHour*60+upMinute);
+}
+void StorageHelperClass::setTurnToNightModeTime(const byte downHour, const byte downMinute){
+  EEPROM.writeBlock<word>(OFFSETOF(BootRecord, turnToNightModeAt), downHour*60+downMinute);
+}
+
+void StorageHelperClass::getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatue){
+  normalTemperatueDayMin   = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueDayMin));
+  normalTemperatueDayMax   = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueDayMax));
+  normalTemperatueNightMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMin));
+  normalTemperatueNightMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMax));
+  criticalTemperatue       = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, criticalTemperatue));
+}
+
+void StorageHelperClass::setNormalTemperatueDayMin(const byte normalTemperatueDayMin){
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatueDayMin), normalTemperatueDayMin);
+}
+void StorageHelperClass::setNormalTemperatueDayMax(const byte normalTemperatueDayMax){
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatueDayMax), normalTemperatueDayMax);
+}
+void StorageHelperClass::setNormalTemperatueNightMin(const byte normalTemperatueNightMin){
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMin), normalTemperatueNightMin);
+}
+void StorageHelperClass::setNormalTemperatueNightMax(const byte normalTemperatueNightMax){
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMax), normalTemperatueNightMax);
+}
+void StorageHelperClass::setCriticalTemperatue(const byte criticalTemperatue){
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, criticalTemperatue), criticalTemperatue);
+}
+
 
 /////////////////////////////////////////////////////////////////////
 //                            LOG RECORDS                          //
@@ -233,6 +284,9 @@ void StorageHelperClass::setBoolPreferencies(BootRecord::BoolPreferencies boolPr
 }
 
 StorageHelperClass GB_StorageHelper;
+
+
+
 
 
 

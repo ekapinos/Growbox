@@ -32,10 +32,10 @@ private:
 
   byte c_wifiPortDescriptor;
   byte c_isWifiResponseError;
-
+  byte c_isWifiForceUpdateGrowboxState;
 public:  
 
-  void handleSerialEvent();
+  boolean handleSerialEvent();
 
 private:
 
