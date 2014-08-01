@@ -34,7 +34,6 @@ boolean StorageHelperClass::init(){
 
     bootRecord.boolPreferencies.isWifiStationMode = false; // AP by default
 
-
     bootRecord.turnToDayModeAt = 9*60;
     bootRecord.turnToNightModeAt = 21*60;
     bootRecord.normalTemperatueDayMin = 22;
@@ -43,6 +42,28 @@ boolean StorageHelperClass::init(){
     bootRecord.normalTemperatueNightMax = 21;
     bootRecord.criticalTemperatue = 35;
 
+
+    bootRecord.wateringSystemCount = 1;
+    for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
+      
+      BootRecord::WateringSystemPreferencies wsp = bootRecord.wateringSystemPreferencies[i];
+      
+      wsp.boolPreferencies.isSensorConnected = true;
+      wsp.boolPreferencies.isWaterPumpConnected = true;
+      
+      wsp.notConnectedValue = GB_Watering.analogToByte(1010);
+      wsp.veryDryValue      = GB_Watering.analogToByte(900);
+      wsp.dryValue          = GB_Watering.analogToByte(800);
+      wsp.normalValue       = GB_Watering.analogToByte(600);
+      wsp.wetValue          = GB_Watering.analogToByte(500);
+      wsp.veryWetValue      = GB_Watering.analogToByte(400);
+      wsp.shortCircitValue  = GB_Watering.analogToByte(200);
+      
+      wsp.dryWateringDuration = 30;     // 30 sec
+      wsp.veryDryWateringDuration = 60; // 60 sec
+      
+      wsp.wateringIfNoSensorAt = 9*60;  // 9 AM   
+    }
 
     StringUtils::flashStringLoad(bootRecord.wifiSSID, WIFI_SSID_LENGTH, FS(S_WIFI_DEFAULT_SSID));
     StringUtils::flashStringLoad(bootRecord.wifiPass, WIFI_PASS_LENGTH, FS(S_WIFI_DEFAULT_PASS)); 

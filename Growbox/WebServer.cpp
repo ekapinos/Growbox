@@ -25,6 +25,7 @@ boolean WebServerClass::handleSerialEvent(){
     case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
     if (StringUtils::flashStringEquals(url, FS(S_url_root)) || 
       StringUtils::flashStringEquals(url, FS(S_url_log)) ||
+      StringUtils::flashStringEquals(url, FS(S_url_watering)) ||
       StringUtils::flashStringEquals(url,FS(S_url_configuration)) ||
       StringUtils::flashStringEquals(url, FS(S_url_storage))){
 
@@ -275,7 +276,7 @@ void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* 
 void WebServerClass::sendHttpPageBody(const String& url, const String& getParams){
 
   boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
-  //  boolean isPinsPage    = StringUtils::flashStringEquals(url, FS(S_url_pins));
+  boolean isWatering    = StringUtils::flashStringEquals(url, FS(S_url_watering));
   boolean isLogPage     = StringUtils::flashStringEquals(url, FS(S_url_log));
   boolean isConfPage    = StringUtils::flashStringEquals(url, FS(S_url_configuration));
   boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
@@ -297,19 +298,18 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   sendRawData(F("<h1>Growbox</h1>"));   
   sendRawData(F("<form>"));   // HTML Validator warning
   sendTagButton(FS(S_url_root), F("Status"), isRootPage);
-  //sendTagButton(FS(S_url_pins), F("Pins status"), isPinsPage);  
+  sendTagButton(FS(S_url_watering), F("Watering"), isWatering);  
   sendTagButton(FS(S_url_log), F("Daily log"), isLogPage);
   sendTagButton(FS(S_url_configuration), F("Configuration"), isConfPage || isStoragePage);
-  //sendTagButton(FS(S_url_storage), F("Storage dump"), isStoragePage);
   sendRawData(F("</form>")); 
   sendRawData(F("<hr/>"));
 
   if (isRootPage){
     sendStatusPage();
   } 
-  //  if (isPinsPage){
-  //    sendPinsStatus();
-  //  } 
+  if (isWatering){
+    sendWateringPage();
+  } 
   else if (isLogPage){
     sendLogPage(getParams);
   }
@@ -602,6 +602,10 @@ void WebServerClass::sendLogPage(const String& getParams){
     sendRawData(F("<tr"));
     if (isError){
       sendRawData(F(" class='red'"));
+
+    } 
+    else if (logRecord.data == EVENT_FIRST_START_UP.index || logRecord.data == EVENT_RESTART.index){ // TODO create check method in Logger.h  
+      sendRawData(F(" style='font-weight:bold;'"));
     }
     sendRawData(F("><td>"));
     sendRawData(index+1);
@@ -622,6 +626,13 @@ void WebServerClass::sendLogPage(const String& getParams){
 }
 
 /////////////////////////////////////////////////////////////////////
+//                         WATERING PAGE                           //
+/////////////////////////////////////////////////////////////////////
+
+void WebServerClass::sendWateringPage(){
+}
+
+/////////////////////////////////////////////////////////////////////
 //                      CONFIGURATION PAGE                         //
 /////////////////////////////////////////////////////////////////////
 
@@ -637,16 +648,16 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<fieldset><legend>Scheduler</legend>"));
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post'>"));
+  sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value { alert(\"Turn times should be different\"); return false;}'>"));
   sendRawData(F("<table>"));
   sendRawData(F("<tr><td>Turn to Day mode at</td>"));
-  sendRawData(F("<td><input name='turnToDayModeAt' type='time' step='60' value='"));
+  sendRawData(F("<td><input id='turnToDayModeAt' name='turnToDayModeAt' type='time' step='60' value='"));
   sendRawData(StringUtils::getFixedDigitsString(upHour,2));
   sendRawData(':');
   sendRawData(StringUtils::getFixedDigitsString(upMinute,2));
   sendRawData(F("'/></td></tr>"));
   sendRawData(F("<tr><td>Turn to Night mode at</td>"));
-  sendRawData(F("<td><input name='turnToNightModeAt' type='time' step='60' value='"));
+  sendRawData(F("<td><input id='turnToNightModeAt' name='turnToNightModeAt' type='time' step='60' value='"));
   sendRawData(StringUtils::getFixedDigitsString(downHour,2));
   sendRawData(':');
   sendRawData(StringUtils::getFixedDigitsString(downMinute,2));
@@ -660,24 +671,25 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<fieldset><legend>Temperature</legend>"));
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post'>"));
+  sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"normalTemperatueDayMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
+  sendRawData(F("|| document.getElementById(\"normalTemperatueNightMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
   sendRawData(F("<table>"));
   sendRawData(F("<tr><td>Normal Day temperature</td>"));
-  sendRawData(F("<td><input name='normalTemperatueDayMin' type='number' min='1' max='50' value='"));
+  sendRawData(F("<td><input id='normalTemperatueDayMin' name='normalTemperatueDayMin' type='number' min='1' max='50' value='"));
   sendRawData(normalTemperatueDayMin);
   sendRawData(F("'/> .. "));
-  sendRawData(F("<input name='normalTemperatueDayMax' type='number' min='1' max='50' value='"));
+  sendRawData(F("<input id='normalTemperatueDayMax' name='normalTemperatueDayMax' type='number' min='1' max='50' value='"));
   sendRawData(normalTemperatueDayMax);
   sendRawData(F("'/> C</td></tr>"));
   sendRawData(F("<tr><td>Normal Night temperature</td>"));
-  sendRawData(F("<td><input name='normalTemperatueNightMin' type='number' min='1' max='50' value='"));
+  sendRawData(F("<td><input id='normalTemperatueNightMin' name='normalTemperatueNightMin' type='number' min='1' max='50' value='"));
   sendRawData(normalTemperatueNightMin);
   sendRawData(F("'/> .. "));
-  sendRawData(F("<input name='normalTemperatueNightMax' type='number' min='1' max='50' value='"));
+  sendRawData(F("<input id='normalTemperatueNightMax' name='normalTemperatueNightMax' type='number' min='1' max='50' value='"));
   sendRawData(normalTemperatueNightMax);
   sendRawData(F("'/> C</td></tr>"));
   sendRawData(F("<tr><td>Critical temperature</td>"));
-  sendRawData(F("<td><input name='criticalTemperatue' type='number' min='1' max='50' value='"));
+  sendRawData(F("<td><input id='criticalTemperatue' name='criticalTemperatue' type='number' min='1' max='50' value='"));
   sendRawData(criticalTemperatue);
   sendRawData(F("'/> C</td></tr>"));
   sendRawData(F("</table>"));
@@ -711,7 +723,7 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("' maxlength='"));
   sendRawData(WIFI_SSID_LENGTH);
   sendRawData(F("'/></td></tr>"));
-  sendRawData(F("<tr><td><label for='wifiPass'>Password</label></td><td><input type='password' name='wifiPass' required value='"));
+  sendRawData(F("<tr><td><label for='wifiPass'>Password</label></td><td><input type='password' name='wifiPass' value='"));
   sendRawData(GB_StorageHelper.getWifiPass());
   sendRawData(F("' maxlength='"));
   sendRawData(WIFI_PASS_LENGTH);
@@ -986,6 +998,8 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
 }
 
 WebServerClass GB_WebServer;
+
+
 
 
 

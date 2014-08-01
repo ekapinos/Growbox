@@ -16,11 +16,27 @@ const byte FAN_PIN = 3;
 const byte FAN_SPEED_PIN = 4;
 
 // 1-Wire pins
-const byte ONE_WIRE_PIN = 11;
+const byte ONE_WIRE_PIN = 12;
 
 // status pins
-const byte ERROR_PIN = 12;
+const byte ERROR_PIN = 11;
 const byte BREEZE_PIN = LED_BUILTIN; //13
+
+// Watering
+const byte WATERING_SENSOR_ANALOG_PIN = A0;
+const byte WATERING1_SENSOR_ANALOG_PIN = A1;
+const byte WATERING2_SENSOR_ANALOG_PIN = A2;
+const byte WATERING3_SENSOR_ANALOG_PIN = A3;
+
+const byte WATERING_SENSOR_POWER_PIN = 22;
+const byte WATERING1_SENSOR_POWER_PIN = 24;
+const byte WATERING2_SENSOR_POWER_PIN = 26;
+const byte WATERING3_SENSOR_POWER_PIN = 28;
+
+const byte WATERING_PUMP_PIN = 23;
+const byte WATERING1_PUMP_PIN = 25;
+const byte WATERING2_PUMP_PIN = 27;
+const byte WATERING3_PUMP_PIN = 29;
 
 // hardware buttons
 const byte HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN = 53; // pullup used, 0 - enabled, 1 - disabled
@@ -40,6 +56,7 @@ const byte HARDWARE_BUTTON_OFF = HIGH, HARDWARE_BUTTON_ON = LOW;
 const byte FAN_SPEED_MIN = RELAY_OFF;
 const byte FAN_SPEED_MAX = RELAY_ON;
 
+const byte MAX_WATERING_SYSTEMS_COUNT = 4;
 /////////////////////////////////////////////////////////////////////
 //                             DELAY'S                             //
 /////////////////////////////////////////////////////////////////////

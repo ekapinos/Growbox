@@ -26,13 +26,16 @@
 //                              STATUS                             //
 /////////////////////////////////////////////////////////////////////
 
-boolean isDayInGrowbox(const byte upHour, const byte upMinute, const byte downHour, const byte downMinute){
+boolean isDayInGrowbox(){
   if(timeStatus() == timeNeedsSync){
     GB_Logger.logError(ERROR_TIMER_NEEDS_SYNC);
   } 
   else {
     GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
   }
+
+  byte upHour, upMinute, downHour, downMinute;
+  GB_StorageHelper.getTurnToDayAndNightTime(upHour, upMinute, downHour, downMinute);
 
   word upTime = upHour * 60 + upMinute;
   word downTime = downHour * 60 + downMinute;
@@ -86,15 +89,36 @@ void setup() {
   pinMode(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN, INPUT_PULLUP);
   pinMode(HARDWARE_BUTTON_RESET_FIRMWARE_PIN, INPUT_PULLUP);
 
-  // Initialize the reley pins
+  // Watering
+  pinMode(WATERING_SENSOR_ANALOG_PIN, INPUT_PULLUP);
+  pinMode(WATERING1_SENSOR_ANALOG_PIN, INPUT_PULLUP);
+  pinMode(WATERING2_SENSOR_ANALOG_PIN, INPUT_PULLUP);
+  pinMode(WATERING3_SENSOR_ANALOG_PIN, INPUT_PULLUP);
+
+  pinMode(WATERING_SENSOR_POWER_PIN, OUTPUT);
+  pinMode(WATERING1_SENSOR_POWER_PIN, OUTPUT);
+  pinMode(WATERING2_SENSOR_POWER_PIN, OUTPUT);
+  pinMode(WATERING3_SENSOR_POWER_PIN, OUTPUT);
+
+  // Reley pins
   pinMode(LIGHT_PIN, OUTPUT);   
   pinMode(FAN_PIN, OUTPUT);  
   pinMode(FAN_SPEED_PIN, OUTPUT); 
-
+  
+  pinMode(WATERING_PUMP_PIN, OUTPUT);
+  pinMode(WATERING1_PUMP_PIN, OUTPUT);
+  pinMode(WATERING2_PUMP_PIN, OUTPUT);
+  pinMode(WATERING3_PUMP_PIN, OUTPUT);
+  
   // Configure relay
   digitalWrite(LIGHT_PIN, RELAY_OFF);
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
+  
+  digitalWrite(WATERING_PUMP_PIN, RELAY_OFF);
+  digitalWrite(WATERING1_PUMP_PIN, RELAY_OFF);
+  digitalWrite(WATERING2_PUMP_PIN, RELAY_OFF);
+  digitalWrite(WATERING3_PUMP_PIN, RELAY_OFF);
 
   // Configure inputs
   //attachInterrupt(0, interrapton0handler, CHANGE); // PIN 2
@@ -118,9 +142,10 @@ void setup() {
   }
 
   if (BOOT_RECORD_SIZE != sizeof(BootRecord)){
+    Serial.print(F("Expected: "));
     Serial.print(BOOT_RECORD_SIZE);  
-    Serial.print('-'); 
-    Serial.print(sizeof(BootRecord));
+    Serial.print(F("configured: ")); 
+    Serial.println(sizeof(BootRecord));
     stopOnFatalError(F("wrong BootRecord size"));
   }
 
@@ -237,11 +262,8 @@ void serialEvent1(){
 
 void updateGrowboxState() {
 
-  byte upHour, upMinute, downHour, downMinute;
-  GB_StorageHelper.getTurnToDayAndNightTime(upHour, upMinute, downHour, downMinute);
-
   // Init/Restore growbox state
-  if (isDayInGrowbox(upHour, upMinute, downHour, downMinute)){
+  if (isDayInGrowbox()){
     if (g_isDayInGrowbox != true){
       g_isDayInGrowbox = true;
       GB_Logger.logEvent(EVENT_MODE_DAY);

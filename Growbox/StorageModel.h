@@ -34,8 +34,31 @@ boolean isWifiStationMode :
   byte normalTemperatueNightMin;    // 1
   byte normalTemperatueNightMax;    // 1
   byte criticalTemperatue;          // 1
-
-  byte reserved[136];               //  <----reserved
+  
+  byte wateringSystemCount;         // 1  [0..MAX_WATERING_SYSTEMS_COUNT]
+  struct WateringSystemPreferencies {
+    
+    struct WateringSystemBoolPreferencies{
+      boolean isSensorConnected : 1; 
+      boolean isWaterPumpConnected : 2; 
+    } boolPreferencies;     // 1
+    
+    byte notConnectedValue; // 1 (veryDryValue..airValue] (airValue..1023]  (t >> 2) (10 bit to 8)
+    byte veryDryValue;      // 1 (dryValue..veryDryValue]
+    byte dryValue;          // 1 (normalValue..dryValue]
+    byte normalValue;       // 1 (wetValue..normalValue]
+    byte wetValue;          // 1 (veryWetValue..wetValue]
+    byte veryWetValue;      // 1 (shortСircuitValue..veryWetValue]
+    byte shortCircitValue;  // 1 [0..shortСircuitValue]
+    
+    byte dryWateringDuration;     // 1 // seconds
+    byte veryDryWateringDuration; // 1 // seconds
+    
+    word wateringIfNoSensorAt;    // 2 // minutes from midnight, dryWateringDuration used
+    
+  } wateringSystemPreferencies[MAX_WATERING_SYSTEMS_COUNT]; // 12*MAX_WATERING_SYSTEMS_COUNT(4) = 48
+  
+  byte reserved[87];                //  <----reserved
   char wifiSSID[WIFI_SSID_LENGTH];  // 32  
   char wifiPass[WIFI_PASS_LENGTH];  // 64
   word last_magic;                  //  2  

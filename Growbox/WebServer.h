@@ -7,23 +7,10 @@
 //                           HTML CONSTS                           //
 /////////////////////////////////////////////////////////////////////
 
-
-enum HTTP_TAG {
-  HTTP_TAG_OPEN, HTTP_TAG_CLOSED, HTTP_TAG_SINGLE
-};
-
-const char S_hr[] PROGMEM  = "hr";
-const char S_br[] PROGMEM  = "br";
-const char S_table[] PROGMEM  = "table";
-const char S_tr[] PROGMEM  = "tr";
-const char S_td[] PROGMEM  = "td";
-const char S_pre[] PROGMEM  = "pre";
-const char S_html[] PROGMEM  = "html";
-const char S_h1[] PROGMEM  = "h1";
-
 const char S_url_root[] PROGMEM  = "/";
 //const char S_url_pins[] PROGMEM  = "/pins";
 const char S_url_log[] PROGMEM  = "/log";
+const char S_url_watering[] PROGMEM  = "/watering";
 const char S_url_configuration[] PROGMEM  = "/conf";
 const char S_url_storage[] PROGMEM  = "/conf/storage";
 
@@ -77,18 +64,6 @@ private:
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected);
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected);
 
-  template <class T> void sendTag(T tagName, HTTP_TAG type){
-    sendRawData('<');
-    if (type == HTTP_TAG_CLOSED){
-      sendRawData('/');
-    }
-    sendRawData(tagName);
-    if (type == HTTP_TAG_SINGLE){
-      sendRawData('/');
-    }
-    sendRawData('>');
-  }
-
   /////////////////////////////////////////////////////////////////////
   //                        COMMON FOR PAGES                         //
   /////////////////////////////////////////////////////////////////////
@@ -101,6 +76,12 @@ private:
 
   void sendStatusPage();
 
+  /////////////////////////////////////////////////////////////////////
+  //                         WATERING PAGE                           //
+  /////////////////////////////////////////////////////////////////////
+
+  void sendWateringPage();
+  
   /////////////////////////////////////////////////////////////////////
   //                      CONFIGURATION PAGE                         //
   /////////////////////////////////////////////////////////////////////
