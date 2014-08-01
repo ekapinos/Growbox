@@ -4,6 +4,7 @@
 #include "Controller.h"
 #include "StorageHelper.h" 
 #include "Thermometer.h" 
+#include "Watering.h"
 #include "RAK410_XBeeWifi.h" 
 #include "EEPROM_AT24C32.h" 
 
@@ -276,8 +277,8 @@ void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* 
 void WebServerClass::sendHttpPageBody(const String& url, const String& getParams){
 
   boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
-  boolean isWatering    = StringUtils::flashStringEquals(url, FS(S_url_watering));
   boolean isLogPage     = StringUtils::flashStringEquals(url, FS(S_url_log));
+  boolean isWatering    = StringUtils::flashStringEquals(url, FS(S_url_watering));
   boolean isConfPage    = StringUtils::flashStringEquals(url, FS(S_url_configuration));
   boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
 
@@ -298,8 +299,8 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   sendRawData(F("<h1>Growbox</h1>"));   
   sendRawData(F("<form>"));   // HTML Validator warning
   sendTagButton(FS(S_url_root), F("Status"), isRootPage);
-  sendTagButton(FS(S_url_watering), F("Watering"), isWatering);  
   sendTagButton(FS(S_url_log), F("Daily log"), isLogPage);
+  sendTagButton(FS(S_url_watering), F("Watering"), isWatering);  
   sendTagButton(FS(S_url_configuration), F("Configuration"), isConfPage || isStoragePage);
   sendRawData(F("</form>")); 
   sendRawData(F("<hr/>"));
@@ -323,45 +324,6 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   if (c_isWifiResponseError) return;
 
   sendRawData(F("</body></html>"));
-
-  /*   
-   Serial.println(F("Currnet boot record"));
-   Serial.print(F("-Memory : ")); 
-   {// TODO compilator madness
-   BootRecord bootRecord = GB_StorageHelper.getBootRecord();
-   GB_PrintUtils.printRAM(&bootRecord, sizeof(BootRecord));
-   Serial.println();
-   }
-   Serial.print(F("-Storage: ")); 
-   printSendStorage(0, sizeof(BootRecord));
-   
-   break;  
-   
-   case 'm':    
-   switch(secondChar){
-   case '0': 
-   AT24C32_EEPROM.fillStorage(0x00); 
-   break; 
-   case 'a': 
-   AT24C32_EEPROM.fillStorage(0xAA); 
-   break; 
-   case 'f': 
-   AT24C32_EEPROM.fillStorage(0xFF); 
-   break; 
-   case 'i': 
-   AT24C32_EEPROM.fillStorageIncremental(); 
-   break; 
-   }
-   printSendStorage();
-   break; 
-   case 'r':        
-   Serial.println(F("Rebooting..."));
-   GB_Controller::rebootController();
-   break; 
-   default: 
-   GB_Logger.logEvent(EVENT_SERIAL_UNKNOWN_COMMAND);  
-   }
-   */
 
 }
 
@@ -630,6 +592,99 @@ void WebServerClass::sendLogPage(const String& getParams){
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendWateringPage(){
+
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_watering));
+  sendRawData(F("' method='post'>"));
+  sendRawData(F("Watering system count: "));
+  sendRawData(F("<select id='wateringSystemCountCombobox' name='wateringSystemCount'></select>"));
+  sendRawData(F("<input type='submit' value='Save'>"));
+  sendRawData(F("</form>"));
+
+  byte count = GB_StorageHelper.getWateringSystemCount();
+
+  // out of form
+  sendAppendOptionToSelectDynamic(F("wateringSystemCountCombobox"), F("None"), F("None"), count==0);
+  for (byte i = 1; i <= MAX_WATERING_SYSTEMS_COUNT; i++){
+    String intAsStr(i);
+    sendAppendOptionToSelectDynamic(F("wateringSystemCountCombobox"), intAsStr, intAsStr, count==i);
+  } 
+
+  for (byte i = 0; i < count; i++){
+    
+    BootRecord::WateringSystemPreferencies wateringSystemPreferencies = GB_StorageHelper.getWateringSystemPreferenciesById(i);
+    
+    sendRawData(F("<fieldset><legend>Watering system #"));
+    sendRawData(i);
+    sendRawData(F("</legend>"));
+
+    sendRawData(F("<form action='"));
+    sendRawData(FS(S_url_watering));
+    sendRawData(F("' method='post'>"));
+    sendRawData(F("<table>"));
+
+
+
+
+//    struct WateringSystemBoolPreferencies{
+//      boolean isSensorConnected : 1; 
+//      boolean isWaterPumpConnected : 2; 
+//    } boolPreferencies;     // 1
+//    
+//    byte notConnectedValue; // 1 (veryDryValue..airValue] (airValue..1023]  (t >> 2) (10 bit to 8)
+//    byte veryDryValue;      // 1 (dryValue..veryDryValue]
+//    byte dryValue;          // 1 (normalValue..dryValue]
+//    byte normalValue;       // 1 (wetValue..normalValue]
+//    byte wetValue;          // 1 (veryWetValue..wetValue]
+//    byte veryWetValue;      // 1 (shortСircuitValue..veryWetValue]
+//    byte shortCircitValue;  // 1 [0..shortСircuitValue]
+//    
+//    byte dryWateringDuration;     // 1 // seconds
+//    byte veryDryWateringDuration; // 1 // seconds
+//    
+//    word wateringIfNoSensorAt;    // 2 // minutes from midnight, dryWateringDuration used
+
+
+    sendRawData(F("</table>"));
+    sendRawData(F("<input type='submit' value='Save'>"));
+    sendRawData(F("</form>"));
+
+    sendRawData(F("</fieldset>"));
+    sendRawData(F("<br/>"));
+  }
+
+  //  MAX_WATERING_SYSTEMS_COUNT
+  //  
+  //  byte upHour, upMinute, downHour, downMinute;
+  //  GB_StorageHelper.getTurnToDayAndNightTime(upHour, upMinute, downHour, downMinute);
+  //
+  //  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
+  //  GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
+  //
+  //  sendRawData(F("<fieldset><legend>Scheduler</legend>"));
+  //  sendRawData(F("<form action='"));
+  //  sendRawData(FS(S_url_configuration));
+  //  sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value { alert(\"Turn times should be different\"); return false;}'>"));
+  //  sendRawData(F("<table>"));
+  //  sendRawData(F("<tr><td>Turn to Day mode at</td>"));
+  //  sendRawData(F("<td><input id='turnToDayModeAt' name='turnToDayModeAt' type='time' step='60' value='"));
+  //  sendRawData(StringUtils::getFixedDigitsString(upHour,2));
+  //  sendRawData(':');
+  //  sendRawData(StringUtils::getFixedDigitsString(upMinute,2));
+  //  sendRawData(F("'/></td></tr>"));
+  //  sendRawData(F("<tr><td>Turn to Night mode at</td>"));
+  //  sendRawData(F("<td><input id='turnToNightModeAt' name='turnToNightModeAt' type='time' step='60' value='"));
+  //  sendRawData(StringUtils::getFixedDigitsString(downHour,2));
+  //  sendRawData(':');
+  //  sendRawData(StringUtils::getFixedDigitsString(downMinute,2));
+  //  sendRawData(F("'/></td></tr>"));
+  //  sendRawData(F("</table>"));
+  //  sendRawData(F("<input type='submit' value='Save'>"));
+  //  sendRawData(F("</form>"));
+  //  sendRawData(F("</fieldset>"));
+  //  sendRawData(F("<br/>"));
+
+
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -989,6 +1044,14 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
     }
     GB_StorageHelper.setCriticalTemperatue(temp);
     c_isWifiForceUpdateGrowboxState = true;
+  }  
+  else if (StringUtils::flashStringEquals(name, F("wateringSystemCount"))){
+
+    byte temp = value.toInt();
+    if (temp >= MAX_WATERING_SYSTEMS_COUNT){
+      return false;
+    }
+    GB_StorageHelper.setWateringSystemCount(temp);  
   } 
   else {
     return false;
@@ -998,6 +1061,7 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
 }
 
 WebServerClass GB_WebServer;
+
 
 
 

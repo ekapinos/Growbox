@@ -24,7 +24,7 @@ public:
   void getTurnToDayAndNightTime(byte& upHour, byte& upMinute, byte& downHour, byte& downMinute);
   void setTurnToDayModeTime(const byte upHour, const byte upMinute);
   void setTurnToNightModeTime(const byte downHour, const byte downMinute);
-  
+
   void getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatue);
   void setNormalTemperatueDayMin(const byte normalTemperatueDayMin);
   void setNormalTemperatueDayMax(const byte normalTemperatueDayMax);
@@ -67,6 +67,15 @@ public:
   void setWifiSSID(String);
   void setWifiPass(String);
 
+  /////////////////////////////////////////////////////////////////////
+  //                             WATERING                            //
+  /////////////////////////////////////////////////////////////////////
+
+  byte getWateringSystemCount();
+  void setWateringSystemCount(byte wateringSystemCount);
+  BootRecord::WateringSystemPreferencies getWateringSystemPreferenciesById(byte id);
+  void setWateringSystemPreferenciesById(byte id, BootRecord::WateringSystemPreferencies wateringSystemPreferencies);
+
 private :
 
   word getNextLogRecordIndex();
@@ -76,9 +85,12 @@ private :
   void setBoolPreferencies(BootRecord::BoolPreferencies boolPreferencies);
 };
 
+
+
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
+
 
 
 

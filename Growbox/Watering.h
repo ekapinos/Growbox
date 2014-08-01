@@ -4,6 +4,7 @@
 #include "Global.h"
 
 class WateringClass{
+  word lastValue[MAX_WATERING_SYSTEMS_COUNT];
 public:
   byte analogToByte(word input);
 };

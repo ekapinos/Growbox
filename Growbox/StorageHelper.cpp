@@ -2,6 +2,7 @@
 
 #include "StringUtils.h"
 #include "Logger.h"
+#include "Watering.h"
 #include "EEPROM_ARDUINO.h"
 #include "EEPROM_AT24C32.h"
 
@@ -304,6 +305,34 @@ void StorageHelperClass::setBoolPreferencies(BootRecord::BoolPreferencies boolPr
   EEPROM.updateBlock<BootRecord::BoolPreferencies>(OFFSETOF(BootRecord, boolPreferencies), boolPreferencies);
 }
 
+
+/////////////////////////////////////////////////////////////////////
+//                             WATERING                            //
+/////////////////////////////////////////////////////////////////////
+
+byte StorageHelperClass::getWateringSystemCount(){
+  return EEPROM.readBlock<byte>(OFFSETOF(BootRecord, wateringSystemCount));
+}
+
+void StorageHelperClass::setWateringSystemCount(byte wateringSystemCount){
+  EEPROM.updateBlock<byte>(OFFSETOF(BootRecord, wateringSystemCount), wateringSystemCount);
+}
+
+BootRecord::WateringSystemPreferencies StorageHelperClass::getWateringSystemPreferenciesById(byte id){
+  if (id >= MAX_WATERING_SYSTEMS_COUNT){
+    // TODO add error to log
+    return BootRecord::WateringSystemPreferencies();
+  }
+  return EEPROM.readBlock<BootRecord::WateringSystemPreferencies>(OFFSETOF(BootRecord, wateringSystemPreferencies)+id * sizeof(BootRecord::WateringSystemPreferencies));
+}
+
+void StorageHelperClass::setWateringSystemPreferenciesById(byte id, BootRecord::WateringSystemPreferencies wateringSystemPreferencies){
+  if (id >= MAX_WATERING_SYSTEMS_COUNT){
+    return;
+  }
+  EEPROM.updateBlock<BootRecord::WateringSystemPreferencies>(OFFSETOF(BootRecord, wateringSystemPreferencies)+id * sizeof(BootRecord::WateringSystemPreferencies), wateringSystemPreferencies);
+}
+    
 StorageHelperClass GB_StorageHelper;
 
 

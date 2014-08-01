@@ -8,7 +8,6 @@
 /////////////////////////////////////////////////////////////////////
 
 const char S_url_root[] PROGMEM  = "/";
-//const char S_url_pins[] PROGMEM  = "/pins";
 const char S_url_log[] PROGMEM  = "/log";
 const char S_url_watering[] PROGMEM  = "/watering";
 const char S_url_configuration[] PROGMEM  = "/conf";
