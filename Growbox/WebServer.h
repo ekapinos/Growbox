@@ -59,6 +59,9 @@ private:
   void sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* text, boolean isSelected);
   void sendTagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected);
   void sendTagRadioButton(const __FlashStringHelper* name, const __FlashStringHelper* text, const __FlashStringHelper* value, boolean isSelected);
+  void sendTagInputNumber(const __FlashStringHelper* name, const __FlashStringHelper* text, word minValue, word maxValue, word value);
+  void sendTagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value);
+
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected);
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected);
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected);
@@ -66,7 +69,7 @@ private:
   /////////////////////////////////////////////////////////////////////
   //                        COMMON FOR PAGES                         //
   /////////////////////////////////////////////////////////////////////
-  
+
   void sendHttpPageBody(const String &input, const String &getParams);
 
   /////////////////////////////////////////////////////////////////////
@@ -79,8 +82,8 @@ private:
   //                         WATERING PAGE                           //
   /////////////////////////////////////////////////////////////////////
 
-  void sendWateringPage();
-  
+  void sendWateringPage(const String& getParams);
+
   /////////////////////////////////////////////////////////////////////
   //                      CONFIGURATION PAGE                         //
   /////////////////////////////////////////////////////////////////////
@@ -104,7 +107,7 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   String applyPostParams(const String& url, const String& postParams);
-  boolean applyPostParam(const String& name, const String& value);  
+  boolean applyPostParam(const String& url, const String& name, const String& value);  
 
   /////////////////////////////////////////////////////////////////////
   //                              OTHER                              //
@@ -125,6 +128,7 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
 
 
 

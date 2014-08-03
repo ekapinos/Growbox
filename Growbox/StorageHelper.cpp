@@ -43,14 +43,12 @@ boolean StorageHelperClass::init(){
     bootRecord.normalTemperatueNightMax = 21;
     bootRecord.criticalTemperatue = 35;
 
-
-    bootRecord.wateringSystemCount = 1;
     for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
       
       BootRecord::WateringSystemPreferencies wsp = bootRecord.wateringSystemPreferencies[i];
       
-      wsp.boolPreferencies.isSensorConnected = true;
-      wsp.boolPreferencies.isWaterPumpConnected = true;
+      wsp.boolPreferencies.isWetSensorConnected = false;
+      wsp.boolPreferencies.isWaterPumpConnected = false;
       
       wsp.notConnectedValue = GB_Watering.analogToByte(1010);
       wsp.veryDryValue      = GB_Watering.analogToByte(900);
@@ -309,14 +307,6 @@ void StorageHelperClass::setBoolPreferencies(BootRecord::BoolPreferencies boolPr
 /////////////////////////////////////////////////////////////////////
 //                             WATERING                            //
 /////////////////////////////////////////////////////////////////////
-
-byte StorageHelperClass::getWateringSystemCount(){
-  return EEPROM.readBlock<byte>(OFFSETOF(BootRecord, wateringSystemCount));
-}
-
-void StorageHelperClass::setWateringSystemCount(byte wateringSystemCount){
-  EEPROM.updateBlock<byte>(OFFSETOF(BootRecord, wateringSystemCount), wateringSystemCount);
-}
 
 BootRecord::WateringSystemPreferencies StorageHelperClass::getWateringSystemPreferenciesById(byte id){
   if (id >= MAX_WATERING_SYSTEMS_COUNT){

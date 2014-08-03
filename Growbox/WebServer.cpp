@@ -241,6 +241,52 @@ void WebServerClass::sendTagCheckbox(const __FlashStringHelper* name, const __Fl
 
 }
 
+void WebServerClass::sendTagInputNumber(const __FlashStringHelper* name, const __FlashStringHelper* text, word minValue, word maxValue, word value){
+  if (text != 0){
+    sendRawData(F("<label>"));
+    sendRawData(text);
+  }
+  sendRawData(F("<input type='number' required='required' name='"));
+  sendRawData(name);
+  sendRawData(F("' id='"));
+  sendRawData(name);
+  sendRawData(F("' min='"));
+  sendRawData(minValue);
+  sendRawData(F("' max='"));
+  sendRawData(maxValue);
+  sendRawData(F("' value='"));
+  sendRawData(value);
+  sendRawData(F("'/>")); 
+  if (text != 0){
+    sendRawData(F("</label>")); 
+  }
+} 
+
+void WebServerClass::sendTagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value){
+    
+  byte valueHour = value / 60;
+  byte valueMinute = value % 60;
+  
+  if (text != 0){
+    sendRawData(F("<label>"));
+    sendRawData(text);
+  }
+  sendRawData(F("<input type='time' required='required' step='60' name='"));
+  sendRawData(name);
+  sendRawData(F("' id='"));
+  sendRawData(name);
+  sendRawData(F("' value='"));
+  
+  sendRawData(StringUtils::getFixedDigitsString(valueHour, 2));
+  sendRawData(':');
+  sendRawData(StringUtils::getFixedDigitsString(valueMinute, 2));
+  
+  sendRawData(F("'/>")); 
+  if (text != 0){
+    sendRawData(F("</label>")); 
+  }
+}   
+
 void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected){
   sendRawData(F("<script type='text/javascript'>"));
   sendRawData(F("var opt = document.createElement('option');"));
@@ -309,7 +355,7 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
     sendStatusPage();
   } 
   if (isWatering){
-    sendWateringPage();
+    sendWateringPage(getParams);
   } 
   else if (isLogPage){
     sendLogPage(getParams);
@@ -591,99 +637,126 @@ void WebServerClass::sendLogPage(const String& getParams){
 //                         WATERING PAGE                           //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendWateringPage(){
+void WebServerClass::sendWateringPage(const String& getParams){
+
+  String paramValue;
+  byte wateringSystemIndex = 0;
+  if (searchHttpParamByName(getParams, F("wsIndex"), paramValue)){
+    wateringSystemIndex = paramValue.toInt();
+    if (wateringSystemIndex >= MAX_WATERING_SYSTEMS_COUNT){
+      wateringSystemIndex =0;
+    }
+  }
+  
+  
+  
+  sendRawData(F("<form>"));
+  sendRawData(F("Watering system "));
+  sendRawData(F("<select id='wsIndexCombobox' name='wsIndex'></select>"));
+  sendRawData(F("<input type='button' value='Show' onclick='document.location=\""));
+  sendRawData(FS(S_url_watering));
+  sendRawData(F("\" + \"/\" + document.getElementById(\"wsIndexCombobox\").value'>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("<br/>"));
+ 
+  // out of form 
+  BootRecord::WateringSystemPreferencies wateringSystemPreferencies = GB_StorageHelper.getWateringSystemPreferenciesById(wateringSystemIndex);
+  for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
+    BootRecord::WateringSystemPreferencies currentWateringSystemPreferencies;
+    if (wateringSystemIndex==i){
+      currentWateringSystemPreferencies = wateringSystemPreferencies;
+    } else {
+      currentWateringSystemPreferencies = GB_StorageHelper.getWateringSystemPreferenciesById(i);
+    }  
+    
+    String description('#');
+    description += i;
+    if (!currentWateringSystemPreferencies.boolPreferencies.isWetSensorConnected && !wateringSystemPreferencies.boolPreferencies.isWaterPumpConnected){
+      description += StringUtils::flashStringLoad(F(", disconnected"));
+    }
+    if (wateringSystemIndex==i){
+      description += StringUtils::flashStringLoad(F(", selected"));
+    }
+    sendAppendOptionToSelectDynamic(F("wsIndexCombobox"), String(i), description, (wateringSystemIndex==i));
+  } 
+
+  sendRawData(F("<fieldset><legend>Wet sensor # "));
+  sendRawData(wateringSystemIndex);
+  sendRawData(F("</legend>"));
 
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_watering));
   sendRawData(F("' method='post'>"));
-  sendRawData(F("Watering system count: "));
-  sendRawData(F("<select id='wateringSystemCountCombobox' name='wateringSystemCount'></select>"));
+  sendRawData(F("<table>"));
+  sendRawData(F("<tr><td>"));    
+  sendTagCheckbox(F("isSensorConnected"), F("Sensor connected"), wateringSystemPreferencies.boolPreferencies.isWetSensorConnected);
+  sendRawData(F("</td><td/></tr>"));
+
+  sendRawData(F("<tr><td>Not connected value</td><td>"));
+  sendTagInputNumber(F("notConnectedValue"), 0, 1, 255, wateringSystemPreferencies.notConnectedValue);
+  sendRawData(F("</td></tr>"));
+
+  sendRawData(F("<tr><td>Very Dry value</td><td>"));
+  sendTagInputNumber(F("veryDryValue"), 0, 1, 255, wateringSystemPreferencies.veryDryValue);
+  sendRawData(F("</td></tr>"));
+
+  sendRawData(F("<tr><td>Dry value</td><td>"));
+  sendTagInputNumber(F("dryValue"), 0, 1, 255, wateringSystemPreferencies.dryValue);
+  sendRawData(F("</td></tr>"));
+
+  sendRawData(F("<tr><td>Normal value</td><td>"));
+  sendTagInputNumber(F("normalValue"), 0, 1, 255, wateringSystemPreferencies.normalValue);
+  sendRawData(F("</td></tr>"));
+
+  sendRawData(F("<tr><td>Wet value</td><td>"));
+  sendTagInputNumber(F("wetValue"), 0, 1, 255, wateringSystemPreferencies.wetValue);
+  sendRawData(F("</td></tr>"));
+
+  sendRawData(F("<tr><td>Very Wet value</td><td>"));
+  sendTagInputNumber(F("veryWetValue"), 0, 1, 255, wateringSystemPreferencies.veryWetValue);
+  sendRawData(F("</td></tr>"));
+
+  sendRawData(F("<tr><td>Short circit value</td><td>"));
+  sendTagInputNumber(F("shortCircitValue"), 0, 1, 255, wateringSystemPreferencies.shortCircitValue);
+  sendRawData(F("</td></tr>"));
+
+  sendRawData(F("</table>"));
+  sendRawData(F("<input type='submit' value='Save'>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("<br/>"));
+
+
+  sendRawData(F("<fieldset><legend>Water pump # "));
+  sendRawData(wateringSystemIndex);
+  sendRawData(F("</legend>"));
+  
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_watering));
+  sendRawData(F("' method='post'>"));
+  sendRawData(F("<table>")); 
+  
+  sendRawData(F("<tr><td>"));    
+  sendTagCheckbox(F("isWaterPumpConnected"), F("Pump connected"), wateringSystemPreferencies.boolPreferencies.isWaterPumpConnected);
+  sendRawData(F("</td><td/></tr>"));
+
+  sendRawData(F("<tr><td>Watering duration if Dry</td><td>"));
+  sendTagInputNumber(F("dryWateringDuration"), 0, 1, 255, wateringSystemPreferencies.dryWateringDuration);
+  sendRawData(F(" sec</td></tr>"));
+  
+  sendRawData(F("<tr><td>Watering duration if Very Dry<br/><small>if Wet sensor is connected</small></td><td>"));
+  sendTagInputNumber(F("veryDryWateringDuration"), 0, 1, 255, wateringSystemPreferencies.veryDryWateringDuration);
+  sendRawData(F(" sec</td></tr>"));
+
+  sendRawData(F("<tr><td>Auto watering time <br/><small>if Wet sensor is not connected</small></td><td>"));
+  sendTagInputTime(F("wateringIfNoSensorAt"), 0, wateringSystemPreferencies.veryDryWateringDuration);
+  sendRawData(F("</td></tr>"));
+
+  sendRawData(F("</table>"));
   sendRawData(F("<input type='submit' value='Save'>"));
   sendRawData(F("</form>"));
 
-  byte count = GB_StorageHelper.getWateringSystemCount();
-
-  // out of form
-  sendAppendOptionToSelectDynamic(F("wateringSystemCountCombobox"), F("None"), F("None"), count==0);
-  for (byte i = 1; i <= MAX_WATERING_SYSTEMS_COUNT; i++){
-    String intAsStr(i);
-    sendAppendOptionToSelectDynamic(F("wateringSystemCountCombobox"), intAsStr, intAsStr, count==i);
-  } 
-
-  for (byte i = 0; i < count; i++){
-    
-    BootRecord::WateringSystemPreferencies wateringSystemPreferencies = GB_StorageHelper.getWateringSystemPreferenciesById(i);
-    
-    sendRawData(F("<fieldset><legend>Watering system #"));
-    sendRawData(i);
-    sendRawData(F("</legend>"));
-
-    sendRawData(F("<form action='"));
-    sendRawData(FS(S_url_watering));
-    sendRawData(F("' method='post'>"));
-    sendRawData(F("<table>"));
-
-
-
-
-//    struct WateringSystemBoolPreferencies{
-//      boolean isSensorConnected : 1; 
-//      boolean isWaterPumpConnected : 2; 
-//    } boolPreferencies;     // 1
-//    
-//    byte notConnectedValue; // 1 (veryDryValue..airValue] (airValue..1023]  (t >> 2) (10 bit to 8)
-//    byte veryDryValue;      // 1 (dryValue..veryDryValue]
-//    byte dryValue;          // 1 (normalValue..dryValue]
-//    byte normalValue;       // 1 (wetValue..normalValue]
-//    byte wetValue;          // 1 (veryWetValue..wetValue]
-//    byte veryWetValue;      // 1 (shortСircuitValue..veryWetValue]
-//    byte shortCircitValue;  // 1 [0..shortСircuitValue]
-//    
-//    byte dryWateringDuration;     // 1 // seconds
-//    byte veryDryWateringDuration; // 1 // seconds
-//    
-//    word wateringIfNoSensorAt;    // 2 // minutes from midnight, dryWateringDuration used
-
-
-    sendRawData(F("</table>"));
-    sendRawData(F("<input type='submit' value='Save'>"));
-    sendRawData(F("</form>"));
-
-    sendRawData(F("</fieldset>"));
-    sendRawData(F("<br/>"));
-  }
-
-  //  MAX_WATERING_SYSTEMS_COUNT
-  //  
-  //  byte upHour, upMinute, downHour, downMinute;
-  //  GB_StorageHelper.getTurnToDayAndNightTime(upHour, upMinute, downHour, downMinute);
-  //
-  //  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
-  //  GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
-  //
-  //  sendRawData(F("<fieldset><legend>Scheduler</legend>"));
-  //  sendRawData(F("<form action='"));
-  //  sendRawData(FS(S_url_configuration));
-  //  sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value { alert(\"Turn times should be different\"); return false;}'>"));
-  //  sendRawData(F("<table>"));
-  //  sendRawData(F("<tr><td>Turn to Day mode at</td>"));
-  //  sendRawData(F("<td><input id='turnToDayModeAt' name='turnToDayModeAt' type='time' step='60' value='"));
-  //  sendRawData(StringUtils::getFixedDigitsString(upHour,2));
-  //  sendRawData(':');
-  //  sendRawData(StringUtils::getFixedDigitsString(upMinute,2));
-  //  sendRawData(F("'/></td></tr>"));
-  //  sendRawData(F("<tr><td>Turn to Night mode at</td>"));
-  //  sendRawData(F("<td><input id='turnToNightModeAt' name='turnToNightModeAt' type='time' step='60' value='"));
-  //  sendRawData(StringUtils::getFixedDigitsString(downHour,2));
-  //  sendRawData(':');
-  //  sendRawData(StringUtils::getFixedDigitsString(downMinute,2));
-  //  sendRawData(F("'/></td></tr>"));
-  //  sendRawData(F("</table>"));
-  //  sendRawData(F("<input type='submit' value='Save'>"));
-  //  sendRawData(F("</form>"));
-  //  sendRawData(F("</fieldset>"));
-  //  sendRawData(F("<br/>"));
-
+  sendRawData(F("</fieldset>"));
 
 }
 
@@ -705,18 +778,12 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(FS(S_url_configuration));
   sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value { alert(\"Turn times should be different\"); return false;}'>"));
   sendRawData(F("<table>"));
-  sendRawData(F("<tr><td>Turn to Day mode at</td>"));
-  sendRawData(F("<td><input id='turnToDayModeAt' name='turnToDayModeAt' type='time' step='60' value='"));
-  sendRawData(StringUtils::getFixedDigitsString(upHour,2));
-  sendRawData(':');
-  sendRawData(StringUtils::getFixedDigitsString(upMinute,2));
-  sendRawData(F("'/></td></tr>"));
-  sendRawData(F("<tr><td>Turn to Night mode at</td>"));
-  sendRawData(F("<td><input id='turnToNightModeAt' name='turnToNightModeAt' type='time' step='60' value='"));
-  sendRawData(StringUtils::getFixedDigitsString(downHour,2));
-  sendRawData(':');
-  sendRawData(StringUtils::getFixedDigitsString(downMinute,2));
-  sendRawData(F("'/></td></tr>"));
+  sendRawData(F("<tr><td>Turn to Day mode at</td><td>"));
+  sendTagInputTime(F("turnToDayModeAt"), 0, upHour*60+upMinute);
+  sendRawData(F("</td></tr>"));
+  sendRawData(F("<tr><td>Turn to Night mode at</td><td>"));
+  sendTagInputTime(F("turnToNightModeAt"), 0, downHour*60+downMinute);
+  sendRawData(F("</td></tr>"));
   sendRawData(F("</table>"));
   sendRawData(F("<input type='submit' value='Save'>"));
   sendRawData(F("</form>"));
@@ -729,24 +796,19 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"normalTemperatueDayMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
   sendRawData(F("|| document.getElementById(\"normalTemperatueNightMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
   sendRawData(F("<table>"));
-  sendRawData(F("<tr><td>Normal Day temperature</td>"));
-  sendRawData(F("<td><input id='normalTemperatueDayMin' name='normalTemperatueDayMin' type='number' min='1' max='50' value='"));
-  sendRawData(normalTemperatueDayMin);
-  sendRawData(F("'/> .. "));
-  sendRawData(F("<input id='normalTemperatueDayMax' name='normalTemperatueDayMax' type='number' min='1' max='50' value='"));
-  sendRawData(normalTemperatueDayMax);
-  sendRawData(F("'/> C</td></tr>"));
-  sendRawData(F("<tr><td>Normal Night temperature</td>"));
-  sendRawData(F("<td><input id='normalTemperatueNightMin' name='normalTemperatueNightMin' type='number' min='1' max='50' value='"));
-  sendRawData(normalTemperatueNightMin);
-  sendRawData(F("'/> .. "));
-  sendRawData(F("<input id='normalTemperatueNightMax' name='normalTemperatueNightMax' type='number' min='1' max='50' value='"));
-  sendRawData(normalTemperatueNightMax);
-  sendRawData(F("'/> C</td></tr>"));
-  sendRawData(F("<tr><td>Critical temperature</td>"));
-  sendRawData(F("<td><input id='criticalTemperatue' name='criticalTemperatue' type='number' min='1' max='50' value='"));
-  sendRawData(criticalTemperatue);
-  sendRawData(F("'/> C</td></tr>"));
+  sendRawData(F("<tr><td>Normal Day temperature</td><td>"));
+  sendTagInputNumber(F("normalTemperatueDayMin"), 0, 1, 50, normalTemperatueDayMin);
+  sendRawData(F(" .. "));
+  sendTagInputNumber(F("normalTemperatueDayMax"), 0, 1, 50, normalTemperatueDayMax);
+  sendRawData(F(" C</td></tr>"));
+  sendRawData(F("<tr><td>Normal Night temperature</td><td>"));
+  sendTagInputNumber(F("normalTemperatueNightMin"), 0, 1, 50, normalTemperatueNightMin);
+  sendRawData(F(" .. "));
+  sendTagInputNumber(F("normalTemperatueNightMax"), 0, 1, 50, normalTemperatueNightMax);
+  sendRawData(F(" C</td></tr>"));
+  sendRawData(F("<tr><td>Critical temperature</td><td>"));
+  sendTagInputNumber(F("criticalTemperatue"), 0, 1, 50, criticalTemperatue);
+  sendRawData(F(" C</td></tr>"));
   sendRawData(F("</table>"));
   sendRawData(F("<input type='submit' value='Save'>"));
   sendRawData(F("</form>"));
@@ -794,24 +856,26 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(FS(S_url_storage));
   sendRawData(F("'>View EEPROM dump</a><br/><br/>")); 
   sendRawData(F("<table style='vertical-align:top; border-spacing:0px;'><tr><td>"));
+  
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_root));
   sendRawData(F("' method='post' onSubmit='return confirm(\"Reboot Growbox?\")'>"));
   sendRawData(F("<input type='hidden' name='rebootController'/><input type='submit' value='Reboot Growbox'>"));
+  sendRawData(F("</form>")); 
   sendRawData(F("</td><td>"));
   sendRawData(F("<small> and update page manually</small>"));
   sendRawData(F("</td></tr><tr><td>"));
-  sendRawData(F("</form>")); 
+
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_root));
   sendRawData(F("' method='post' onSubmit='return confirm(\"Are you seriously want to reset Firmware and reboot?\")'>"));
   sendRawData(F("<input type='hidden' name='resetFirmware'/><input type='submit' value='Reset Firmware'>"));
+  sendRawData(F("</form>"));
+
   sendRawData(F("</td><td>"));
   sendRawData(F("<small>and update page manually. Default Wi-Fi SSID and pass will be used</small>"));
-  sendRawData(F("</form>"));
   sendRawData(F("</td></tr></table>"));
   sendRawData(F("</fieldset>"));
-  sendRawData(F("<br/>"));
 }
 
 void WebServerClass::sendStorageDumpPage(const String& getParams){
@@ -940,7 +1004,7 @@ String WebServerClass::applyPostParams(const String& url, const String& postPara
     //queryStr += name;
     //queryStr += '=';   
     //queryStr += applyPostParam(name, value);
-    applyPostParam(name, value);
+    applyPostParam(url, name, value);
     index++;
   }
   //if (index > 0){
@@ -951,7 +1015,7 @@ String WebServerClass::applyPostParams(const String& url, const String& postPara
   //}
 }
 
-boolean WebServerClass::applyPostParam(const String& name, const String& value){
+boolean WebServerClass::applyPostParam(const String& url, const String& name, const String& value){
 
   if (StringUtils::flashStringEquals(name, F("isWifiStationMode"))){
     if (value.length() != 1){
@@ -1045,14 +1109,14 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
     GB_StorageHelper.setCriticalTemperatue(temp);
     c_isWifiForceUpdateGrowboxState = true;
   }  
-  else if (StringUtils::flashStringEquals(name, F("wateringSystemCount"))){
-
-    byte temp = value.toInt();
-    if (temp >= MAX_WATERING_SYSTEMS_COUNT){
-      return false;
-    }
-    GB_StorageHelper.setWateringSystemCount(temp);  
-  } 
+//  else if (StringUtils::flashStringEquals(name, F("wateringSystemCount"))){
+//
+//    byte temp = value.toInt();
+//    if (temp<0 || temp >= MAX_WATERING_SYSTEMS_COUNT){
+//      return false;
+//    }
+//    GB_StorageHelper.setWateringSystemCount(temp);  
+//  } 
   else {
     return false;
   }
@@ -1061,6 +1125,7 @@ boolean WebServerClass::applyPostParam(const String& name, const String& value){
 }
 
 WebServerClass GB_WebServer;
+
 
 
 

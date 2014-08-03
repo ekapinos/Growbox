@@ -71,8 +71,6 @@ public:
   //                             WATERING                            //
   /////////////////////////////////////////////////////////////////////
 
-  byte getWateringSystemCount();
-  void setWateringSystemCount(byte wateringSystemCount);
   BootRecord::WateringSystemPreferencies getWateringSystemPreferenciesById(byte id);
   void setWateringSystemPreferenciesById(byte id, BootRecord::WateringSystemPreferencies wateringSystemPreferencies);
 

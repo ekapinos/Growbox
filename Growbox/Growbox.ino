@@ -239,7 +239,42 @@ void loop() {
   Alarm.delay(0); 
 }
 
-// RAK 410 is connected to Serial-1
+void serialEvent(){
+  if(!g_isGrowboxStarted){
+    // We will not handle external events during startup
+    return;
+  }
+  String input;
+  while (Serial.available()){
+    input += (char) Serial.read();
+  }
+  int indexOfQestionChar = input.indexOf('?');
+  if (indexOfQestionChar < 0){
+    if(g_useSerialMonitor){ 
+      Serial.println(F("Wrong serial command. '?' char not found. Syntax: url?param1=value1[&param2=value]"));
+    }
+    return;
+  }
+  
+  if (StringUtils::flashStringEndsWith(input, FS(S_CRLF))){
+    input = input.substring(0, input.length()-2);   
+  }
+  
+  String url(input);
+  url.substring(0, indexOfQestionChar);
+  input.substring(indexOfQestionChar+1);
+  
+  if(g_useSerialMonitor){ 
+    Serial.print(F("Recive from [SM] POST ["));
+    Serial.print(url);
+    Serial.print(F("] postParams ["));
+    Serial.print(input);   
+    Serial.println(']');
+  }
+  
+}
+
+// Wi-Fi is connected to Serial1
 void serialEvent1(){
 
   if(!g_isGrowboxStarted){
