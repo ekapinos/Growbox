@@ -6,7 +6,7 @@
 
 
 ControllerClass::ControllerClass(): 
-freeMemoryLastCheck(0){
+c_freeMemoryLastCheck(0){
 }
 
 void ControllerClass::rebootController() {
@@ -17,20 +17,21 @@ void ControllerClass::rebootController() {
 void ControllerClass::checkFreeMemory(){
   
   int currentFreeMemory = freeMemory();
-  if(currentFreeMemory< 200){ 
-    GB_Logger.logError(ERROR_MEMORY_LOW);   
+  if(currentFreeMemory< 2000){ 
+    GB_Logger.logError(ERROR_MEMORY_LOW);
+    rebootController();   
   } 
-  else {
-    GB_Logger.stopLogError(ERROR_MEMORY_LOW); 
-  }
+//  else {
+//    GB_Logger.stopLogError(ERROR_MEMORY_LOW); 
+//  }
   
-  if (freeMemoryLastCheck != currentFreeMemory){
+  if (c_freeMemoryLastCheck != currentFreeMemory){
     if (g_useSerialMonitor){
       showControllerMessage(F("Free memory: ["), false);  
       Serial.print(currentFreeMemory);
       Serial.println(']');
     }
-    freeMemoryLastCheck = currentFreeMemory;
+    c_freeMemoryLastCheck = currentFreeMemory;
   }
 }
 

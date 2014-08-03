@@ -21,6 +21,7 @@
 #include "Thermometer.h"
 #include "RAK410_XBeeWifi.h"
 #include "WebServer.h"
+#include "Watering.h"
 
 /////////////////////////////////////////////////////////////////////
 //                              STATUS                             //
@@ -87,36 +88,27 @@ void setup() {
   pinMode(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN, INPUT_PULLUP);
   pinMode(HARDWARE_BUTTON_RESET_FIRMWARE_PIN, INPUT_PULLUP);
 
-  // Watering
-  pinMode(WATERING_SENSOR_ANALOG_PIN, INPUT_PULLUP);
-  pinMode(WATERING1_SENSOR_ANALOG_PIN, INPUT_PULLUP);
-  pinMode(WATERING2_SENSOR_ANALOG_PIN, INPUT_PULLUP);
-  pinMode(WATERING3_SENSOR_ANALOG_PIN, INPUT_PULLUP);
-
-  pinMode(WATERING_SENSOR_POWER_PIN, OUTPUT);
-  pinMode(WATERING1_SENSOR_POWER_PIN, OUTPUT);
-  pinMode(WATERING2_SENSOR_POWER_PIN, OUTPUT);
-  pinMode(WATERING3_SENSOR_POWER_PIN, OUTPUT);
-
   // Reley pins
   pinMode(LIGHT_PIN, OUTPUT);   
   pinMode(FAN_PIN, OUTPUT);  
   pinMode(FAN_SPEED_PIN, OUTPUT); 
-  
-  pinMode(WATERING_PUMP_PIN, OUTPUT);
-  pinMode(WATERING1_PUMP_PIN, OUTPUT);
-  pinMode(WATERING2_PUMP_PIN, OUTPUT);
-  pinMode(WATERING3_PUMP_PIN, OUTPUT);
   
   // Configure relay
   digitalWrite(LIGHT_PIN, RELAY_OFF);
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
   
-  digitalWrite(WATERING_PUMP_PIN, RELAY_OFF);
-  digitalWrite(WATERING1_PUMP_PIN, RELAY_OFF);
-  digitalWrite(WATERING2_PUMP_PIN, RELAY_OFF);
-  digitalWrite(WATERING3_PUMP_PIN, RELAY_OFF);
+  
+  // Watering
+  for (int i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
+    pinMode(WATERING_WET_SENSOR_IN_PINS[i], INPUT_PULLUP);
+    
+    pinMode(WATERING_WET_SENSOR_POWER_PINS[i], OUTPUT);
+    pinMode(WATERING_PUMP_PINS[i], OUTPUT);
+    
+    digitalWrite(WATERING_WET_SENSOR_POWER_PINS[i], HIGH);
+    digitalWrite(WATERING_PUMP_PINS[i], RELAY_OFF);
+  }
 
   // Configure inputs
   //attachInterrupt(0, interrapton0handler, CHANGE); // PIN 2
@@ -138,7 +130,6 @@ void setup() {
   if (!Event::isInitialized()){
     stopOnFatalError(F("not all Events initialized"));
   }
-
   if (BOOT_RECORD_SIZE != sizeof(BootRecord)){
     Serial.print(F("Expected: "));
     Serial.print(BOOT_RECORD_SIZE);  
@@ -146,10 +137,19 @@ void setup() {
     Serial.println(sizeof(BootRecord));
     stopOnFatalError(F("wrong BootRecord size"));
   }
-
   if (LOG_RECORD_SIZE != sizeof(LogRecord)){
     stopOnFatalError(F("wrong LogRecord size"));
   }
+  if (MAX_WATERING_SYSTEMS_COUNT != sizeof(WATERING_WET_SENSOR_IN_PINS)){
+    stopOnFatalError(F("wrong WATERING_WET_SENSOR_IN_PINS size"));
+  }
+  if (MAX_WATERING_SYSTEMS_COUNT != sizeof(WATERING_WET_SENSOR_POWER_PINS)){
+    stopOnFatalError(F("wrong WATERING_WET_SENSOR_POWER_PINS size"));
+  }
+  if (MAX_WATERING_SYSTEMS_COUNT != sizeof(WATERING_PUMP_PINS)){
+    stopOnFatalError(F("wrong WATERING_PUMP_PINS size"));
+  }
+
 
   GB_Controller.checkFreeMemory();
 
@@ -185,7 +185,9 @@ void setup() {
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean itWasRestart = GB_StorageHelper.init();
-
+  
+  GB_Watering.init();
+  
   g_isGrowboxStarted = true;
 
   // Now we can use logger
@@ -206,7 +208,7 @@ void setup() {
 
   // Create main life circle timer
   Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
-  Alarm.timerRepeat(UPDATE_SERIAL_MONITOR_STATUS_DELAY, updateControllerHardwareInputStatus);
+  Alarm.timerRepeat(UPDATE_CONTROLLER_STATUS_DELAY, updateControllerHardwareInputStatus);
   Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
   Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
 

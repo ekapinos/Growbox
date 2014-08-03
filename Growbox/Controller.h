@@ -5,7 +5,7 @@
 
 class ControllerClass{
   
-  int freeMemoryLastCheck;
+  int c_freeMemoryLastCheck;
   
 public:
   ControllerClass();

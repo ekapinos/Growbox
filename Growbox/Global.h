@@ -23,20 +23,10 @@ const byte ERROR_PIN = 11;
 const byte BREEZE_PIN = LED_BUILTIN; //13
 
 // Watering
-const byte WATERING_SENSOR_ANALOG_PIN = A0;
-const byte WATERING1_SENSOR_ANALOG_PIN = A1;
-const byte WATERING2_SENSOR_ANALOG_PIN = A2;
-const byte WATERING3_SENSOR_ANALOG_PIN = A3;
-
-const byte WATERING_SENSOR_POWER_PIN = 22;
-const byte WATERING1_SENSOR_POWER_PIN = 24;
-const byte WATERING2_SENSOR_POWER_PIN = 26;
-const byte WATERING3_SENSOR_POWER_PIN = 28;
-
-const byte WATERING_PUMP_PIN = 23;
-const byte WATERING1_PUMP_PIN = 25;
-const byte WATERING2_PUMP_PIN = 27;
-const byte WATERING3_PUMP_PIN = 29;
+const byte MAX_WATERING_SYSTEMS_COUNT = 4;
+const byte WATERING_WET_SENSOR_IN_PINS[] = {A0, A1, A2, A3};
+const byte WATERING_WET_SENSOR_POWER_PINS[] = {22, 24, 26, 28};
+const byte WATERING_PUMP_PINS[] = {22, 25, 27, 29};
 
 // hardware buttons
 const byte HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN = 53; // pullup used, 0 - enabled, 1 - disabled
@@ -56,7 +46,6 @@ const byte HARDWARE_BUTTON_OFF = HIGH, HARDWARE_BUTTON_ON = LOW;
 const byte FAN_SPEED_MIN = RELAY_OFF;
 const byte FAN_SPEED_MAX = RELAY_ON;
 
-const byte MAX_WATERING_SYSTEMS_COUNT = 4;
 /////////////////////////////////////////////////////////////////////
 //                             DELAY'S                             //
 /////////////////////////////////////////////////////////////////////
@@ -64,7 +53,7 @@ const byte MAX_WATERING_SYSTEMS_COUNT = 4;
 // Minimum Growbox reaction time
 const int UPDATE_THEMPERATURE_STATISTICS_DELAY = 20; //20 sec 
 const int UPDATE_WIFI_STATUS_DELAY = 20; //20 sec 
-const int UPDATE_SERIAL_MONITOR_STATUS_DELAY = 1;
+const int UPDATE_CONTROLLER_STATUS_DELAY = 1;
 const int UPDATE_GROWBOX_STATE_DELAY = 5*60; // 5 min 
 const int UPDATE_BREEZE_DELAY = 1;
 

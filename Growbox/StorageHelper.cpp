@@ -50,13 +50,12 @@ boolean StorageHelperClass::init(){
       wsp.boolPreferencies.isWetSensorConnected = false;
       wsp.boolPreferencies.isWaterPumpConnected = false;
       
-      wsp.notConnectedValue = GB_Watering.analogToByte(1010);
+      wsp.inAirValue        = GB_Watering.analogToByte(1010);
       wsp.veryDryValue      = GB_Watering.analogToByte(900);
       wsp.dryValue          = GB_Watering.analogToByte(800);
       wsp.normalValue       = GB_Watering.analogToByte(600);
       wsp.wetValue          = GB_Watering.analogToByte(500);
-      wsp.veryWetValue      = GB_Watering.analogToByte(400);
-      wsp.shortCircitValue  = GB_Watering.analogToByte(200);
+      wsp.veryWetValue      = GB_Watering.analogToByte(300);
       
       wsp.dryWateringDuration = 30;     // 30 sec
       wsp.veryDryWateringDuration = 60; // 60 sec

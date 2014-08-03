@@ -42,13 +42,12 @@ boolean isWifiStationMode :
       boolean isWaterPumpConnected : 2; 
     } boolPreferencies;     // 1
     
-    byte notConnectedValue; // 1 (veryDryValue..airValue] (airValue..1023]  (t >> 2) (10 bit to 8)
-    byte veryDryValue;      // 1 (dryValue..veryDryValue]
-    byte dryValue;          // 1 (normalValue..dryValue]
-    byte normalValue;       // 1 (wetValue..normalValue]
-    byte wetValue;          // 1 (veryWetValue..wetValue]
-    byte veryWetValue;      // 1 (shortСircuitValue..veryWetValue]
-    byte shortCircitValue;  // 1 [0..shortСircuitValue]
+    byte inAirValue;        // 1 (inAirValue..1022], [1023] - Not connected  (t >> 2) (10 bit to 8)
+    byte veryDryValue;      // 1 (veryDryValue..notConnectedValue]
+    byte dryValue;          // 1 (dryValue..veryDryValue]
+    byte normalValue;       // 1 (normalValue..dryValue]
+    byte wetValue;          // 1 (wetValue..normalValue]
+    byte veryWetValue;      // 1 (veryWetValue..wetValue] [0..veryWetValue] - short circit
     
     byte dryWateringDuration;     // 1 // seconds
     byte veryDryWateringDuration; // 1 // seconds
@@ -57,7 +56,7 @@ boolean isWifiStationMode :
     
   } wateringSystemPreferencies[MAX_WATERING_SYSTEMS_COUNT]; // 12*MAX_WATERING_SYSTEMS_COUNT(4) = 48
   
-  byte reserved[88];                //  <----reserved
+  byte reserved[92];                //  <----reserved
   char wifiSSID[WIFI_SSID_LENGTH];  // 32  
   char wifiPass[WIFI_PASS_LENGTH];  // 64
   word last_magic;                  //  2  
