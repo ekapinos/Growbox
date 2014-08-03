@@ -26,7 +26,7 @@ boolean WebServerClass::handleSerialEvent(){
     case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
     if (StringUtils::flashStringEquals(url, FS(S_url_root)) || 
       StringUtils::flashStringEquals(url, FS(S_url_log)) ||
-      StringUtils::flashStringEquals(url, FS(S_url_watering)) ||
+      StringUtils::flashStringStartsWith(url, FS(S_url_watering)) ||
       StringUtils::flashStringEquals(url,FS(S_url_configuration)) ||
       StringUtils::flashStringEquals(url, FS(S_url_storage))){
 
@@ -56,13 +56,13 @@ boolean WebServerClass::handleSerialEvent(){
 }
 
 boolean WebServerClass::handleSerialMonitorEvent(){
-  
+
   String input(Serial.readString());
-  
+
   if (StringUtils::flashStringEndsWith(input, FS(S_CRLF))){
     input = input.substring(0, input.length()-2);   
   }
-  
+
   int indexOfQestionChar = input.indexOf('?');
   if (indexOfQestionChar < 0){
     if(g_useSerialMonitor){ 
@@ -75,7 +75,7 @@ boolean WebServerClass::handleSerialMonitorEvent(){
 
   String url(input.substring(0, indexOfQestionChar));
   String postParams(input.substring(indexOfQestionChar+1));
-  
+
   if(g_useSerialMonitor){ 
     Serial.print(F("Recive from [SM] POST ["));
     Serial.print(url);
@@ -83,7 +83,7 @@ boolean WebServerClass::handleSerialMonitorEvent(){
     Serial.print(postParams);   
     Serial.println(']');
   }
-  
+
   c_isWifiForceUpdateGrowboxState = false;
   applyPostParams(url, postParams);
   return c_isWifiForceUpdateGrowboxState;
@@ -297,10 +297,6 @@ void WebServerClass::sendTagInputNumber(const __FlashStringHelper* name, const _
 } 
 
 void WebServerClass::sendTagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value){
-    
-  byte valueHour = value / 60;
-  byte valueMinute = value % 60;
-  
   if (text != 0){
     sendRawData(F("<label>"));
     sendRawData(text);
@@ -310,16 +306,26 @@ void WebServerClass::sendTagInputTime(const __FlashStringHelper* name, const __F
   sendRawData(F("' id='"));
   sendRawData(name);
   sendRawData(F("' value='"));
-  
-  sendRawData(StringUtils::getFixedDigitsString(valueHour, 2));
-  sendRawData(':');
-  sendRawData(StringUtils::getFixedDigitsString(valueMinute, 2));
-  
+  sendRawData(StringUtils::wordTimeToString(value));
   sendRawData(F("'/>")); 
   if (text != 0){
     sendRawData(F("</label>")); 
   }
 }   
+
+word WebServerClass::getTimeFromInput(const String& value){
+  if (value.length() != 5){
+    return 0xFFFF;
+  }
+
+  if (value[2] != ':'){
+    return 0xFFFF;
+  }
+
+  byte valueHour   = (value[0]-'0') * 10 + (value[1]-'0');
+  byte valueMinute = (value[3]-'0') * 10 + (value[4]-'0');
+  return valueHour*60+valueMinute;
+}
 
 void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected){
   sendRawData(F("<script type='text/javascript'>"));
@@ -358,7 +364,7 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
 
   boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
   boolean isLogPage     = StringUtils::flashStringEquals(url, FS(S_url_log));
-  boolean isWatering    = StringUtils::flashStringEquals(url, FS(S_url_watering));
+  boolean isWatering    = StringUtils::flashStringStartsWith(url, FS(S_url_watering));
   boolean isConfPage    = StringUtils::flashStringEquals(url, FS(S_url_configuration));
   boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
 
@@ -389,7 +395,7 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
     sendStatusPage();
   } 
   if (isWatering){
-    sendWateringPage(getParams);
+    sendWateringPage(url);
   } 
   else if (isLogPage){
     sendLogPage(getParams);
@@ -467,18 +473,14 @@ void WebServerClass::sendStatusPage(){
   }
   sendRawData(F("</dd>"));
 
-  byte upHour, upMinute, downHour, downMinute;
-  GB_StorageHelper.getTurnToDayAndNightTime(upHour, upMinute, downHour, downMinute);
+  word upTime, downTime;
+  GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
 
   sendRawData(F("<dt>Configuration</dt>"));  
   sendRawData(F("<dd>Turn to Day mode at: ")); 
-  sendRawData(StringUtils::getFixedDigitsString(upHour, 2));
-  sendRawData(':'); 
-  sendRawData(StringUtils::getFixedDigitsString(upMinute, 2));
+  sendRawData(StringUtils::wordTimeToString(upTime));
   sendRawData(F("</dd><dd>Turn to Night mode at: "));
-  sendRawData(StringUtils::getFixedDigitsString(downHour, 2));
-  sendRawData(':'); 
-  sendRawData(StringUtils::getFixedDigitsString(downMinute, 2));
+  sendRawData(StringUtils::wordTimeToString(downTime));
   sendRawData(F("</dd>"));
 
   byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
@@ -671,87 +673,84 @@ void WebServerClass::sendLogPage(const String& getParams){
 //                         WATERING PAGE                           //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendWateringPage(const String& getParams){
-
-  String paramValue;
-  byte wateringSystemIndex = 0;
-  if (searchHttpParamByName(getParams, F("wsIndex"), paramValue)){
-    wateringSystemIndex = paramValue.toInt();
-    if (wateringSystemIndex >= MAX_WATERING_SYSTEMS_COUNT){
-      wateringSystemIndex =0;
-    }
+byte WebServerClass::getWateringIndexFromUrl(const String& url){
+  String urlSuffix;
+  urlSuffix = url.substring(StringUtils::flashStringLength(FS(S_url_watering)));
+  if (urlSuffix.length() > 0){
+    urlSuffix = urlSuffix.substring(urlSuffix.length() - 1);     // remove right slash
   }
-  
-  
-  
+  byte wateringSystemIndex = urlSuffix.toInt();
+  wateringSystemIndex--;
+  if (wateringSystemIndex < 0 || wateringSystemIndex >= MAX_WATERING_SYSTEMS_COUNT){
+    wateringSystemIndex = 0;
+  }
+  return wateringSystemIndex;
+}
+
+void WebServerClass::sendWateringPage(const String& url){
+
+  byte wspIndex = getWateringIndexFromUrl(url);
+
   sendRawData(F("<form>"));
-  sendRawData(F("Watering system "));
-  sendRawData(F("<select id='wsIndexCombobox' name='wsIndex'></select>"));
-  sendRawData(F("<input type='button' value='Show' onclick='document.location=\""));
+  sendRawData(F("Switch to watering system # <select id='wsIndexCombobox'></select>"));
+  sendRawData(F(" <input type='button' value='Show' onclick='document.location=\""));
   sendRawData(FS(S_url_watering));
   sendRawData(F("\" + \"/\" + document.getElementById(\"wsIndexCombobox\").value'>"));
   sendRawData(F("</form>"));
-  sendRawData(F("<br/>"));
- 
+
   // out of form 
-  BootRecord::WateringSystemPreferencies wateringSystemPreferencies = GB_StorageHelper.getWateringSystemPreferenciesById(wateringSystemIndex);
   for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
-    BootRecord::WateringSystemPreferencies currentWateringSystemPreferencies;
-    if (wateringSystemIndex==i){
-      currentWateringSystemPreferencies = wateringSystemPreferencies;
-    } else {
-      currentWateringSystemPreferencies = GB_StorageHelper.getWateringSystemPreferenciesById(i);
-    }  
-    
-    String description('#');
-    description += i;
-    if (!currentWateringSystemPreferencies.boolPreferencies.isWetSensorConnected && !wateringSystemPreferencies.boolPreferencies.isWaterPumpConnected){
-      description += StringUtils::flashStringLoad(F(", disconnected"));
-    }
-    if (wateringSystemIndex==i){
-      description += StringUtils::flashStringLoad(F(", selected"));
-    }
-    sendAppendOptionToSelectDynamic(F("wsIndexCombobox"), String(i), description, (wateringSystemIndex==i));
-  } 
+    String description(i+1);
+    //BootRecord::WateringSystemPreferencies currentWateringSystemPreferencies = GB_StorageHelper.getWateringSystemPreferenciesById(i);
+    //if (!currentWateringSystemPreferencies.boolPreferencies.isWetSensorConnected && !currentWateringSystemPreferencies.boolPreferencies.isWaterPumpConnected){
+    //  description += StringUtils::flashStringLoad(F(" (not connected)"));
+    //}
+    sendAppendOptionToSelectDynamic(F("wsIndexCombobox"), String(i+1), description, (wspIndex==i));
+  }
 
-  sendRawData(F("<fieldset><legend>Wet sensor # "));
-  sendRawData(wateringSystemIndex);
-  sendRawData(F("</legend>"));
 
+  BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+
+  sendRawData(F("<br/><big><b>Watering system # ")); 
+  sendRawData(wspIndex+1);  
+  sendRawData(F(" preferences</b></big><br/>"));
+
+
+  sendRawData(F("<fieldset><legend>Wet sensor</legend>"));
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_watering));
   sendRawData(F("' method='post'>"));
   sendRawData(F("<table>"));
   sendRawData(F("<tr><td>"));    
-  sendTagCheckbox(F("isSensorConnected"), F("Sensor connected"), wateringSystemPreferencies.boolPreferencies.isWetSensorConnected);
+  sendTagCheckbox(F("isWetSensorConnected"), F("Sensor connected"), wsp.boolPreferencies.isWetSensorConnected);
   sendRawData(F("</td><td/></tr>"));
 
   sendRawData(F("<tr><td>Not connected value</td><td>"));
-  sendTagInputNumber(F("notConnectedValue"), 0, 1, 255, wateringSystemPreferencies.notConnectedValue);
+  sendTagInputNumber(F("notConnectedValue"), 0, 1, 255, wsp.notConnectedValue);
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td>Very Dry value</td><td>"));
-  sendTagInputNumber(F("veryDryValue"), 0, 1, 255, wateringSystemPreferencies.veryDryValue);
+  sendTagInputNumber(F("veryDryValue"), 0, 1, 255, wsp.veryDryValue);
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td>Dry value</td><td>"));
-  sendTagInputNumber(F("dryValue"), 0, 1, 255, wateringSystemPreferencies.dryValue);
+  sendTagInputNumber(F("dryValue"), 0, 1, 255, wsp.dryValue);
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td>Normal value</td><td>"));
-  sendTagInputNumber(F("normalValue"), 0, 1, 255, wateringSystemPreferencies.normalValue);
+  sendTagInputNumber(F("normalValue"), 0, 1, 255, wsp.normalValue);
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td>Wet value</td><td>"));
-  sendTagInputNumber(F("wetValue"), 0, 1, 255, wateringSystemPreferencies.wetValue);
+  sendTagInputNumber(F("wetValue"), 0, 1, 255, wsp.wetValue);
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td>Very Wet value</td><td>"));
-  sendTagInputNumber(F("veryWetValue"), 0, 1, 255, wateringSystemPreferencies.veryWetValue);
+  sendTagInputNumber(F("veryWetValue"), 0, 1, 255, wsp.veryWetValue);
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td>Short circit value</td><td>"));
-  sendTagInputNumber(F("shortCircitValue"), 0, 1, 255, wateringSystemPreferencies.shortCircitValue);
+  sendTagInputNumber(F("shortCircitValue"), 0, 1, 255, wsp.shortCircitValue);
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("</table>"));
@@ -761,29 +760,27 @@ void WebServerClass::sendWateringPage(const String& getParams){
   sendRawData(F("<br/>"));
 
 
-  sendRawData(F("<fieldset><legend>Water pump # "));
-  sendRawData(wateringSystemIndex);
-  sendRawData(F("</legend>"));
-  
+  sendRawData(F("<fieldset><legend>Water pump</legend>"));
+
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_watering));
   sendRawData(F("' method='post'>"));
   sendRawData(F("<table>")); 
-  
+
   sendRawData(F("<tr><td>"));    
-  sendTagCheckbox(F("isWaterPumpConnected"), F("Pump connected"), wateringSystemPreferencies.boolPreferencies.isWaterPumpConnected);
+  sendTagCheckbox(F("isWaterPumpConnected"), F("Pump connected"), wsp.boolPreferencies.isWaterPumpConnected);
   sendRawData(F("</td><td/></tr>"));
 
   sendRawData(F("<tr><td>Watering duration if Dry</td><td>"));
-  sendTagInputNumber(F("dryWateringDuration"), 0, 1, 255, wateringSystemPreferencies.dryWateringDuration);
-  sendRawData(F(" sec</td></tr>"));
-  
-  sendRawData(F("<tr><td>Watering duration if Very Dry<br/><small>if Wet sensor is connected</small></td><td>"));
-  sendTagInputNumber(F("veryDryWateringDuration"), 0, 1, 255, wateringSystemPreferencies.veryDryWateringDuration);
+  sendTagInputNumber(F("dryWateringDuration"), 0, 1, 255, wsp.dryWateringDuration);
   sendRawData(F(" sec</td></tr>"));
 
-  sendRawData(F("<tr><td>Auto watering time <br/><small>if Wet sensor is not connected</small></td><td>"));
-  sendTagInputTime(F("wateringIfNoSensorAt"), 0, wateringSystemPreferencies.veryDryWateringDuration);
+  sendRawData(F("<tr><td>Watering duration if Very Dry<br/><small>used, if Wet sensor is connected</small></td><td>"));
+  sendTagInputNumber(F("veryDryWateringDuration"), 0, 1, 255, wsp.veryDryWateringDuration);
+  sendRawData(F(" sec</td></tr>"));
+
+  sendRawData(F("<tr><td>Auto watering time <br/><small>used, if Wet sensor is not connected</small></td><td>"));
+  sendTagInputTime(F("wateringIfNoSensorAt"), 0, wsp.wateringIfNoSensorAt);
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("</table>"));
@@ -800,8 +797,8 @@ void WebServerClass::sendWateringPage(const String& getParams){
 
 void WebServerClass::sendConfigurationPage(const String& getParams){
 
-  byte upHour, upMinute, downHour, downMinute;
-  GB_StorageHelper.getTurnToDayAndNightTime(upHour, upMinute, downHour, downMinute);
+  word upTime, downTime;
+  GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
 
   byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
   GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
@@ -813,10 +810,10 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value { alert(\"Turn times should be different\"); return false;}'>"));
   sendRawData(F("<table>"));
   sendRawData(F("<tr><td>Turn to Day mode at</td><td>"));
-  sendTagInputTime(F("turnToDayModeAt"), 0, upHour*60+upMinute);
+  sendTagInputTime(F("turnToDayModeAt"), 0, upTime);
   sendRawData(F("</td></tr>"));
   sendRawData(F("<tr><td>Turn to Night mode at</td><td>"));
-  sendTagInputTime(F("turnToNightModeAt"), 0, downHour*60+downMinute);
+  sendTagInputTime(F("turnToNightModeAt"), 0, downTime);
   sendRawData(F("</td></tr>"));
   sendRawData(F("</table>"));
   sendRawData(F("<input type='submit' value='Save'>"));
@@ -890,7 +887,7 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(FS(S_url_storage));
   sendRawData(F("'>View EEPROM dump</a><br/><br/>")); 
   sendRawData(F("<table style='vertical-align:top; border-spacing:0px;'><tr><td>"));
-  
+
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_root));
   sendRawData(F("' method='post' onSubmit='return confirm(\"Reboot Growbox?\")'>"));
@@ -1040,13 +1037,14 @@ String WebServerClass::applyPostParams(const String& url, const String& postPara
     //queryStr += applyPostParam(name, value);
 
     boolean result = applyPostParam(url, name, value);
-    
+
     if (g_useSerialMonitor){
-      showWebMessage(F("Execute command: "), false);
+      showWebMessage(F("Execute ["), false);
       Serial.print(name);
       Serial.print('=');
       Serial.print(value);
-      Serial.println(result ? F(" - OK") : F(" - FAIL"));
+      Serial.print(F("] - "));
+      Serial.println(result ? F("OK") : F("FAIL"));
     }
 
     index++;
@@ -1094,24 +1092,20 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
   }
 
   else if (StringUtils::flashStringEquals(name, F("turnToDayModeAt"))){
-    if (value.length() == 5){
-      if (value[2]==':'){
-        byte upHour   = (value[0]-'0') * 10 + (value[1]-'0');
-        byte upMinute = (value[3]-'0') * 10 + (value[4]-'0');
-        GB_StorageHelper.setTurnToDayModeTime(upHour, upMinute);
-        c_isWifiForceUpdateGrowboxState = true;
-      }
+    word timeValue = getTimeFromInput(value);
+    if (timeValue == 0xFFFF){
+      return false;
     }
+    GB_StorageHelper.setTurnToDayModeTime(timeValue/60, timeValue%60);
+    c_isWifiForceUpdateGrowboxState = true;
   } 
   else if (StringUtils::flashStringEquals(name, F("turnToNightModeAt"))){
-    if (value.length() == 5){
-      if (value[2]==':'){
-        byte downHour   = (value[0]-'0') * 10 + (value[1]-'0');
-        byte downMinute = (value[3]-'0') * 10 + (value[4]-'0');
-        GB_StorageHelper.setTurnToNightModeTime(downHour, downMinute);
-        c_isWifiForceUpdateGrowboxState = true;
-      }
+    word timeValue = getTimeFromInput(value);
+    if (timeValue == 0xFFFF){
+      return false;
     }
+    GB_StorageHelper.setTurnToNightModeTime(timeValue/60, timeValue%60);
+    c_isWifiForceUpdateGrowboxState = true;
   } 
   else if (StringUtils::flashStringEquals(name, F("normalTemperatueDayMin"))){
     byte temp = value.toInt();
@@ -1153,30 +1147,131 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     GB_StorageHelper.setCriticalTemperatue(temp);
     c_isWifiForceUpdateGrowboxState = true;
   }  
-//  else if (StringUtils::flashStringEquals(name, F("wateringSystemCount"))){
-//
-//    byte temp = value.toInt();
-//    if (temp<0 || temp >= MAX_WATERING_SYSTEMS_COUNT){
-//      return false;
-//    }
-//    GB_StorageHelper.setWateringSystemCount(temp);  
-//  } 
+  else if (StringUtils::flashStringEquals(name, F("isWetSensorConnected"))){
+    if (value.length() != 1){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.boolPreferencies.isWetSensorConnected = (value[0]=='1');
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  }
+  else if (StringUtils::flashStringEquals(name, F("isWaterPumpConnected"))){
+    if (value.length() != 1){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.boolPreferencies.isWaterPumpConnected = (value[0]=='1');
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+  else if (StringUtils::flashStringEquals(name, F("notConnectedValue"))){
+    byte intValue = value.toInt();
+    if (intValue == 0){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.notConnectedValue = intValue;
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+  else if (StringUtils::flashStringEquals(name, F("veryDryValue"))){
+    byte intValue = value.toInt();
+    if (intValue == 0){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.veryDryValue = intValue;
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+  else if (StringUtils::flashStringEquals(name, F("dryValue"))){
+    byte intValue = value.toInt();
+    if (intValue == 0){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.dryValue = intValue;
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+  else if (StringUtils::flashStringEquals(name, F("normalValue"))){
+    byte intValue = value.toInt();
+    if (intValue == 0){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.normalValue = intValue;
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+  else if (StringUtils::flashStringEquals(name, F("wetValue"))){
+    byte intValue = value.toInt();
+    if (intValue == 0){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.wetValue = intValue;
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+  else if (StringUtils::flashStringEquals(name, F("veryWetValue"))){
+    byte intValue = value.toInt();
+    if (intValue == 0){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.veryWetValue = intValue;
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+  else if (StringUtils::flashStringEquals(name, F("shortCircitValue"))){
+    byte intValue = value.toInt();
+    if (intValue == 0){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.shortCircitValue = intValue;
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+  else if (StringUtils::flashStringEquals(name, F("dryWateringDuration"))){
+    byte intValue = value.toInt();
+    if (intValue == 0){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.dryWateringDuration = intValue;
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+  else if (StringUtils::flashStringEquals(name, F("veryDryWateringDuration"))){
+    byte intValue = value.toInt();
+    if (intValue == 0){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.veryDryWateringDuration = intValue;
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+  else if (StringUtils::flashStringEquals(name, F("wateringIfNoSensorAt"))){
+    word timeValue = getTimeFromInput(value);
+    if (timeValue == 0xFFFF){
+      return false;
+    }
+    byte wspIndex = getWateringIndexFromUrl(url);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    wsp.wateringIfNoSensorAt = timeValue;
+    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+  } 
+
   else {
     return false;
   }
-  
+
   return true;
 }
 
 WebServerClass GB_WebServer;
-
-
-
-
-
-
-
-
-
-
 

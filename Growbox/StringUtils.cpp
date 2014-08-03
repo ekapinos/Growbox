@@ -175,6 +175,14 @@ String StringUtils::timeStampToString(time_t time, boolean getDate, boolean getT
   return out;
 } 
 
+String StringUtils::wordTimeToString(const word time){
+  String out;
+  out += getFixedDigitsString(time/60, 2);
+  out += ':'; 
+  out += getFixedDigitsString(time%60, 2);
+  return out;
+}
+
 byte StringUtils::hexCharToByte(const char hexChar){
   if (hexChar >='0' && hexChar <='9') {
     return hexChar-'0';

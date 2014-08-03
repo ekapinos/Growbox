@@ -34,11 +34,9 @@ boolean isDayInGrowbox(){
     GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
   }
 
-  byte upHour, upMinute, downHour, downMinute;
-  GB_StorageHelper.getTurnToDayAndNightTime(upHour, upMinute, downHour, downMinute);
+  word upTime, downTime;
+  GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
 
-  word upTime = upHour * 60 + upMinute;
-  word downTime = downHour * 60 + downMinute;
   word currentTime = hour() * 60 + minute();
 
   boolean isDayInGrowbox = false;

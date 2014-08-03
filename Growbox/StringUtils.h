@@ -38,6 +38,7 @@ namespace StringUtils {
   String byteToHexString(byte number, boolean addPrefix = false);
   String floatToString(float number);
   String timeStampToString(time_t time, boolean getDate=true, boolean getTime=true);
+  String wordTimeToString(const word time);
   byte hexCharToByte(const char hexChar);
 }
 

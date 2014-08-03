@@ -62,6 +62,7 @@ private:
   void sendTagRadioButton(const __FlashStringHelper* name, const __FlashStringHelper* text, const __FlashStringHelper* value, boolean isSelected);
   void sendTagInputNumber(const __FlashStringHelper* name, const __FlashStringHelper* text, word minValue, word maxValue, word value);
   void sendTagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value);
+  word getTimeFromInput(const String& value);
 
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected);
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected);
@@ -82,8 +83,8 @@ private:
   /////////////////////////////////////////////////////////////////////
   //                         WATERING PAGE                           //
   /////////////////////////////////////////////////////////////////////
-
-  void sendWateringPage(const String& getParams);
+  byte getWateringIndexFromUrl(const String& url);
+  void sendWateringPage(const String& url);
 
   /////////////////////////////////////////////////////////////////////
   //                      CONFIGURATION PAGE                         //
@@ -129,6 +130,8 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
+
+
 
 
 

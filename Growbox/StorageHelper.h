@@ -21,7 +21,7 @@ public:
   time_t getFirstStartupTimeStamp();
   time_t getLastStartupTimeStamp();
 
-  void getTurnToDayAndNightTime(byte& upHour, byte& upMinute, byte& downHour, byte& downMinute);
+  void getTurnToDayAndNightTime(word& upTime, word& downTime);
   void setTurnToDayModeTime(const byte upHour, const byte upMinute);
   void setTurnToNightModeTime(const byte downHour, const byte downMinute);
 

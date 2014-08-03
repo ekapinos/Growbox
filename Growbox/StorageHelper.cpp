@@ -45,7 +45,7 @@ boolean StorageHelperClass::init(){
 
     for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
       
-      BootRecord::WateringSystemPreferencies wsp = bootRecord.wateringSystemPreferencies[i];
+      BootRecord::WateringSystemPreferencies& wsp = bootRecord.wateringSystemPreferencies[i];
       
       wsp.boolPreferencies.isWetSensorConnected = false;
       wsp.boolPreferencies.isWaterPumpConnected = false;
@@ -90,13 +90,9 @@ time_t StorageHelperClass::getLastStartupTimeStamp(){
   return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp));
 }
 
-void StorageHelperClass::getTurnToDayAndNightTime(byte& upHour, byte& upMinute, byte& downHour, byte& downMinute){
-  word turnToDayModeAt   = EEPROM.readBlock<word>(OFFSETOF(BootRecord, turnToDayModeAt));
-  word turnToNightModeAt = EEPROM.readBlock<word>(OFFSETOF(BootRecord, turnToNightModeAt));
-  upHour     = (turnToDayModeAt / 60);
-  upMinute   = (turnToDayModeAt % 60);
-  downHour   = (turnToNightModeAt / 60);
-  downMinute = (turnToNightModeAt % 60);
+void StorageHelperClass::getTurnToDayAndNightTime(word& upTime, word& downTime){
+  upTime   = EEPROM.readBlock<word>(OFFSETOF(BootRecord, turnToDayModeAt));
+  downTime = EEPROM.readBlock<word>(OFFSETOF(BootRecord, turnToNightModeAt));
 }
 void StorageHelperClass::setTurnToDayModeTime(const byte upHour, const byte upMinute){
   EEPROM.writeBlock<word>(OFFSETOF(BootRecord, turnToDayModeAt), upHour*60+upMinute);
