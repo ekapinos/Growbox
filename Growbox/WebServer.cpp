@@ -55,6 +55,40 @@ boolean WebServerClass::handleSerialEvent(){
   return c_isWifiForceUpdateGrowboxState;
 }
 
+boolean WebServerClass::handleSerialMonitorEvent(){
+  
+  String input(Serial.readString());
+  
+  if (StringUtils::flashStringEndsWith(input, FS(S_CRLF))){
+    input = input.substring(0, input.length()-2);   
+  }
+  
+  int indexOfQestionChar = input.indexOf('?');
+  if (indexOfQestionChar < 0){
+    if(g_useSerialMonitor){ 
+      Serial.print(F("Wrong serial command ["));
+      Serial.print(input);
+      Serial.print(F("]. '?' char not found. Syntax: url?param1=value1[&param2=value]"));
+    }
+    return false;
+  }
+
+  String url(input.substring(0, indexOfQestionChar));
+  String postParams(input.substring(indexOfQestionChar+1));
+  
+  if(g_useSerialMonitor){ 
+    Serial.print(F("Recive from [SM] POST ["));
+    Serial.print(url);
+    Serial.print(F("] postParams ["));
+    Serial.print(postParams);   
+    Serial.println(']');
+  }
+  
+  c_isWifiForceUpdateGrowboxState = false;
+  applyPostParams(url, postParams);
+  return c_isWifiForceUpdateGrowboxState;
+}
+
 /////////////////////////////////////////////////////////////////////
 //                               HTTP                              //
 /////////////////////////////////////////////////////////////////////
@@ -1004,7 +1038,17 @@ String WebServerClass::applyPostParams(const String& url, const String& postPara
     //queryStr += name;
     //queryStr += '=';   
     //queryStr += applyPostParam(name, value);
-    applyPostParam(url, name, value);
+
+    boolean result = applyPostParam(url, name, value);
+    
+    if (g_useSerialMonitor){
+      showWebMessage(F("Execute command: "), false);
+      Serial.print(name);
+      Serial.print('=');
+      Serial.print(value);
+      Serial.println(result ? F(" - OK") : F(" - FAIL"));
+    }
+
     index++;
   }
   //if (index > 0){
@@ -1120,7 +1164,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
   else {
     return false;
   }
-
+  
   return true;
 }
 

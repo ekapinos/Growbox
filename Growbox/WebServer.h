@@ -22,6 +22,7 @@ private:
 public:  
 
   boolean handleSerialEvent();
+  boolean handleSerialMonitorEvent();
 
 private:
 
