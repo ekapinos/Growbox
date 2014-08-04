@@ -727,29 +727,29 @@ void WebServerClass::sendWateringPage(const String& url){
 
   sendRawData(F("<tr><td>In Air value</td><td>"));
   sendTagInputNumber(F("inAirValue"), 0, 1, 255, wsp.inAirValue);
-  sendRawData(F("..[255]</td></tr>"));
+  sendRawData(F(" .. [255]</td></tr>"));
 
   sendRawData(F("<tr><td>Very Dry value</td><td>"));
   sendTagInputNumber(F("veryDryValue"), 0, 1, 255, wsp.veryDryValue);
-  sendRawData(F("..[In Air]</td></tr>"));
+  sendRawData(F(" .. [In Air]</td></tr>"));
 
   sendRawData(F("<tr><td>Dry value</td><td>"));
   sendTagInputNumber(F("dryValue"), 0, 1, 255, wsp.dryValue);
-  sendRawData(F("..[Very Dry]</td></tr>"));
+  sendRawData(F(" .. [Very Dry]</td></tr>"));
 
   sendRawData(F("<tr><td>Normal value</td><td>"));
   sendTagInputNumber(F("normalValue"), 0, 1, 255, wsp.normalValue);
-  sendRawData(F("..[Dry]</td></tr>"));
+  sendRawData(F(" .. [Dry]</td></tr>"));
 
   sendRawData(F("<tr><td>Wet value</td><td>"));
   sendTagInputNumber(F("wetValue"), 0, 1, 255, wsp.wetValue);
-  sendRawData(F("..[Normal]</td></tr>"));
+  sendRawData(F(" .. [Normal]</td></tr>"));
 
   sendRawData(F("<tr><td>Very Wet value</td><td>"));
   sendTagInputNumber(F("veryWetValue"), 0, 1, 255, wsp.veryWetValue);
-  sendRawData(F("..[Wet]</td></tr>"));
+  sendRawData(F(" .. [Wet]</td></tr>"));
 
-  sendRawData(F("<tr><td>Short circit value</td><td>[0]..[Very Wet]</td></tr>"));
+  sendRawData(F("<tr><td>Short circit value</td><td>[0] .. [Very Wet]</td></tr>"));
 
   sendRawData(F("</table>"));
   sendRawData(F("<input type='submit' value='Save'>"));

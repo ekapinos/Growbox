@@ -124,11 +124,14 @@ void setup() {
   }
 
   initLoggerModel();
-  if (!Error::isInitialized()){
-    stopOnFatalError(F("not all Errors initialized"));
-  }
   if (!Event::isInitialized()){
     stopOnFatalError(F("not all Events initialized"));
+  }  
+  if (!WateringEvent::isInitialized()){
+    stopOnFatalError(F("not all WateringEvents initialized"));
+  }
+  if (!Error::isInitialized()){
+    stopOnFatalError(F("not all Errors initialized"));
   }
   if (BOOT_RECORD_SIZE != sizeof(BootRecord)){
     Serial.print(F("Expected: "));
@@ -200,6 +203,7 @@ void setup() {
 
   GB_Controller.checkFreeMemory();
 
+  // all sensor pins already enabled, no need to call beforeUpdateGrowboxState()
   updateGrowboxState();
   // Log current temeperature
   //GB_Thermometer.getTemperature(); // forceLog?
@@ -212,7 +216,7 @@ void setup() {
   Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
   Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
 
-  Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);  // repeat every N seconds
+  Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, beforeUpdateGrowboxState);  // repeat every N seconds
 
   // TODO update if configuration changed
   // Create suolemental rare switching
@@ -272,6 +276,10 @@ void serialEvent1(){
 /////////////////////////////////////////////////////////////////////
 //                  TIMER/CLOCK EVENT HANDLERS                     //
 /////////////////////////////////////////////////////////////////////
+void beforeUpdateGrowboxState() {
+  GB_Watering.turnOnWetSensors();
+  Alarm.triggerOnce(now()+WATERING_SYSTEM_TURN_ON_DELAY, updateGrowboxState);
+}
 
 void updateGrowboxState() {
 
@@ -331,6 +339,8 @@ void updateGrowboxState() {
       turnOffFan(); 
     }
   }
+  
+  GB_Watering.updateWetStatus();
 }
 
 /////////////////////////////////////////////////////////////////////

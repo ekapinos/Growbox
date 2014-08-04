@@ -12,28 +12,31 @@ public:
   //                             APPEND                              //
   /////////////////////////////////////////////////////////////////////
 
-  static void logEvent(Event &event);
+  void logEvent(Event &event);
+  void logWateringEvent(byte wsIndex, WateringEvent& wateringEvent);
+  
+  void logError(Error &error);
+  boolean stopLogError(Error &error);
 
-  static void logError(Error &error);
-  static boolean stopLogError(Error &error);
+  void logTemperature(byte temperature);
 
-  static void logTemperature(byte temperature);
 
   /////////////////////////////////////////////////////////////////////
   //                              CHECK                              //
   /////////////////////////////////////////////////////////////////////
 
-  static String getLogRecordPrefix(const LogRecord &logRecord);
-  static const __FlashStringHelper* getLogRecordDescription(LogRecord &logRecord);
-  static String getLogRecordDescriptionSuffix(const LogRecord &logRecord);
+  String getLogRecordPrefix(const LogRecord &logRecord);
+  const __FlashStringHelper* getLogRecordDescription(LogRecord &logRecord);
+  String getLogRecordDescriptionSuffix(const LogRecord &logRecord);
 
-  static boolean isEvent(const LogRecord &logRecord);
-  static boolean isError(const LogRecord &logRecord);
-  static boolean isTemperature(const LogRecord &logRecord);
+  boolean isEvent(const LogRecord &logRecord);
+  boolean isWateringEvent(const LogRecord &logRecord);
+  boolean isError(const LogRecord &logRecord);
+  boolean isTemperature(const LogRecord &logRecord);
 
 private:
 
-  static void printLogRecordToSerialMonotior(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean isStored, const byte temperature = 0xFF);
+  void printLogRecordToSerialMonotior(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean isStored, const byte temperature = 0xFF);
 
 };
 

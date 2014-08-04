@@ -84,6 +84,43 @@ EVENT_SERIAL_UNKNOWN_COMMAND,
 EVENT_LOGGER_ENABLED,
 EVENT_LOGGER_DISABLED;
 
+
+/////////////////////////////////////////////////////////////////////
+//                           WATERING EVENT                        //
+/////////////////////////////////////////////////////////////////////
+
+class WateringEvent {
+private:
+  static LinkedList<WateringEvent> fullList;
+
+public:
+  byte index;
+  const __FlashStringHelper* description; // FLASH
+
+  WateringEvent();
+
+  void init(byte index, const __FlashStringHelper* description) ;
+
+  static WateringEvent* findByKey(byte index);
+
+  static boolean isInitialized();
+
+};
+
+extern WateringEvent //16 elements -  max
+WATERING_EVENT_WET_SENSOR_IN_AIR,
+WATERING_EVENT_WET_SENSOR_VERY_DRY,
+WATERING_EVENT_WET_SENSOR_DRY,
+WATERING_EVENT_WET_SENSOR_NORMAL,
+WATERING_EVENT_WET_SENSOR_WET,
+WATERING_EVENT_WET_SENSOR_VERY_WET,
+WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT,
+WATERING_EVENT_WET_SENSOR_UNKNOWN,
+ 
+WATERING_EVENT_WATER_PUMP_ON_DRY,
+WATERING_EVENT_WATER_PUMP_ON_VERY_DRY,
+WATERING_EVENT_WATER_PUMP_AUTO_ON_DRY;
+   
 void initLoggerModel();
 
 #endif

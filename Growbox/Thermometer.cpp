@@ -47,7 +47,7 @@ boolean ThermometerClass::updateStatistics(){
   if (forceLog) {
     getTemperature(true);
   }
-  else if (c_statisticsTemperatureCount > 100){
+  else if (c_statisticsTemperatureCount > 50){
     getTemperature(); // prevents overflow 
   }
 

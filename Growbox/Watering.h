@@ -2,34 +2,43 @@
 #define Watering_h
 
 #include "Global.h"
+#include "LoggerModel.h"
 #include "StorageModel.h"
 
 class WateringClass{
 public:
 
-  enum WetSensorState {
-    WET_SENSOR_IN_AIR,
-    WET_SENSOR_VERY_DRY,
-    WET_SENSOR_DRY,
-    WET_SENSOR_NORMAL,
-    WET_SENSOR_WET,
-    WET_SENSOR_VERY_WET,
-    WET_SENSOR_SHORT_CIRCIT,
-    WET_SENSOR_UNKNOWN // can't read wet value, readings are not stable
-  };
-
 private:
-  WetSensorState c_lastWetSensorState[MAX_WATERING_SYSTEMS_COUNT];
+  WateringEvent* c_lastWetSensorState[MAX_WATERING_SYSTEMS_COUNT];
  
 public:
   byte analogToByte(word input);
   
   void init();
   
+  void turnOnWetSensors();
+  void updateWetStatus();
+  
 private:
-  WetSensorState analogToState(const BootRecord::WateringSystemPreferencies& wsp, word input);
-  WetSensorState readWetState(const BootRecord::WateringSystemPreferencies& wsp, byte pin);
+  WateringEvent* analogToState(const BootRecord::WateringSystemPreferencies& wsp, byte input);
+  WateringEvent* readWetState(const BootRecord::WateringSystemPreferencies& wsp, byte wsIndex);
 
+  
+  /////////////////////////////////////////////////////////////////////
+  //                              OTHER                              //
+  /////////////////////////////////////////////////////////////////////
+
+  template <class T> void showWateringMessage(byte wsIndex, T str, boolean newLine = true){
+    if (g_useSerialMonitor){
+      Serial.print(F("WATERING> ["));
+      Serial.print(wsIndex+1);
+      Serial.print(F("] "));
+      Serial.print(str);
+      if (newLine){  
+        Serial.println();
+      }      
+    }
+  }
 };
 
 extern WateringClass GB_Watering;

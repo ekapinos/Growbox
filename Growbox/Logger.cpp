@@ -7,13 +7,23 @@
 /////////////////////////////////////////////////////////////////////
 
 
-// Normal event uses uses format [00DDDDDD]
+// Normal event uses format [00DDDDDD]
 //   00 - prefix for normal events 
 //   DDDDDD - event identificator
 void LoggerClass::logEvent(Event &event){
   LogRecord logRecord(event.index);
   boolean isStored = GB_StorageHelper.storeLogRecord(logRecord);
   printLogRecordToSerialMonotior(logRecord, event.description, isStored);
+}
+
+// Watering event uses format [10SSDDDD]
+//   10 - prefix for watering events 
+//   SS - index of watering system [0..3]
+//   DDDD - event identificator
+void LoggerClass::logWateringEvent(byte wsIndex, WateringEvent& wateringEvent){
+  LogRecord logRecord(B10000000 | ((B00000011 & wsIndex)<<4) | (B00001111 & wateringEvent.index));
+  boolean isStored = GB_StorageHelper.storeLogRecord(logRecord);
+  printLogRecordToSerialMonotior(logRecord, wateringEvent.description, isStored);
 }
 
 // Error events uses format [01SSDDDD] 
@@ -31,6 +41,7 @@ void LoggerClass::logError(Error &error){
   error.isStored = true;   
   error.notify();
 }
+
 boolean LoggerClass::stopLogError(Error &error){
   if (error.isStored){
     error.isStored = false;
@@ -73,6 +84,16 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
       return foundItemPtr->description;
     }
   } 
+  byte wateringIndex = (data & B00001111); 
+  if (isWateringEvent(logRecord)){
+    WateringEvent* foundItemPtr = WateringEvent::findByKey(wateringIndex);
+    if (foundItemPtr == 0){
+      return F("Unknown watering event");
+    } 
+    else {
+      return foundItemPtr->description;
+    }
+  } 
   else if (isTemperature(logRecord)){
     return FS(S_Temperature);
   } 
@@ -94,7 +115,13 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
 
 String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){        
   String out;
-  if (isTemperature(logRecord)) {
+  if (isWateringEvent(logRecord)) {
+    byte wsIndex = ((logRecord.data & B00110000) >> 4);
+    out += StringUtils::flashStringLoad(F(", ws ["));
+    out += (wsIndex+1);
+    out += ']';
+  }
+  else if (isTemperature(logRecord)) {
     byte temperature = (logRecord.data & B00111111);
     out += StringUtils::flashStringLoad(F(" ["));
     out += temperature;
@@ -108,6 +135,9 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){
 
 boolean LoggerClass::isEvent(const LogRecord &logRecord){
   return (logRecord.data & B11000000) == B00000000;
+}
+boolean LoggerClass::isWateringEvent(const LogRecord &logRecord){
+  return (logRecord.data & B11000000) == B10000000;
 }
 boolean LoggerClass::isError(const LogRecord &logRecord){
   return (logRecord.data & B11000000) == B01000000;

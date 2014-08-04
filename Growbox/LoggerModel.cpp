@@ -79,7 +79,38 @@ Event* Event::findByKey(byte index){
   return 0;
 }
 
-boolean  Event::isInitialized(){
+boolean Event::isInitialized(){
+  return (findByKey(0xFF) == 0);
+}
+
+/////////////////////////////////////////////////////////////////////
+//                          WATERING EVENT                         //
+/////////////////////////////////////////////////////////////////////
+
+LinkedList<WateringEvent> WateringEvent::fullList = LinkedList<WateringEvent>();
+
+WateringEvent::WateringEvent() : 
+index(0xFF) {
+  fullList.add(this);
+}
+
+void  WateringEvent::init(byte index, const __FlashStringHelper* description) {
+  this->index = index;
+  this->description = description;
+}
+
+WateringEvent* WateringEvent::findByKey(byte index){
+  Iterator<WateringEvent> iterator = fullList.getIterator();
+  while(iterator.hasNext()){
+    WateringEvent* currentItemPtr = iterator.getNext();    
+    if (currentItemPtr->index == index) {
+      return currentItemPtr;
+    }
+  }
+  return 0;
+}
+
+boolean WateringEvent::isInitialized(){
   return (findByKey(0xFF) == 0);
 }
 
@@ -105,7 +136,20 @@ EVENT_FAN_ON_MAX,
 EVENT_LOGGER_ENABLED,
 EVENT_LOGGER_DISABLED;
 
-
+WateringEvent //16 elements -  max
+WATERING_EVENT_WET_SENSOR_IN_AIR,
+WATERING_EVENT_WET_SENSOR_VERY_DRY,
+WATERING_EVENT_WET_SENSOR_DRY,
+WATERING_EVENT_WET_SENSOR_NORMAL,
+WATERING_EVENT_WET_SENSOR_WET,
+WATERING_EVENT_WET_SENSOR_VERY_WET,
+WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT,
+WATERING_EVENT_WET_SENSOR_UNKNOWN,
+ 
+WATERING_EVENT_WATER_PUMP_ON_DRY,
+WATERING_EVENT_WATER_PUMP_ON_VERY_DRY,
+WATERING_EVENT_WATER_PUMP_AUTO_ON_DRY;
+   
 void initLoggerModel(){
 
   // Use F macro to reduce requirements to memory. We can't use F macro in constructors.
@@ -127,6 +171,19 @@ void initLoggerModel(){
   EVENT_FAN_ON_MAX.init(9, F("Fan max speed"));
   EVENT_LOGGER_ENABLED.init(10, F("Logger enabled"));
   EVENT_LOGGER_DISABLED.init(11, F("Logger disabled"));
+  
+  WATERING_EVENT_WET_SENSOR_IN_AIR.init(1, F("Wet sensor [In Air]"));
+  WATERING_EVENT_WET_SENSOR_VERY_DRY.init(2, F("Wet sensor [Very Dry]"));
+  WATERING_EVENT_WET_SENSOR_DRY.init(3, F("Wet sensor [Dry]"));
+  WATERING_EVENT_WET_SENSOR_NORMAL.init(4, F("Wet sensor [Normal]"));
+  WATERING_EVENT_WET_SENSOR_WET.init(5, F("Wet sensor [Wet]"));
+  WATERING_EVENT_WET_SENSOR_VERY_WET.init(6, F("Wet sensor [Very Wet]"));
+  WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT.init(7, F("Wet sensor [Short Circit]"));
+  WATERING_EVENT_WET_SENSOR_UNKNOWN.init(8, F("Wet sensor [Unknown]"));
+   
+  WATERING_EVENT_WATER_PUMP_ON_DRY.init(9, F("Water pump [Dry]"));
+  WATERING_EVENT_WATER_PUMP_ON_VERY_DRY.init(10, F("Water pump [Very Dry]"));
+  WATERING_EVENT_WATER_PUMP_AUTO_ON_DRY.init(11, F("Water pump [Auto Dry])"));
 }
 
 
