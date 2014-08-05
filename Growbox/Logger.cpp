@@ -117,9 +117,8 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){
   String out;
   if (isWateringEvent(logRecord)) {
     byte wsIndex = ((logRecord.data & B00110000) >> 4);
-    out += StringUtils::flashStringLoad(F(", ws ["));
+    out += StringUtils::flashStringLoad(F(" #"));
     out += (wsIndex+1);
-    out += ']';
   }
   else if (isTemperature(logRecord)) {
     byte temperature = (logRecord.data & B00111111);

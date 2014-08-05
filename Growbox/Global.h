@@ -52,12 +52,12 @@ const byte FAN_SPEED_MAX = RELAY_ON;
 
 // Minimum Growbox reaction time
 const int UPDATE_BREEZE_DELAY = 1;
-const int UPDATE_GROWBOX_STATE_DELAY = 20;//5*60; // 5 min 
+const int UPDATE_GROWBOX_STATE_DELAY = 5*60; // 5 min 
 const int UPDATE_CONTROLLER_STATUS_DELAY = 1;
 const int UPDATE_THEMPERATURE_STATISTICS_DELAY = 20; //20 sec 
 const int UPDATE_WIFI_STATUS_DELAY = 20; //20 sec 
 
-const int WATERING_SYSTEM_TURN_ON_DELAY = 5; // 5 sec 
+const int WATERING_SYSTEM_TURN_ON_DELAY = 3; // 3 sec 
 
 
 // error blinks in milleseconds and blink sequences

@@ -340,7 +340,9 @@ void updateGrowboxState() {
     }
   }
   
-  GB_Watering.updateWetStatus();
+  if (GB_Watering.updateWetStatus()){
+    GB_Watering.turnOnWaterPumps();
+  }
 }
 
 /////////////////////////////////////////////////////////////////////

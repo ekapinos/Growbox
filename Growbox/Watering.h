@@ -9,7 +9,7 @@ class WateringClass{
 public:
 
 private:
-  WateringEvent* c_lastWetSensorState[MAX_WATERING_SYSTEMS_COUNT];
+  byte c_lastWetSensorValue[MAX_WATERING_SYSTEMS_COUNT];
  
 public:
   byte analogToByte(word input);
@@ -17,11 +17,16 @@ public:
   void init();
   
   void turnOnWetSensors();
-  void updateWetStatus();
+  boolean updateWetStatus();
+  void turnOnWaterPumps();
+  
+  void updateWetSensorsForce();
+  byte getCurrentWetSensorValue(byte wsIndex);
+  WateringEvent* getCurrentWetSensorStatus(byte wsIndex);
   
 private:
-  WateringEvent* analogToState(const BootRecord::WateringSystemPreferencies& wsp, byte input);
-  WateringEvent* readWetState(const BootRecord::WateringSystemPreferencies& wsp, byte wsIndex);
+  byte readWetValue(const BootRecord::WateringSystemPreferencies& wsp, byte wsIndex);
+  WateringEvent* valueToState(const BootRecord::WateringSystemPreferencies& wsp, byte input);
 
   
   /////////////////////////////////////////////////////////////////////

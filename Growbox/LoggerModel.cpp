@@ -94,9 +94,10 @@ index(0xFF) {
   fullList.add(this);
 }
 
-void  WateringEvent::init(byte index, const __FlashStringHelper* description) {
+void  WateringEvent::init(byte index, const __FlashStringHelper* description, const __FlashStringHelper* shortDescription) {
   this->index = index;
-  this->description = description;
+  this->description = description; 
+  this->shortDescription = shortDescription;
 }
 
 WateringEvent* WateringEvent::findByKey(byte index){
@@ -144,7 +145,7 @@ WATERING_EVENT_WET_SENSOR_NORMAL,
 WATERING_EVENT_WET_SENSOR_WET,
 WATERING_EVENT_WET_SENSOR_VERY_WET,
 WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT,
-WATERING_EVENT_WET_SENSOR_UNKNOWN,
+WATERING_EVENT_WET_SENSOR_DISABLED,
  
 WATERING_EVENT_WATER_PUMP_ON_DRY,
 WATERING_EVENT_WATER_PUMP_ON_VERY_DRY,
@@ -172,18 +173,18 @@ void initLoggerModel(){
   EVENT_LOGGER_ENABLED.init(10, F("Logger enabled"));
   EVENT_LOGGER_DISABLED.init(11, F("Logger disabled"));
   
-  WATERING_EVENT_WET_SENSOR_IN_AIR.init(1, F("Wet sensor [In Air]"));
-  WATERING_EVENT_WET_SENSOR_VERY_DRY.init(2, F("Wet sensor [Very Dry]"));
-  WATERING_EVENT_WET_SENSOR_DRY.init(3, F("Wet sensor [Dry]"));
-  WATERING_EVENT_WET_SENSOR_NORMAL.init(4, F("Wet sensor [Normal]"));
-  WATERING_EVENT_WET_SENSOR_WET.init(5, F("Wet sensor [Wet]"));
-  WATERING_EVENT_WET_SENSOR_VERY_WET.init(6, F("Wet sensor [Very Wet]"));
-  WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT.init(7, F("Wet sensor [Short Circit]"));
-  WATERING_EVENT_WET_SENSOR_UNKNOWN.init(8, F("Wet sensor [Unknown]"));
+  WATERING_EVENT_WET_SENSOR_IN_AIR.init(1, F("Wet sensor [In Air]"), F("In Air"));
+  WATERING_EVENT_WET_SENSOR_VERY_DRY.init(2, F("Wet sensor [Very Dry]"), F("Very Dry"));
+  WATERING_EVENT_WET_SENSOR_DRY.init(3, F("Wet sensor [Dry]"), F("Dry"));
+  WATERING_EVENT_WET_SENSOR_NORMAL.init(4, F("Wet sensor [Normal]"), F("Normal"));
+  WATERING_EVENT_WET_SENSOR_WET.init(5, F("Wet sensor [Wet]"), F("Wet"));
+  WATERING_EVENT_WET_SENSOR_VERY_WET.init(6, F("Wet sensor [Very Wet]"), F("Very Wet"));
+  WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT.init(7, F("Wet sensor [Short Circit]"), F("Short Circit"));
+  WATERING_EVENT_WET_SENSOR_DISABLED.init(8, F("Wet sensor [Disabled]"), F("Disabled"));
    
-  WATERING_EVENT_WATER_PUMP_ON_DRY.init(9, F("Water pump [Dry]"));
-  WATERING_EVENT_WATER_PUMP_ON_VERY_DRY.init(10, F("Water pump [Very Dry]"));
-  WATERING_EVENT_WATER_PUMP_AUTO_ON_DRY.init(11, F("Water pump [Auto Dry])"));
+  WATERING_EVENT_WATER_PUMP_ON_DRY.init(9, F("Water pump [Dry]"), F("Dry"));
+  WATERING_EVENT_WATER_PUMP_ON_VERY_DRY.init(10, F("Water pump [Very Dry]"), F("Very Dry"));
+  WATERING_EVENT_WATER_PUMP_AUTO_ON_DRY.init(11, F("Water pump [Auto Dry]"), F("Auto Dry"));
 }
 
 

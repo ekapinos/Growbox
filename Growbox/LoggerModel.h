@@ -95,11 +95,12 @@ private:
 
 public:
   byte index;
-  const __FlashStringHelper* description; // FLASH
+  const __FlashStringHelper* description; // FLASH  
+  const __FlashStringHelper* shortDescription; // FLASH
 
   WateringEvent();
 
-  void init(byte index, const __FlashStringHelper* description) ;
+  void init(byte index, const __FlashStringHelper* description, const __FlashStringHelper* shortDescription) ;
 
   static WateringEvent* findByKey(byte index);
 
@@ -115,7 +116,7 @@ WATERING_EVENT_WET_SENSOR_NORMAL,
 WATERING_EVENT_WET_SENSOR_WET,
 WATERING_EVENT_WET_SENSOR_VERY_WET,
 WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT,
-WATERING_EVENT_WET_SENSOR_UNKNOWN,
+WATERING_EVENT_WET_SENSOR_DISABLED,
  
 WATERING_EVENT_WATER_PUMP_ON_DRY,
 WATERING_EVENT_WATER_PUMP_ON_VERY_DRY,
