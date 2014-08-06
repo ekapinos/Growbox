@@ -9,7 +9,7 @@ byte WateringClass::analogToByte(word input){
 
 void WateringClass::init(){
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
-    c_lastWetSensorValue[wsIndex] = 0;  // TODO use unique
+    c_lastWetSensorValue[wsIndex] = 0; 
   }
 }
 
@@ -115,7 +115,7 @@ byte WateringClass::readWetValue(const BootRecord::WateringSystemPreferencies& w
       Serial.print(' ');
     }
 
-    if (currentValue == lastValue || (currentValue > lastValue) && ((currentValue - lastValue) < 2) || (lastValue > currentValue) && ((lastValue - currentValue) < 2) ){
+    if (currentValue == lastValue || ((currentValue > lastValue) && ((currentValue - lastValue) < 2)) || ((lastValue > currentValue) && ((lastValue - currentValue) < 2)) ){
       equalsCounter++;
       if (equalsCounter == 3){
         if (g_useSerialMonitor){

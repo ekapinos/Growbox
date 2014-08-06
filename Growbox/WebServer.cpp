@@ -769,10 +769,11 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(wspIndex+1);
   sendRawData(F("' method='post'>"));
   sendTagCheckbox(F("isWetSensorConnected"), F("Sensor connected"), wsp.boolPreferencies.isWetSensorConnected);
-
+  
   GB_Watering.updateWetSensorsForce();
-  WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wspIndex);
   byte currentValue = GB_Watering.getCurrentWetSensorValue(wspIndex);
+  WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wspIndex);
+  
   sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Current value [<b>"));
   if (currentValue == 0){
     sendRawData(F("N/A"));
