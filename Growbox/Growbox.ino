@@ -92,20 +92,20 @@ void setup() {
   pinMode(LIGHT_PIN, OUTPUT);   
   pinMode(FAN_PIN, OUTPUT);  
   pinMode(FAN_SPEED_PIN, OUTPUT); 
-  
+
   // Configure relay
   digitalWrite(LIGHT_PIN, RELAY_OFF);
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
-  
-  
+
+
   // Watering
   for (int i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
     pinMode(WATERING_WET_SENSOR_IN_PINS[i], INPUT_PULLUP);
-    
+
     pinMode(WATERING_WET_SENSOR_POWER_PINS[i], OUTPUT);
     pinMode(WATERING_PUMP_PINS[i], OUTPUT);
-    
+
     digitalWrite(WATERING_WET_SENSOR_POWER_PINS[i], HIGH);
     digitalWrite(WATERING_PUMP_PINS[i], RELAY_OFF);
   }
@@ -128,7 +128,7 @@ void setup() {
     stopOnFatalError(F("not all Events initialized"));
   }  
   if (!WateringEvent::isInitialized()){
-    stopOnFatalError(F("not all WateringEvents initialized"));
+    stopOnFatalError(F("not all Watering Events initialized"));
   }
   if (!Error::isInitialized()){
     stopOnFatalError(F("not all Errors initialized"));
@@ -188,9 +188,9 @@ void setup() {
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean itWasRestart = GB_StorageHelper.init();
-  
+
   GB_Watering.init();
-  
+
   g_isGrowboxStarted = true;
 
   // Now we can use logger
@@ -244,12 +244,12 @@ void loop() {
 }
 
 void serialEvent(){
-  
+
   if(!g_isGrowboxStarted){
     // We will not handle external events during startup
     return;
   }
-  
+
   boolean forceUpdate = GB_WebServer.handleSerialMonitorEvent();
   if (forceUpdate){
     updateGrowboxState();
@@ -277,8 +277,14 @@ void serialEvent1(){
 //                  TIMER/CLOCK EVENT HANDLERS                     //
 /////////////////////////////////////////////////////////////////////
 void beforeUpdateGrowboxState() {
-  GB_Watering.turnOnWetSensors();
-  Alarm.triggerOnce(now()+WATERING_SYSTEM_TURN_ON_DELAY, updateGrowboxState);
+  if (GB_Watering.turnOnWetSensors()){
+    // Update after delay
+    Alarm.timerOnce(0, 0, WATERING_SYSTEM_TURN_ON_DELAY, updateGrowboxState);
+  } 
+  else {
+    // Update immediately
+    updateGrowboxState();
+  }
 }
 
 void updateGrowboxState() {
@@ -339,12 +345,21 @@ void updateGrowboxState() {
       turnOffFan(); 
     }
   }
-  
+
   if (GB_Watering.updateWetStatus()){
-    GB_Watering.turnOnWaterPumps();
+    byte nextPumpOffTimout = GB_Watering.turnOnWaterPumps();
+    if (nextPumpOffTimout > 0){
+      Alarm.timerOnce(0, 0, nextPumpOffTimout, afterUpdateGrowboxState);
+    }
   }
 }
 
+void afterUpdateGrowboxState() {
+  byte nextPumpOffTimout = GB_Watering.turnOffWaterPumpsOnSchedule();
+  if (nextPumpOffTimout > 0){
+    Alarm.timerOnce(0, 0, nextPumpOffTimout, afterUpdateGrowboxState);
+  }
+}
 /////////////////////////////////////////////////////////////////////
 //                              SCHEDULE                           //
 /////////////////////////////////////////////////////////////////////
@@ -409,5 +424,6 @@ void turnOffFan(){
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
   GB_Logger.logEvent(EVENT_FAN_OFF);
 }
+
 
 

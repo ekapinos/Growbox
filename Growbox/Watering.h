@@ -8,22 +8,28 @@
 class WateringClass{
 public:
 
+const static byte WATERING_DISABLE_VALUE = 0;
+const static byte WATERING_UNSTABLE_VALUE = 1;
+
 private:
   byte c_lastWetSensorValue[MAX_WATERING_SYSTEMS_COUNT];
+  byte c_waterPumpDisableTimeout[MAX_WATERING_SYSTEMS_COUNT];
  
 public:
-  byte analogToByte(word input);
   
   void init();
+    
+  void updateWetStatusForce();
   
-  void turnOnWetSensors();
+  boolean turnOnWetSensors();
   boolean updateWetStatus();
-  void turnOnWaterPumps();
+  byte turnOnWaterPumps();
+  byte turnOffWaterPumpsOnSchedule();
   
-  void updateWetSensorsForce();
+  boolean isWetSensorValueReserved(byte value);
   byte getCurrentWetSensorValue(byte wsIndex);
   WateringEvent* getCurrentWetSensorStatus(byte wsIndex);
-  
+
 private:
   byte readWetValue(const BootRecord::WateringSystemPreferencies& wsp, byte wsIndex);
   WateringEvent* valueToState(const BootRecord::WateringSystemPreferencies& wsp, byte input);
@@ -36,6 +42,7 @@ private:
   template <class T> void showWateringMessage(byte wsIndex, T str, boolean newLine = true){
     if (g_useSerialMonitor){
       Serial.print(F("WATERING> ["));
+      
       Serial.print(wsIndex+1);
       Serial.print(F("] "));
       Serial.print(str);

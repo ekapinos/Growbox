@@ -373,7 +373,7 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   sendRawData(F("  <title>Growbox</title>"));
   sendRawData(F("  <meta name='viewport' content='width=device-width, initial-scale=1'/>"));  
   sendRawData(F("<style type='text/css'>"));
-  sendRawData(F("  body {font-family:Arial;}"));
+  sendRawData(F("  body {font-family:Arial; max-width:400px; }"));
   sendRawData(F("  form {margin: 0px;}"));
   sendRawData(F("  .red {color: red;}"));
   sendRawData(F("  .grab {border-spacing:5px; width:100%; }")); 
@@ -457,9 +457,11 @@ void WebServerClass::sendStatusPage(){
   sendRawData(statisticsCount);
   sendRawData(F(" measurements)</dd>"));
 
-
   sendRawData(F("<dt>Watering</dt>"));
-  GB_Watering.updateWetSensorsForce();
+  if(g_useSerialMonitor){ 
+    Serial.println();
+  }
+  GB_Watering.updateWetStatusForce();
   boolean isEnabledWetSensorsExists = false;
   for (byte wspIndex = 0; wspIndex < MAX_WATERING_SYSTEMS_COUNT; wspIndex++){
     WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wspIndex);
@@ -479,6 +481,7 @@ void WebServerClass::sendStatusPage(){
     sendRawData(currentStatus->shortDescription);
     sendRawData(F("</span></dd>")); 
   }
+  
   if (!isEnabledWetSensorsExists){
      sendRawData(F("<dd>All Wet sensors disabled</dd>")); 
   }
@@ -770,17 +773,18 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(F("' method='post'>"));
   sendTagCheckbox(F("isWetSensorConnected"), F("Sensor connected"), wsp.boolPreferencies.isWetSensorConnected);
   
-  GB_Watering.updateWetSensorsForce();
-  byte currentValue = GB_Watering.getCurrentWetSensorValue(wspIndex);
-  WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wspIndex);
-  
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Current value [<b>"));
-  if (currentValue == 0){
-    sendRawData(F("N/A"));
-  } 
-  else {
-    sendRawData(currentValue);
+  if(g_useSerialMonitor){ 
+    Serial.println();
   }
+  GB_Watering.updateWetStatusForce();
+  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Current value [<b>"));
+  byte currentValue = GB_Watering.getCurrentWetSensorValue(wspIndex);
+  if (GB_Watering.isWetSensorValueReserved(currentValue)){
+    sendRawData(F("N/A"));
+  } else {
+    sendRawData(GB_Watering.getCurrentWetSensorValue(wspIndex));
+  }
+  WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wspIndex);
   sendRawData(F("</b>], state [<b>"));
   sendRawData(currentStatus->shortDescription);
   sendRawData(F("</b>]</small>"));

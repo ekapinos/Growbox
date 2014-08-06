@@ -43,19 +43,19 @@ boolean StorageHelperClass::init(){
     bootRecord.normalTemperatueNightMax = 21;
     bootRecord.criticalTemperatue = 35;
 
-    for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
+    for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
       
       BootRecord::WateringSystemPreferencies& wsp = bootRecord.wateringSystemPreferencies[i];
       
       wsp.boolPreferencies.isWetSensorConnected = false;
       wsp.boolPreferencies.isWaterPumpConnected = false;
       
-      wsp.inAirValue        = GB_Watering.analogToByte(1010);
-      wsp.veryDryValue      = GB_Watering.analogToByte(900);
-      wsp.dryValue          = GB_Watering.analogToByte(800);
-      wsp.normalValue       = GB_Watering.analogToByte(600);
-      wsp.wetValue          = GB_Watering.analogToByte(500);
-      wsp.veryWetValue      = GB_Watering.analogToByte(300);
+      wsp.inAirValue   = 240;
+      wsp.veryDryValue = 200;
+      wsp.dryValue     = 180;
+      wsp.normalValue  = 150;
+      wsp.wetValue     = 100;
+      wsp.veryWetValue =  50;
       
       wsp.dryWateringDuration = 30;     // 30 sec
       wsp.veryDryWateringDuration = 60; // 60 sec
