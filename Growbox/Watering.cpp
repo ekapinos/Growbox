@@ -3,27 +3,46 @@
 #include "StorageHelper.h"
 #include "Logger.h"
 
-void WateringClass::init(){
+void WateringClass::init(time_t turnOnWetSensorsTime){
+
+  if(g_useSerialMonitor){
+    showWateringMessage(F("init - start, at "), false);
+    Serial.println(StringUtils::timeStampToString(turnOnWetSensorsTime));
+  }
+
+  c_turnOnWetSensorsTime = turnOnWetSensorsTime;
+
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
     c_lastWetSensorValue[wsIndex] = WATERING_DISABLE_VALUE; 
-  }
-  turnOnWetSensors(); // turn off unused sensors (on boot all power pins enabled)
-}
 
-void WateringClass::updateWetStatusForce(){
-  if (turnOnWetSensors()){
-    delay((unsigned long)WATERING_SYSTEM_TURN_ON_DELAY*1000);
-    updateWetStatus();
+    // Turn OFF unused Wet sensor pins
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
+    if (!wsp.boolPreferencies.isWetSensorConnected){
+      digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
+      showWateringMessage(wsIndex, F("Wet sensor OFF"));
+    }
   }
+
+  showWateringMessage(F("init - stop"));
 }
 
 boolean WateringClass::turnOnWetSensors(){
 
-  boolean isSensorsTurnedOn = false;
+  showWateringMessage(F("Turn ON sensors - start"));
 
+  if (c_turnOnWetSensorsTime != 0){
+    showWateringMessage(F("Skiped"));
+    showWateringMessage(F("Turn ON sensors - stop"));
+    return true;
+  }
+
+  c_turnOnWetSensorsTime = now();
+
+  boolean isSensorsTurnedOn = false;
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     if (wsp.boolPreferencies.isWetSensorConnected){
+      showWateringMessage(wsIndex, F("Wet sensor ON"));
       digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], HIGH);
       isSensorsTurnedOn = true;
     }
@@ -36,31 +55,45 @@ boolean WateringClass::turnOnWetSensors(){
     }
   }
 
+  showWateringMessage(F("Turn ON sensors - stop"));
+
   return isSensorsTurnedOn;
 }
 
 boolean WateringClass::updateWetStatus(){
 
+  showWateringMessage(F("Update Wet status - start"));
+
+  if (c_turnOnWetSensorsTime == 0){
+    turnOnWetSensors();
+  }  
+
+  long remanedDelay = c_turnOnWetSensorsTime - now() + WATERING_SYSTEM_TURN_ON_DELAY;
+  if (remanedDelay > 0){
+    if(g_useSerialMonitor){
+      showWateringMessage(F("delay = "), false);
+      Serial.println(remanedDelay);
+    }
+    delay((unsigned long)remanedDelay * 1000);
+  }
+  c_turnOnWetSensorsTime = 0;
+
   boolean isWateringNeed = false;
 
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
 
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
-
     // Maybe Wet sensor was already updated (between scheduled call turnOnWetSensors and updateWetStatus was WEB call with force update) 
-    if (wsp.boolPreferencies.isWetSensorConnected){
+    if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) == HIGH){
 
-      byte wetValue;
-      if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) == HIGH){
-        wetValue = readWetValue(wsp, wsIndex);
-        digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
-      } 
-      else {
-        wetValue = c_lastWetSensorValue[wsIndex];
-      }
+      byte wetValue = readWetValue(wsIndex);
+      digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
+      showWateringMessage(wsIndex, F("Wet sensor OFF"));
+
+      BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
 
       WateringEvent* oldState = valueToState(wsp, c_lastWetSensorValue[wsIndex]);
       WateringEvent* newState = valueToState(wsp, wetValue);
+      showWateringMessage(wsIndex, newState->shortDescription);
       if (oldState != newState){
         GB_Logger.logWateringEvent(wsIndex, *newState);  
       }
@@ -73,10 +106,24 @@ boolean WateringClass::updateWetStatus(){
     }
 
   }
+
+  showWateringMessage(F("Update Wet status - stop"));
+
   return isWateringNeed;
 }
 
 byte WateringClass::turnOnWaterPumps(){
+
+  showWateringMessage(F("Turn on Water Pumps - start"));
+
+  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
+    if (c_waterPumpDisableTimeout[wsIndex] != 0){
+      showWateringMessage(F("ABORTED (previous Watering operation is not finished)"));
+      showWateringMessage(F("Turn on Water Pumps - stop"));
+      return 0;
+    }
+  }
+
 
   byte minDuration = 0;
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
@@ -125,10 +172,17 @@ byte WateringClass::turnOnWaterPumps(){
     }
   }  
 
+  if(g_useSerialMonitor){
+    showWateringMessage(F("Turn on Water Pumps - stop, next duration = "), false);
+    Serial.println(minDuration);
+  }
+
   return minDuration;
 }
 
 byte WateringClass::turnOffWaterPumpsOnSchedule(){
+
+  showWateringMessage(F("Turn OFF Water Pumps - start"));
 
   byte minDuration = 0;
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
@@ -164,6 +218,9 @@ byte WateringClass::turnOffWaterPumpsOnSchedule(){
     }
   } 
 
+  showWateringMessage(F("Turn OFF Water Pumps - stop, next duration = "), false);
+  Serial.println(nextMinDuration);
+
   return nextMinDuration;
 }
 
@@ -188,7 +245,7 @@ WateringEvent* WateringClass::getCurrentWetSensorStatus(byte wsIndex){
 
 // private:
 
-byte WateringClass::readWetValue(const BootRecord::WateringSystemPreferencies& wsp, byte wsIndex){
+byte WateringClass::readWetValue(byte wsIndex){
 
   if (g_useSerialMonitor){
     showWateringMessage(wsIndex, F(""), false);
@@ -220,10 +277,7 @@ byte WateringClass::readWetValue(const BootRecord::WateringSystemPreferencies& w
           if (isWetSensorValueReserved(currentValue)){
             Serial.println(F(" -> 2 "));
           }
-          Serial.print(F("OK ["));
-          WateringEvent* state = valueToState(wsp, currentValue);
-          Serial.print(state->shortDescription);
-          Serial.println(F("]"));
+          Serial.println(F("OK"));
         }
         return currentValue;
       }
@@ -235,7 +289,7 @@ byte WateringClass::readWetValue(const BootRecord::WateringSystemPreferencies& w
     delay(10);
   }
   if (g_useSerialMonitor){
-    Serial.println(F("FAIL [UNSTABLE]"));
+    Serial.println(F("FAIL"));
   }
   return WATERING_UNSTABLE_VALUE;
 }
@@ -276,6 +330,8 @@ WateringEvent* WateringClass::valueToState(const BootRecord::WateringSystemPrefe
 
 
 WateringClass GB_Watering;
+
+
 
 
 

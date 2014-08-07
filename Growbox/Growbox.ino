@@ -109,6 +109,7 @@ void setup() {
     digitalWrite(WATERING_WET_SENSOR_POWER_PINS[i], HIGH);
     digitalWrite(WATERING_PUMP_PINS[i], RELAY_OFF);
   }
+  unsigned long pinConfiguredMillis = millis();
 
   // Configure inputs
   //attachInterrupt(0, interrapton0handler, CHANGE); // PIN 2
@@ -116,6 +117,7 @@ void setup() {
   g_isGrowboxStarted = false;
 
   GB_Controller.updateHardwareInputStatus();
+  
   RAK410_XBeeWifi.init();
 
   // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
@@ -152,8 +154,6 @@ void setup() {
   if (MAX_WATERING_SYSTEMS_COUNT != sizeof(WATERING_PUMP_PINS)){
     stopOnFatalError(F("wrong WATERING_PUMP_PINS size"));
   }
-
-
   GB_Controller.checkFreeMemory();
 
   if(g_useSerialMonitor){ 
@@ -188,11 +188,9 @@ void setup() {
 
   // Check EEPROM, if Arduino doesn't reboot - all OK
   boolean itWasRestart = GB_StorageHelper.init();
-
-  GB_Watering.init();
-
+  
   g_isGrowboxStarted = true;
-
+  
   // Now we can use logger
   if (itWasRestart){
     GB_Logger.logEvent(EVENT_RESTART);
@@ -200,14 +198,13 @@ void setup() {
   else {
     GB_Logger.logEvent(EVENT_FIRST_START_UP);
   }
-
   GB_Controller.checkFreeMemory();
 
-  // all sensor pins already enabled, no need to call beforeUpdateGrowboxState()
-  updateGrowboxState();
-  // Log current temeperature
-  //GB_Thermometer.getTemperature(); // forceLog?
+  time_t pinConfiguredTime = now() - (millis() - pinConfiguredMillis)/1000;
+  GB_Watering.init(pinConfiguredTime); // call before updateGrowboxState();
+  GB_Controller.checkFreeMemory();
 
+  updateGrowboxState();
   GB_Controller.checkFreeMemory();
 
   // Create main life circle timer
@@ -216,13 +213,12 @@ void setup() {
   Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
   Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
 
-  Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, beforeUpdateGrowboxState);  // repeat every N seconds
+  Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);  // repeat every N seconds
 
   // TODO update if configuration changed
   // Create suolemental rare switching
   //Alarm.alarmRepeat(upHour, upMinute, 00, switchToDayMode);      // repeat once every day
   //Alarm.alarmRepeat(downHour, downMinute, 00, switchToNightMode);  // repeat once every day
-
   GB_Controller.checkFreeMemory();
 
   if(g_useSerialMonitor){ 
@@ -232,7 +228,6 @@ void setup() {
   if (RAK410_XBeeWifi.isPresent()){ 
     RAK410_XBeeWifi.updateWiFiStatus(); // start Web server
   }
-
   GB_Controller.checkFreeMemory();
 
 }
@@ -276,19 +271,11 @@ void serialEvent1(){
 /////////////////////////////////////////////////////////////////////
 //                  TIMER/CLOCK EVENT HANDLERS                     //
 /////////////////////////////////////////////////////////////////////
-void beforeUpdateGrowboxState() {
-  if (GB_Watering.turnOnWetSensors()){
-    // Update after delay
-    Alarm.timerOnce(0, 0, WATERING_SYSTEM_TURN_ON_DELAY, updateGrowboxState);
-  } 
-  else {
-    // Update immediately
-    updateGrowboxState();
-  }
-}
 
 void updateGrowboxState() {
-
+ 
+  GB_Watering.turnOnWetSensors();
+  
   // Init/Restore growbox state
   if (isDayInGrowbox()){
     if (g_isDayInGrowbox != true){
@@ -346,18 +333,19 @@ void updateGrowboxState() {
     }
   }
 
-  if (GB_Watering.updateWetStatus()){
-    byte nextPumpOffTimout = GB_Watering.turnOnWaterPumps();
-    if (nextPumpOffTimout > 0){
-      Alarm.timerOnce(0, 0, nextPumpOffTimout, afterUpdateGrowboxState);
+  boolean needForWatering = GB_Watering.updateWetStatus();
+  if (needForWatering){
+    byte nextPumpOffDelay = GB_Watering.turnOnWaterPumps();
+    if (nextPumpOffDelay > 0){
+      Alarm.timerOnce(0, 0, nextPumpOffDelay, updateGrowboxStatePostProcess);
     }
   }
 }
 
-void afterUpdateGrowboxState() {
-  byte nextPumpOffTimout = GB_Watering.turnOffWaterPumpsOnSchedule();
-  if (nextPumpOffTimout > 0){
-    Alarm.timerOnce(0, 0, nextPumpOffTimout, afterUpdateGrowboxState);
+void updateGrowboxStatePostProcess() {
+  byte nextPumpOffDelay = GB_Watering.turnOffWaterPumpsOnSchedule();
+  if (nextPumpOffDelay > 0){
+    Alarm.timerOnce(0, 0, nextPumpOffDelay, updateGrowboxStatePostProcess);
   }
 }
 /////////////////////////////////////////////////////////////////////

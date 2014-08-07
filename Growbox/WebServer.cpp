@@ -364,9 +364,13 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
 
   boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
   boolean isLogPage     = StringUtils::flashStringEquals(url, FS(S_url_log));
-  boolean isWatering    = StringUtils::flashStringStartsWith(url, FS(S_url_watering));
+  boolean isWateringPage= StringUtils::flashStringStartsWith(url, FS(S_url_watering));
   boolean isConfPage    = StringUtils::flashStringEquals(url, FS(S_url_configuration));
   boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
+
+  if (isRootPage || isWateringPage) {
+    GB_Watering.turnOnWetSensors();
+  }
 
   sendRawData(F("<!DOCTYPE html>")); // HTML 5
   sendRawData(F("<html><head>"));
@@ -387,7 +391,7 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   sendRawData(F("<form>"));   // HTML Validator warning
   sendTagButton(FS(S_url_root), F("Status"), isRootPage);
   sendTagButton(FS(S_url_log), F("Daily log"), isLogPage);
-  sendTagButton(FS(S_url_watering), F("Watering"), isWatering);  
+  sendTagButton(FS(S_url_watering), F("Watering"), isWateringPage);  
   sendTagButton(FS(S_url_configuration), F("Configuration"), isConfPage || isStoragePage);
   sendRawData(F("</form>")); 
   sendRawData(F("<hr/>"));
@@ -395,7 +399,7 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   if (isRootPage){
     sendStatusPage();
   } 
-  if (isWatering){
+  if (isWateringPage){
     sendWateringPage(url);
   } 
   else if (isLogPage){
@@ -461,7 +465,7 @@ void WebServerClass::sendStatusPage(){
   if(g_useSerialMonitor){ 
     Serial.println();
   }
-  GB_Watering.updateWetStatusForce();
+  GB_Watering.updateWetStatus();
   boolean isEnabledWetSensorsExists = false;
   for (byte wspIndex = 0; wspIndex < MAX_WATERING_SYSTEMS_COUNT; wspIndex++){
     WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wspIndex);
@@ -469,24 +473,25 @@ void WebServerClass::sendStatusPage(){
       continue;
     }
     isEnabledWetSensorsExists = true;
-    
+
     sendRawData(F("<dd>Wet sensor #")); 
     sendRawData(wspIndex+1); 
     sendRawData(F(": "));
     if (currentStatus != &WATERING_EVENT_WET_SENSOR_NORMAL){
       sendRawData(F("<span class='red'>")); 
-    } else {
+    } 
+    else {
       sendRawData(F("<span>")); 
     }
     sendRawData(currentStatus->shortDescription);
     sendRawData(F("</span></dd>")); 
   }
-  
+
   if (!isEnabledWetSensorsExists){
-     sendRawData(F("<dd>All Wet sensors disabled</dd>")); 
+    sendRawData(F("<dd>All Wet sensors disabled</dd>")); 
   }
-  
-  
+
+
   sendRawData(F("<dt>Logger</dt>"));
   if (GB_StorageHelper.isStoreLogRecordsEnabled()){
     sendRawData(F("<dd>Enabled</dd>"));
@@ -772,16 +777,18 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(wspIndex+1);
   sendRawData(F("' method='post'>"));
   sendTagCheckbox(F("isWetSensorConnected"), F("Sensor connected"), wsp.boolPreferencies.isWetSensorConnected);
-  
+
   if(g_useSerialMonitor){ 
     Serial.println();
   }
-  GB_Watering.updateWetStatusForce();
+
+  GB_Watering.updateWetStatus();
   sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Current value [<b>"));
   byte currentValue = GB_Watering.getCurrentWetSensorValue(wspIndex);
   if (GB_Watering.isWetSensorValueReserved(currentValue)){
     sendRawData(F("N/A"));
-  } else {
+  } 
+  else {
     sendRawData(GB_Watering.getCurrentWetSensorValue(wspIndex));
   }
   WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wspIndex);
@@ -1365,6 +1372,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
 
 
 
