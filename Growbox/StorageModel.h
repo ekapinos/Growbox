@@ -51,7 +51,7 @@ boolean isWifiStationMode :
     byte dryWateringDuration;     // 1 // seconds
     byte veryDryWateringDuration; // 1 // seconds
     
-    word wateringIfNoSensorAt;    // 2 // minutes from midnight, dryWateringDuration used
+    word startWateringAt;    // 2 // minutes from midnight, dryWateringDuration used
     
   } wateringSystemPreferencies[MAX_WATERING_SYSTEMS_COUNT]; // 12*MAX_WATERING_SYSTEMS_COUNT(4) = 48
   
