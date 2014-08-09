@@ -2,6 +2,8 @@
 #define Watering_h
 
 #include <Time.h>
+// We use free() method
+#define USE_SPECIALIST_METHODS 
 #include <TimeAlarms.h>
 
 #include "Global.h"
@@ -9,36 +11,48 @@
 #include "StorageModel.h"
 
 class WateringClass{
-public:
+private:
 
   static const byte WATERING_DISABLE_VALUE = 0;
   static const byte WATERING_UNSTABLE_VALUE = 1;
 
-private:
-  static TimeAlarmsClass c_Alarm;
+  static TimeAlarmsClass c_PumpOnAlarm;
+  static TimeAlarmsClass c_PumpOffAlarm;
+  static AlarmID_t c_PumpOnAlarmsArray[MAX_WATERING_SYSTEMS_COUNT];
+  static AlarmID_t c_PumpOffAlarmsArray[MAX_WATERING_SYSTEMS_COUNT];
+
   static time_t c_turnOnWetSensorsTime;
   static byte c_lastWetSensorValue[MAX_WATERING_SYSTEMS_COUNT];
-  static byte c_waterPumpDisableTimeout[MAX_WATERING_SYSTEMS_COUNT];
 
 public:
 
   static void init(time_t turnOnWetSensorsTime);
   static void updateInternalAlarm();
 
+  /////////////////////////////////////////////////////////////////////
+  //                           WET SENSORS                           //
+  /////////////////////////////////////////////////////////////////////
+
   static boolean turnOnWetSensors();
-  static boolean updateWetStatus();
+  static void turnOffWetSensorsAndUpdateWetStatus();
+
+  /////////////////////////////////////////////////////////////////////
+  //                           WATER PUMPS                           //
+  /////////////////////////////////////////////////////////////////////
+  static boolean turnOnWaterPumpByIndex(byte wsIndex);
   
-  static boolean isWaterPumpsTurnedOn();
-  static void turnOnWaterPumps();
-  static void turnOnWaterPumpForce(byte wsIndex);
-  
+private:
+  static void turnOnWaterPumpOnSchedule(); 
+  static void turnOffWaterPumpOnSchedule();
+
+public:
 
   static boolean isWetSensorValueReserved(byte value);
   static byte getCurrentWetSensorValue(byte wsIndex);
   static WateringEvent* getCurrentWetSensorStatus(byte wsIndex);
 
 private:
-  static void turnOffWaterPumpsOnSchedule();
+
   static byte readWetValue(byte wsIndex);
   static WateringEvent* valueToState(const BootRecord::WateringSystemPreferencies& wsp, byte input);
 
@@ -74,4 +88,6 @@ private:
 extern WateringClass GB_Watering;
 
 #endif
+
+
 

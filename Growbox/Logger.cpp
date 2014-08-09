@@ -130,7 +130,7 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){
     } 
     else if (wateringEventIndex == WATERING_EVENT_WATER_PUMP_ON_DRY.index ||
       wateringEventIndex == WATERING_EVENT_WATER_PUMP_ON_VERY_DRY.index ||
-      wateringEventIndex == WATERING_EVENT_WATER_PUMP_AUTO_ON_DRY.index) {
+      wateringEventIndex == WATERING_EVENT_WATER_PUMP_ON_AUTO_DRY.index) {
         
       out += StringUtils::flashStringLoad(F(" during "));
       out += logRecord.data1;

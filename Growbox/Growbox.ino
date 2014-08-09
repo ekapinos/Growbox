@@ -4,6 +4,8 @@
 #include <MemoryFree.h>
 
 #include <Time.h>
+// We use free() method
+#define USE_SPECIALIST_METHODS  
 #include <TimeAlarms.h>
 
 // RTC
@@ -333,22 +335,11 @@ void updateGrowboxState() {
     }
   }
 
-  boolean needForWatering = GB_Watering.updateWetStatus();
-  if (needForWatering){
-    //byte nextPumpOffDelay = 
-    GB_Watering.turnOnWaterPumps();
-//    if (nextPumpOffDelay > 0){
-//      AlarmForWatering.timerOnce(0, 0, nextPumpOffDelay, updateGrowboxStatePostProcess);
-//    }
-  }
+  GB_Watering.turnOffWetSensorsAndUpdateWetStatus();
+
 }
-//
-//void updateGrowboxStatePostProcess() {
-//  byte nextPumpOffDelay = GB_Watering.turnOffWaterPumpsOnSchedule();
-//  if (nextPumpOffDelay > 0){
-//    AlarmForWatering.timerOnce(0, 0, nextPumpOffDelay, updateGrowboxStatePostProcess);
-//  }
-//}
+
+
 /////////////////////////////////////////////////////////////////////
 //                              SCHEDULE                           //
 /////////////////////////////////////////////////////////////////////

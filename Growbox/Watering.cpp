@@ -3,51 +3,67 @@
 #include "StorageHelper.h"
 #include "Logger.h"
 
-TimeAlarmsClass WateringClass::c_Alarm;
+TimeAlarmsClass WateringClass::c_PumpOnAlarm;
+TimeAlarmsClass WateringClass::c_PumpOffAlarm;
+
+AlarmID_t WateringClass::c_PumpOnAlarmsArray[MAX_WATERING_SYSTEMS_COUNT];
+AlarmID_t WateringClass::c_PumpOffAlarmsArray[MAX_WATERING_SYSTEMS_COUNT];
+
 time_t WateringClass::c_turnOnWetSensorsTime = 0;
-byte WateringClass::c_waterPumpDisableTimeout[MAX_WATERING_SYSTEMS_COUNT];
 byte WateringClass::c_lastWetSensorValue[MAX_WATERING_SYSTEMS_COUNT];
 
 void WateringClass::init(time_t turnOnWetSensorsTime){
 
-  //  if(g_useSerialMonitor){
-  //    showWateringMessage(F("init - start, at "), false);
-  //    Serial.println(StringUtils::timeStampToString(turnOnWetSensorsTime));
-  //  }
-
   c_turnOnWetSensorsTime = turnOnWetSensorsTime;
 
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
-    c_lastWetSensorValue[wsIndex] = WATERING_DISABLE_VALUE; 
 
-    // Turn OFF unused Wet sensor pins
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
-    if (!wsp.boolPreferencies.isWetSensorConnected){
+
+    if (wsp.boolPreferencies.isWetSensorConnected){
+      // We will use turned on state after in main file
+      c_lastWetSensorValue[wsIndex] = WATERING_UNSTABLE_VALUE; // Not read yet  
+    } 
+    else {
+      // Turn OFF unused Wet sensor pins
+      c_lastWetSensorValue[wsIndex] = WATERING_DISABLE_VALUE; 
       digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
-      //      showWateringMessage(wsIndex, F("Wet sensor OFF"));
     }
+
+    //if (c_AlarmsArray[wsIndex] != 0){
+    //  c_Alarm.free(c_AlarmsArray[wsIndex]);
+    //}  
+    if (wsp.boolPreferencies.isWaterPumpConnected){
+      c_PumpOnAlarmsArray[wsIndex] = c_PumpOnAlarm.alarmRepeat(wsp.startWateringAt / 60 , wsp.startWateringAt % 60, 0, turnOnWaterPumpOnSchedule);
+    } 
+    else {
+      c_PumpOnAlarmsArray[wsIndex] = dtINVALID_ALARM_ID;
+    }
+    c_PumpOffAlarmsArray[wsIndex] = dtINVALID_ALARM_ID;
   }
 
-  //  showWateringMessage(F("init - stop"));
 }
 
 void WateringClass::updateInternalAlarm(){
-  c_Alarm.delay(0);
+  c_PumpOnAlarm.delay(0);
+  c_PumpOffAlarm.delay(0);
 }
+
+
+/////////////////////////////////////////////////////////////////////
+//                           WET SENSORS                           //
+/////////////////////////////////////////////////////////////////////
 
 boolean WateringClass::turnOnWetSensors(){
 
-  //  showWateringMessage(F("Turn ON sensors - start"));
-  //
   if (c_turnOnWetSensorsTime != 0){
-    //    showWateringMessage(F("Skiped"));
-    //    showWateringMessage(F("Turn ON sensors - stop"));
-    return true;
+    return true; // already turned on// TODO check it when preferences changing
   }
 
   c_turnOnWetSensorsTime = now();
 
   boolean isSensorsTurnedOn = false;
+
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     if (wsp.boolPreferencies.isWetSensorConnected){
@@ -59,22 +75,22 @@ boolean WateringClass::turnOnWetSensors(){
       digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
       if (c_lastWetSensorValue[wsIndex] != WATERING_DISABLE_VALUE){
         c_lastWetSensorValue[wsIndex] = WATERING_DISABLE_VALUE;
+
         GB_Logger.logWateringEvent(wsIndex, WATERING_EVENT_WET_SENSOR_DISABLED, WATERING_DISABLE_VALUE);  
+
       }
     }
   }
 
-  //  showWateringMessage(F("Turn ON sensors - stop"));
-
   return isSensorsTurnedOn;
 }
 
-boolean WateringClass::updateWetStatus(){
-
-  //  showWateringMessage(F("Update Wet status - start"));
+void WateringClass::turnOffWetSensorsAndUpdateWetStatus(){
 
   if (c_turnOnWetSensorsTime == 0){
-    turnOnWetSensors();
+    if (!turnOnWetSensors()){
+      return; // No one sensor were turned on
+    }
   }  
 
   long remanedDelay = c_turnOnWetSensorsTime - now() + WATERING_SYSTEM_TURN_ON_DELAY;
@@ -87,199 +103,199 @@ boolean WateringClass::updateWetStatus(){
     delay((unsigned long)remanedDelay * 1000);
   }
 
-  c_turnOnWetSensorsTime = 0;
-
-  boolean isWateringNeed = false;
+  c_turnOnWetSensorsTime = 0; // clear 
 
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
 
     // Maybe Wet sensor was already updated (between scheduled call turnOnWetSensors and updateWetStatus was WEB call with force update) 
-    if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) == HIGH){
-
-      byte wetValue = readWetValue(wsIndex);
-      digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
-
-      BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
-
-      WateringEvent* oldState = valueToState(wsp, c_lastWetSensorValue[wsIndex]);
-      WateringEvent* newState = valueToState(wsp, wetValue);
-
-      showWateringMessage(wsIndex, newState->shortDescription);
-      showWateringMessage(wsIndex, F("Wet sensor OFF"));
-
-      if (oldState != newState){
-        GB_Logger.logWateringEvent(wsIndex, *newState, wetValue);  
-      }
-
-      c_lastWetSensorValue[wsIndex] = wetValue;
-
-      if (newState == &WATERING_EVENT_WET_SENSOR_DRY || newState == &WATERING_EVENT_WET_SENSOR_VERY_DRY){
-        isWateringNeed = true;
-      }  
+    if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) == LOW){
+      continue;
     }
 
-  }
-
-  //  showWateringMessage(F("Update Wet status - stop"));
-
-  return isWateringNeed;
-}
-
-boolean WateringClass::isWaterPumpsTurnedOn(){
-  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
-    if (c_waterPumpDisableTimeout[wsIndex] != 0){
-      return true;
-    }
-  }
-  return false;
-}
-
-void WateringClass::turnOnWaterPumps(){
-
-  //  showWateringMessage(F("Turn on Water Pumps - start"));
-
-  if (isWaterPumpsTurnedOn()){
-    showWateringMessage(F("ABORTED previous Watering operation is not finished"));
-    //      showWateringMessage(F("Turn on Water Pumps - stop"));
-    return;
-  }
-
-
-  byte minDuration = 0;
-  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
-
-    c_waterPumpDisableTimeout[wsIndex] = 0;
+    byte wetValue = readWetValue(wsIndex);
+    digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
 
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
-    if (!wsp.boolPreferencies.isWetSensorConnected || !wsp.boolPreferencies.isWaterPumpConnected){
-      continue;
+
+    WateringEvent* oldState = valueToState(wsp, c_lastWetSensorValue[wsIndex]);
+    WateringEvent* newState = valueToState(wsp, wetValue);
+
+    showWateringMessage(wsIndex, newState->shortDescription);
+    showWateringMessage(wsIndex, F("Wet sensor OFF"));
+
+    if (oldState != newState){
+      GB_Logger.logWateringEvent(wsIndex, *newState, wetValue);  
     }
 
-    byte wateringDuration;
-    WateringEvent* state = valueToState(wsp, c_lastWetSensorValue[wsIndex]); 
-    if (state == &WATERING_EVENT_WET_SENSOR_DRY){
-      wateringDuration = wsp.dryWateringDuration;
-      if (wateringDuration == 0){
-        continue;
-      }
-      GB_Logger.logWateringEvent(wsIndex, WATERING_EVENT_WATER_PUMP_ON_DRY, wateringDuration); 
+    c_lastWetSensorValue[wsIndex] = wetValue;
 
-    } 
-    else if (state == &WATERING_EVENT_WET_SENSOR_VERY_DRY){
-      wateringDuration = wsp.veryDryWateringDuration;
-      if (wateringDuration == 0){
-        continue;
-      }
-      GB_Logger.logWateringEvent(wsIndex, WATERING_EVENT_WATER_PUMP_ON_VERY_DRY, wateringDuration);
-
-    }
-    else {
-      continue;
-    }
-
-    if(g_useSerialMonitor){
-      showWateringMessage(wsIndex, F("Watering during "), false);
-      Serial.print(wateringDuration);
-      Serial.println( F(" sec started"));
-    }
-
-    digitalWrite(WATERING_PUMP_PINS[wsIndex], RELAY_ON);
-
-    c_waterPumpDisableTimeout[wsIndex] = wateringDuration;
-
-    if (minDuration == 0 || minDuration > wateringDuration){
-      minDuration = wateringDuration;
-    }
-  }  
-
-  //  if(g_useSerialMonitor){
-  //    showWateringMessage(F("Turn on Water Pumps - stop, next duration = "), false);
-  //    Serial.println(minDuration);
-  //  }
-
-  if (minDuration > 0){
-    c_Alarm.timerOnce(0, 0, minDuration, turnOffWaterPumpsOnSchedule);
   }
 }
 
-void WateringClass::turnOnWaterPumpForce(byte wsIndex){
 
-  if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT){
+/////////////////////////////////////////////////////////////////////
+//                           WATER PUMPS                           //
+/////////////////////////////////////////////////////////////////////
+
+
+void WateringClass::turnOnWaterPumpOnSchedule(){
+
+  //showWateringMessage( F("turnOnWaterPumpOnSchedule"));
+
+  // Find fired wsIndex
+  byte wsIndex = 0xFF;
+  for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
+    if (c_PumpOnAlarmsArray[i] == dtINVALID_ALARM_ID){
+      continue;
+    }
+    if (c_PumpOnAlarmsArray[i] == c_PumpOnAlarm.getTriggeredAlarmId()){
+      wsIndex = i;
+      break;
+    }
+  }
+  if (wsIndex == 0xFF){
+    //showWateringMessage(wsIndex, F("turnOnWaterPumpOnSchedule - bad index"));
     return;
   }
 
-  if (isWaterPumpsTurnedOn()){
+  // If already Watering - skip scheduled operation
+  if (c_PumpOffAlarmsArray[wsIndex] != dtINVALID_ALARM_ID){
+    //showWateringMessage(wsIndex, F("turnOnWaterPumpOnSchedule - bad state"));
     return;
   }
 
   BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
 
-  byte wateringDuration = wsp.dryWateringDuration;
+  // find watering duration by rules
+  WateringEvent* wateringEvent = 0;
+  byte wateringDuration = 0;
+  if (wsp.boolPreferencies.useWetSensorForWatering){
+
+    turnOnWetSensors();
+    turnOffWetSensorsAndUpdateWetStatus();
+
+    WateringEvent* state = getCurrentWetSensorStatus(wsIndex);
+
+    if (state == &WATERING_EVENT_WET_SENSOR_DRY){
+      wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_DRY;
+      wateringDuration = wsp.dryWateringDuration;
+
+    } 
+    else if (state == &WATERING_EVENT_WET_SENSOR_VERY_DRY){  
+      wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_VERY_DRY;
+      wateringDuration = wsp.veryDryWateringDuration;
+
+    } 
+    else if (state == &WATERING_EVENT_WET_SENSOR_IN_AIR ||
+      state == &WATERING_EVENT_WET_SENSOR_UNSTABLE ||
+      state == &WATERING_EVENT_WET_SENSOR_DISABLED){
+
+      wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_NO_SENSOR_DRY;
+      wateringDuration = wsp.dryWateringDuration;
+    }
+  } 
+  else {
+    wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_AUTO_DRY;
+    wateringDuration = wsp.dryWateringDuration;    
+  }
+
   if (wateringDuration == 0){
+    //showWateringMessage(wsIndex, F("turnOnWaterPumpOnSchedule - zero watering"));
     return;
   }
 
-  //GB_Logger.logWateringEvent(wsIndex, WATERING_EVENT_WATER_PUMP_ON_DRY, wateringDuration); 
+  // log it
+  GB_Logger.logWateringEvent(wsIndex, *wateringEvent, wateringDuration);
 
-  if(g_useSerialMonitor){
-    showWateringMessage(wsIndex, F("Force Watering during "), false);
-    Serial.print(wateringDuration);
-    Serial.println( F(" sec started"));
-  }
-
+  // Turn ON water Pump
   digitalWrite(WATERING_PUMP_PINS[wsIndex], RELAY_ON);
 
-  c_waterPumpDisableTimeout[wsIndex] = wateringDuration;
+  // Turn OFF water Pump after delay
+  c_PumpOffAlarmsArray[wsIndex] = c_PumpOffAlarm.timerOnce(wateringDuration, turnOffWaterPumpOnSchedule);
 
-  if (wateringDuration > 0){
-    c_Alarm.timerOnce(0, 0, wateringDuration, turnOffWaterPumpsOnSchedule);
-  }
+  showWateringMessage(wsIndex, F("Turn Pump ON (Schedule)"));
+
 }
 
-void WateringClass::turnOffWaterPumpsOnSchedule(){
+boolean WateringClass::turnOnWaterPumpByIndex(byte wsIndex){
 
-  //  showWateringMessage(F("Turn OFF Water Pumps - start"));
-
-  byte minDuration = 0;
-  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
-    if(c_waterPumpDisableTimeout[wsIndex] == 0){
-      continue;
-    }
-
-    if (minDuration == 0 || minDuration > c_waterPumpDisableTimeout[wsIndex]){
-      minDuration = c_waterPumpDisableTimeout[wsIndex];
-    }
+  if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT){
+    return false;
   }
 
-  byte nextMinDuration = 0;
-  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
-    if(c_waterPumpDisableTimeout[wsIndex] == 0){
-      continue;
-    }
+  //showWateringMessage(wsIndex, F("turnOnWaterPumpByIndex"));
 
-    c_waterPumpDisableTimeout[wsIndex] -= minDuration;
-
-    if (c_waterPumpDisableTimeout[wsIndex] == 0){
-
-      digitalWrite(WATERING_PUMP_PINS[wsIndex], RELAY_OFF);
-      if(g_useSerialMonitor){
-        showWateringMessage(wsIndex, F("Watering finished"));
-      }
-
-      continue;
-    } 
-
-    if (nextMinDuration == 0 || nextMinDuration > c_waterPumpDisableTimeout[wsIndex]){
-      nextMinDuration = c_waterPumpDisableTimeout[wsIndex];  
-    }
-  } 
-
-  //  showWateringMessage(F("Turn OFF Water Pumps - stop, next duration = "), false);
-  //  Serial.println(nextMinDuration);
-
-  if (nextMinDuration > 0){
-    c_Alarm.timerOnce(0, 0, nextMinDuration, turnOffWaterPumpsOnSchedule);
+  // If already Watering - skip scheduled operation
+  if (c_PumpOffAlarmsArray[wsIndex] != dtINVALID_ALARM_ID){
+    //showWateringMessage(wsIndex, F("turnOnWaterPumpByIndex - bad state"));
+    return false;
   }
+
+  BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
+
+  // find watering duration by rules
+  WateringEvent* wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_MANUAL_DRY;
+  byte wateringDuration = wsp.dryWateringDuration;
+
+  if (wateringDuration == 0){
+    //showWateringMessage(wsIndex, F("turnOnWaterPumpByIndex - zero duration"));
+    return false;
+  }
+  // log it
+  GB_Logger.logWateringEvent(wsIndex, *wateringEvent, wateringDuration);
+
+  // Turn ON water Pump
+  digitalWrite(WATERING_PUMP_PINS[wsIndex], RELAY_ON);
+
+  // Turn OFF water Pump after delay
+  c_PumpOffAlarmsArray[wsIndex] = c_PumpOffAlarm.timerOnce(wateringDuration, turnOffWaterPumpOnSchedule);
+
+  showWateringMessage(wsIndex, F("Turn Pump ON (Manual)"));
+  //showWateringMessage(wsIndex, F("turnOnWaterPumpByIndex - ok"));
+  //showWateringMessage( c_PumpOffAlarmsArray[wsIndex]);
+
+  return true;
+}
+
+
+void WateringClass::turnOffWaterPumpOnSchedule(){
+
+  //showWateringMessage( F("turnOffWaterPumpByIndex"));
+  //showWateringMessage(c_PumpOffAlarm.getTriggeredAlarmId());
+
+  // Find fired wsIndex
+  byte wsIndex = 0xFF;
+  for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
+    if (c_PumpOffAlarmsArray[i] == dtINVALID_ALARM_ID){
+      continue;
+    }
+    if (c_PumpOffAlarmsArray[i] == c_PumpOffAlarm.getTriggeredAlarmId()){
+      wsIndex = i;
+      break;
+    }
+  }
+  if (wsIndex == 0xFF){
+    //showWateringMessage(wsIndex, F("turnOffWaterPumpByIndex - bad index"));
+    return;
+  }
+
+  // If NOT already Watering - skip scheduled operation
+  if (c_PumpOffAlarmsArray[wsIndex] == dtINVALID_ALARM_ID){
+    //showWateringMessage(wsIndex, F("turnOffWaterPumpByIndex - bad state"));
+    return;
+  }
+
+  // log it
+  GB_Logger.logWateringEvent(wsIndex, WATERING_EVENT_WATER_PUMP_OFF, WATERING_DISABLE_VALUE);
+
+  // Turn ON water Pump
+  digitalWrite(WATERING_PUMP_PINS[wsIndex], RELAY_OFF);
+
+  // Turn OFF water Pump after delay
+  c_PumpOffAlarmsArray[wsIndex] = dtINVALID_ALARM_ID;
+
+  showWateringMessage(wsIndex, F("Turn Pump OFF"));
+
 }
 
 
@@ -389,6 +405,12 @@ WateringEvent* WateringClass::valueToState(const BootRecord::WateringSystemPrefe
 
 
 WateringClass GB_Watering;
+
+
+
+
+
+
 
 
 
