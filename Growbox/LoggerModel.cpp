@@ -185,9 +185,9 @@ void initLoggerModel(){
   WATERING_EVENT_WET_SENSOR_UNSTABLE.init(8, F("Wet sensor [Unstable]"), F("Unstable"));
   WATERING_EVENT_WET_SENSOR_DISABLED.init(9, F("Wet sensor [Disabled]"), F("Disabled"));
    
-  WATERING_EVENT_WATER_PUMP_ON_DRY.init(13, F("Pump on [Dry]"), F("Dry"));
-  WATERING_EVENT_WATER_PUMP_ON_VERY_DRY.init(14, F("Pump on [Very Dry]"), F("Very Dry"));
-  WATERING_EVENT_WATER_PUMP_AUTO_ON_DRY.init(15, F("Pump on [Auto Dry]"), F("Auto Dry"));
+  WATERING_EVENT_WATER_PUMP_ON_DRY.init(13, F("Pump [Dry watering]"), F("Dry watering"));
+  WATERING_EVENT_WATER_PUMP_ON_VERY_DRY.init(14, F("Pump [Very Dry watering]"), F("Very Dry watering"));
+  WATERING_EVENT_WATER_PUMP_AUTO_ON_DRY.init(15, F("Pump [Auto Dry watering]"), F("Auto Dry watering"));
 }
 
 

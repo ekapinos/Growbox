@@ -136,10 +136,11 @@ void setup() {
     stopOnFatalError(F("not all Errors initialized"));
   }
   if (BOOT_RECORD_SIZE != sizeof(BootRecord)){
-    Serial.print(F("Expected: "));
+    Serial.print(F("Expected "));
     Serial.print(BOOT_RECORD_SIZE);  
-    Serial.print(F("configured: ")); 
+    Serial.print(F(" bytes, used ")); 
     Serial.println(sizeof(BootRecord));
+    Serial.print(F(" bytes")); 
     stopOnFatalError(F("wrong BootRecord size"));
   }
   if (MAX_WATERING_SYSTEMS_COUNT != sizeof(WATERING_WET_SENSOR_IN_PINS)){

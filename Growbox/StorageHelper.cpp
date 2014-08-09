@@ -49,7 +49,9 @@ boolean StorageHelperClass::init(){
       
       wsp.boolPreferencies.isWetSensorConnected = false;
       wsp.boolPreferencies.isWaterPumpConnected = false;
-      
+      wsp.boolPreferencies.useWetSensorForWatering = true;
+      wsp.boolPreferencies.skipNextWatering = false;
+
       wsp.inAirValue   = 240;
       wsp.veryDryValue = 200;
       wsp.dryValue     = 180;

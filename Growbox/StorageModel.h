@@ -19,13 +19,13 @@ struct BootRecord {
 boolean isLogOverflow :
     1;  
 boolean isLoggerEnabled :
-    2;      
+    1;      
 boolean isWifiStationMode :
-// false - Access point, true - Station mode
-    3;    
+    // false - Access point, true - Station mode
+    1;    
   } 
   boolPreferencies;                 // 1
-  
+
   word turnToDayModeAt;             // 2
   word turnToNightModeAt;           // 2
   byte normalTemperatueDayMin;      // 1
@@ -33,28 +33,36 @@ boolean isWifiStationMode :
   byte normalTemperatueNightMin;    // 1
   byte normalTemperatueNightMax;    // 1
   byte criticalTemperatue;          // 1
-  
+
   struct WateringSystemPreferencies {
-    
+
     struct WateringSystemBoolPreferencies{
-      boolean isWetSensorConnected : 1; 
-      boolean isWaterPumpConnected : 2; 
-    } boolPreferencies;     // 1
-    
+boolean isWetSensorConnected : 
+      1; 
+boolean isWaterPumpConnected : 
+      1; 
+boolean useWetSensorForWatering : 
+      1; 
+boolean skipNextWatering : 
+      1; // used on date/time change
+    } 
+    boolPreferencies;     // 1
+
     byte inAirValue;        // 1 (inAirValue..1022], [1023] - Not connected  (t >> 2) (10 bit to 8)
     byte veryDryValue;      // 1 (veryDryValue..notConnectedValue]
     byte dryValue;          // 1 (dryValue..veryDryValue]
     byte normalValue;       // 1 (normalValue..dryValue]
     byte wetValue;          // 1 (wetValue..normalValue]
     byte veryWetValue;      // 1 (veryWetValue..wetValue] [0..veryWetValue] - short circit
-    
+
     byte dryWateringDuration;     // 1 // seconds
     byte veryDryWateringDuration; // 1 // seconds
-    
+
     word startWateringAt;    // 2 // minutes from midnight, dryWateringDuration used
-    
-  } wateringSystemPreferencies[MAX_WATERING_SYSTEMS_COUNT]; // 12*MAX_WATERING_SYSTEMS_COUNT(4) = 48
-  
+
+  } 
+  wateringSystemPreferencies[MAX_WATERING_SYSTEMS_COUNT]; // 12*MAX_WATERING_SYSTEMS_COUNT(4) = 48
+
   byte reserved[92];                //  <----reserved
   char wifiSSID[WIFI_SSID_LENGTH];  // 32  
   char wifiPass[WIFI_PASS_LENGTH];  // 64
@@ -66,7 +74,7 @@ struct LogRecord {
   byte data;                        // 1
   byte data1;                       // 1
 
-  LogRecord (byte data): 
+    LogRecord (byte data): 
   timeStamp(now()), data(data), data1(0) {
   }  
   LogRecord (byte data, byte data1): 
@@ -78,6 +86,7 @@ struct LogRecord {
 };
 
 #endif
+
 
 
 
