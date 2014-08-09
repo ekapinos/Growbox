@@ -23,9 +23,6 @@
 #include "WebServer.h"
 #include "Watering.h"
 
- // We use another instance of Alarm object to increase MAX alarms count (6 by default, look dtNBR_ALARMS in TimeAlarms.h
-TimeAlarmsClass AlarmForWatering = TimeAlarmsClass();
-
 /////////////////////////////////////////////////////////////////////
 //                              STATUS                             //
 /////////////////////////////////////////////////////////////////////
@@ -201,7 +198,7 @@ void setup() {
   GB_Controller.checkFreeMemory();
 
   time_t pinConfiguredTime = now() - (millis() - pinConfiguredMillis)/1000;
-  GB_Watering.init(pinConfiguredTime, &AlarmForWatering); // call before updateGrowboxState();
+  GB_Watering.init(pinConfiguredTime); // call before updateGrowboxState();
   GB_Controller.checkFreeMemory();
 
   updateGrowboxState();
@@ -235,7 +232,9 @@ void setup() {
 void loop() {
   //WARNING! We need quick response for Serial events, thay handled afer each loop. So, we decreese delay to zero 
   Alarm.delay(0); 
-  AlarmForWatering.delay(0); 
+  
+  // We use another instance of Alarm object to increase MAX alarms count (6 by default, look dtNBR_ALARMS in TimeAlarms.h
+  GB_Watering.updateInternalAlarm();
 }
 
 void serialEvent(){

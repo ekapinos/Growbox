@@ -11,35 +11,36 @@
 class WateringClass{
 public:
 
-  const static byte WATERING_DISABLE_VALUE = 0;
-  const static byte WATERING_UNSTABLE_VALUE = 1;
+  static const byte WATERING_DISABLE_VALUE = 0;
+  static const byte WATERING_UNSTABLE_VALUE = 1;
 
 private:
-  static TimeAlarmsClass* c_Alarm;
-  time_t c_turnOnWetSensorsTime;
-  byte c_lastWetSensorValue[MAX_WATERING_SYSTEMS_COUNT];
+  static TimeAlarmsClass c_Alarm;
+  static time_t c_turnOnWetSensorsTime;
+  static byte c_lastWetSensorValue[MAX_WATERING_SYSTEMS_COUNT];
   static byte c_waterPumpDisableTimeout[MAX_WATERING_SYSTEMS_COUNT];
 
 public:
 
-  void init(time_t turnOnWetSensorsTime, TimeAlarmsClass* AlarmForWatering);
+  static void init(time_t turnOnWetSensorsTime);
+  static void updateInternalAlarm();
 
-  boolean turnOnWetSensors();
-  boolean updateWetStatus();
+  static boolean turnOnWetSensors();
+  static boolean updateWetStatus();
   
   static boolean isWaterPumpsTurnedOn();
-  void turnOnWaterPumps();
+  static void turnOnWaterPumps();
   static void turnOnWaterPumpForce(byte wsIndex);
   
 
-  boolean isWetSensorValueReserved(byte value);
-  byte getCurrentWetSensorValue(byte wsIndex);
-  WateringEvent* getCurrentWetSensorStatus(byte wsIndex);
+  static boolean isWetSensorValueReserved(byte value);
+  static byte getCurrentWetSensorValue(byte wsIndex);
+  static WateringEvent* getCurrentWetSensorStatus(byte wsIndex);
 
 private:
   static void turnOffWaterPumpsOnSchedule();
-  byte readWetValue(byte wsIndex);
-  WateringEvent* valueToState(const BootRecord::WateringSystemPreferencies& wsp, byte input);
+  static byte readWetValue(byte wsIndex);
+  static WateringEvent* valueToState(const BootRecord::WateringSystemPreferencies& wsp, byte input);
 
 
   /////////////////////////////////////////////////////////////////////

@@ -3,16 +3,17 @@
 #include "StorageHelper.h"
 #include "Logger.h"
 
-TimeAlarmsClass* WateringClass::c_Alarm = 0;
+TimeAlarmsClass WateringClass::c_Alarm;
+time_t WateringClass::c_turnOnWetSensorsTime = 0;
 byte WateringClass::c_waterPumpDisableTimeout[MAX_WATERING_SYSTEMS_COUNT];
+byte WateringClass::c_lastWetSensorValue[MAX_WATERING_SYSTEMS_COUNT];
 
-void WateringClass::init(time_t turnOnWetSensorsTime, TimeAlarmsClass* AlarmForWatering){
+void WateringClass::init(time_t turnOnWetSensorsTime){
 
   //  if(g_useSerialMonitor){
   //    showWateringMessage(F("init - start, at "), false);
   //    Serial.println(StringUtils::timeStampToString(turnOnWetSensorsTime));
   //  }
-  c_Alarm = AlarmForWatering;
 
   c_turnOnWetSensorsTime = turnOnWetSensorsTime;
 
@@ -28,6 +29,10 @@ void WateringClass::init(time_t turnOnWetSensorsTime, TimeAlarmsClass* AlarmForW
   }
 
   //  showWateringMessage(F("init - stop"));
+}
+
+void WateringClass::updateInternalAlarm(){
+  c_Alarm.delay(0);
 }
 
 boolean WateringClass::turnOnWetSensors(){
@@ -193,7 +198,7 @@ void WateringClass::turnOnWaterPumps(){
   //  }
 
   if (minDuration > 0){
-    c_Alarm->timerOnce(0, 0, minDuration, turnOffWaterPumpsOnSchedule);
+    c_Alarm.timerOnce(0, 0, minDuration, turnOffWaterPumpsOnSchedule);
   }
 }
 
@@ -213,9 +218,9 @@ void WateringClass::turnOnWaterPumpForce(byte wsIndex){
   if (wateringDuration == 0){
     return;
   }
-  
- //GB_Logger.logWateringEvent(wsIndex, WATERING_EVENT_WATER_PUMP_ON_DRY, wateringDuration); 
- 
+
+  //GB_Logger.logWateringEvent(wsIndex, WATERING_EVENT_WATER_PUMP_ON_DRY, wateringDuration); 
+
   if(g_useSerialMonitor){
     showWateringMessage(wsIndex, F("Force Watering during "), false);
     Serial.print(wateringDuration);
@@ -227,7 +232,7 @@ void WateringClass::turnOnWaterPumpForce(byte wsIndex){
   c_waterPumpDisableTimeout[wsIndex] = wateringDuration;
 
   if (wateringDuration > 0){
-    c_Alarm->timerOnce(0, 0, wateringDuration, turnOffWaterPumpsOnSchedule);
+    c_Alarm.timerOnce(0, 0, wateringDuration, turnOffWaterPumpsOnSchedule);
   }
 }
 
@@ -273,7 +278,7 @@ void WateringClass::turnOffWaterPumpsOnSchedule(){
   //  Serial.println(nextMinDuration);
 
   if (nextMinDuration > 0){
-    c_Alarm->timerOnce(0, 0, nextMinDuration, turnOffWaterPumpsOnSchedule);
+    c_Alarm.timerOnce(0, 0, nextMinDuration, turnOffWaterPumpsOnSchedule);
   }
 }
 
@@ -384,6 +389,7 @@ WateringEvent* WateringClass::valueToState(const BootRecord::WateringSystemPrefe
 
 
 WateringClass GB_Watering;
+
 
 
 
