@@ -13,7 +13,7 @@ public:
   /////////////////////////////////////////////////////////////////////
 
   void logEvent(Event &event);
-  void logWateringEvent(byte wsIndex, WateringEvent& wateringEvent);
+  void logWateringEvent(byte wsIndex, WateringEvent& wateringEvent, byte value);
   
   void logError(Error &error);
   boolean stopLogError(Error &error);

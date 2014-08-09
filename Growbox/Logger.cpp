@@ -20,8 +20,8 @@ void LoggerClass::logEvent(Event &event){
 //   10 - prefix for watering events 
 //   SS - index of watering system [0..3]
 //   DDDD - event identificator
-void LoggerClass::logWateringEvent(byte wsIndex, WateringEvent& wateringEvent){
-  LogRecord logRecord(B10000000 | ((B00000011 & wsIndex)<<4) | (B00001111 & wateringEvent.index));
+void LoggerClass::logWateringEvent(byte wsIndex, WateringEvent& wateringEvent, byte value){
+  LogRecord logRecord(B10000000 | ((B00000011 & wsIndex)<<4) | (B00001111 & wateringEvent.index), value);
   boolean isStored = GB_StorageHelper.storeLogRecord(logRecord);
   printLogRecordToSerialMonotior(logRecord, wateringEvent.description, isStored);
 }
@@ -67,9 +67,9 @@ String LoggerClass::getLogRecordPrefix(const LogRecord &logRecord){
   String out;
   out += '[';
   out += StringUtils::timeStampToString(logRecord.timeStamp);
-  out +=StringUtils::flashStringLoad(F("] ["));
+  out += StringUtils::flashStringLoad(F("] ["));
   out += StringUtils::byteToHexString(logRecord.data, true);
-  out +=StringUtils::flashStringLoad(F("] "));
+  out += StringUtils::flashStringLoad(F("] "));
   return out;
 }
 
@@ -78,7 +78,7 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
   if (isEvent(logRecord)){
     Event* foundItemPtr = Event::findByKey(data);
     if (foundItemPtr == 0){
-      return F("Unknown event");
+      return F("Unknown Event");
     } 
     else {
       return foundItemPtr->description;
@@ -88,7 +88,7 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
   if (isWateringEvent(logRecord)){
     WateringEvent* foundItemPtr = WateringEvent::findByKey(wateringIndex);
     if (foundItemPtr == 0){
-      return F("Unknown watering event");
+      return F("Unknown Watering event");
     } 
     else {
       return foundItemPtr->description;
@@ -102,14 +102,14 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
     byte sequenceSize = ((data & B00110000)>>4) + 1; 
     Error* foundItemPtr = Error::findByKey(sequence, sequenceSize);
     if (foundItemPtr == 0){
-      return F("Unknown error");
+      return F("Unknown Error");
     } 
     else {
       return foundItemPtr->description;
     }
   } 
   else {
-    return F("Unknown");
+    return F("Unknown Log record");
   }
 }
 
@@ -117,8 +117,26 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){
   String out;
   if (isWateringEvent(logRecord)) {
     byte wsIndex = ((logRecord.data & B00110000) >> 4);
-    out += StringUtils::flashStringLoad(F(" #"));
+    out += StringUtils::flashStringLoad(F(" system [#"));
     out += (wsIndex+1);
+    out += StringUtils::flashStringLoad(F("]"));
+    
+    byte wateringEventIndex = (logRecord.data & B00001111);
+    if (wateringEventIndex >= WATERING_EVENT_WET_SENSOR_IN_AIR.index && wateringEventIndex <= WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT.index){
+      out += StringUtils::flashStringLoad(F(" value ["));
+      out += logRecord.data1;
+      out += StringUtils::flashStringLoad(F("]"));
+
+    } 
+    else if (wateringEventIndex == WATERING_EVENT_WATER_PUMP_ON_DRY.index ||
+      wateringEventIndex == WATERING_EVENT_WATER_PUMP_ON_VERY_DRY.index ||
+      wateringEventIndex == WATERING_EVENT_WATER_PUMP_AUTO_ON_DRY.index) {
+        
+      out += StringUtils::flashStringLoad(F(" during "));
+      out += logRecord.data1;
+      out += StringUtils::flashStringLoad(F(" sec"));
+      
+    }  
   }
   else if (isTemperature(logRecord)) {
     byte temperature = (logRecord.data & B00111111);
@@ -164,5 +182,6 @@ void LoggerClass::printLogRecordToSerialMonotior(const LogRecord &logRecord, con
 }
 
 LoggerClass GB_Logger;
+
 
 

@@ -23,6 +23,9 @@
 #include "WebServer.h"
 #include "Watering.h"
 
+ // We use another instance of Alarm object to increase MAX alarms count (6 by default, look dtNBR_ALARMS in TimeAlarms.h
+TimeAlarmsClass AlarmForWatering = TimeAlarmsClass();
+
 /////////////////////////////////////////////////////////////////////
 //                              STATUS                             //
 /////////////////////////////////////////////////////////////////////
@@ -142,9 +145,6 @@ void setup() {
     Serial.println(sizeof(BootRecord));
     stopOnFatalError(F("wrong BootRecord size"));
   }
-  if (LOG_RECORD_SIZE != sizeof(LogRecord)){
-    stopOnFatalError(F("wrong LogRecord size"));
-  }
   if (MAX_WATERING_SYSTEMS_COUNT != sizeof(WATERING_WET_SENSOR_IN_PINS)){
     stopOnFatalError(F("wrong WATERING_WET_SENSOR_IN_PINS size"));
   }
@@ -201,18 +201,17 @@ void setup() {
   GB_Controller.checkFreeMemory();
 
   time_t pinConfiguredTime = now() - (millis() - pinConfiguredMillis)/1000;
-  GB_Watering.init(pinConfiguredTime); // call before updateGrowboxState();
+  GB_Watering.init(pinConfiguredTime, &AlarmForWatering); // call before updateGrowboxState();
   GB_Controller.checkFreeMemory();
 
   updateGrowboxState();
   GB_Controller.checkFreeMemory();
 
-  // Create main life circle timer
+  // Max 6 Alarms in instance
   Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
   Alarm.timerRepeat(UPDATE_CONTROLLER_STATUS_DELAY, updateControllerHardwareInputStatus);
   Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
   Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
-
   Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);  // repeat every N seconds
 
   // TODO update if configuration changed
@@ -236,6 +235,7 @@ void setup() {
 void loop() {
   //WARNING! We need quick response for Serial events, thay handled afer each loop. So, we decreese delay to zero 
   Alarm.delay(0); 
+  AlarmForWatering.delay(0); 
 }
 
 void serialEvent(){
@@ -335,19 +335,20 @@ void updateGrowboxState() {
 
   boolean needForWatering = GB_Watering.updateWetStatus();
   if (needForWatering){
-    byte nextPumpOffDelay = GB_Watering.turnOnWaterPumps();
-    if (nextPumpOffDelay > 0){
-      Alarm.timerOnce(0, 0, nextPumpOffDelay, updateGrowboxStatePostProcess);
-    }
+    //byte nextPumpOffDelay = 
+    GB_Watering.turnOnWaterPumps();
+//    if (nextPumpOffDelay > 0){
+//      AlarmForWatering.timerOnce(0, 0, nextPumpOffDelay, updateGrowboxStatePostProcess);
+//    }
   }
 }
-
-void updateGrowboxStatePostProcess() {
-  byte nextPumpOffDelay = GB_Watering.turnOffWaterPumpsOnSchedule();
-  if (nextPumpOffDelay > 0){
-    Alarm.timerOnce(0, 0, nextPumpOffDelay, updateGrowboxStatePostProcess);
-  }
-}
+//
+//void updateGrowboxStatePostProcess() {
+//  byte nextPumpOffDelay = GB_Watering.turnOffWaterPumpsOnSchedule();
+//  if (nextPumpOffDelay > 0){
+//    AlarmForWatering.timerOnce(0, 0, nextPumpOffDelay, updateGrowboxStatePostProcess);
+//  }
+//}
 /////////////////////////////////////////////////////////////////////
 //                              SCHEDULE                           //
 /////////////////////////////////////////////////////////////////////

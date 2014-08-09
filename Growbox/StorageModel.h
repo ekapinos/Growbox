@@ -4,7 +4,6 @@
 #include <Time.h>
 #include "Global.h"
 
-const word LOG_RECORD_SIZE = 0x5;
 const word BOOT_RECORD_SIZE = 0x100; // 256
 
 const word MAGIC_NUMBER = 0xAA55;   //  2
@@ -65,9 +64,13 @@ boolean isWifiStationMode :
 struct LogRecord {
   time_t timeStamp;                 // 4
   byte data;                        // 1
+  byte data1;                       // 1
 
   LogRecord (byte data): 
-  timeStamp(now()), data(data) {
+  timeStamp(now()), data(data), data1(0) {
+  }  
+  LogRecord (byte data, byte data1): 
+  timeStamp(now()), data(data), data1(data1) {
   }
 
   LogRecord (){

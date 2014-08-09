@@ -467,15 +467,15 @@ void WebServerClass::sendStatusPage(){
   }
   GB_Watering.updateWetStatus();
   boolean isEnabledWetSensorsExists = false;
-  for (byte wspIndex = 0; wspIndex < MAX_WATERING_SYSTEMS_COUNT; wspIndex++){
-    WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wspIndex);
+  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
+    WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
     if (currentStatus == &WATERING_EVENT_WET_SENSOR_DISABLED){
       continue;
     }
     isEnabledWetSensorsExists = true;
 
     sendRawData(F("<dd>Wet sensor #")); 
-    sendRawData(wspIndex+1); 
+    sendRawData(wsIndex+1); 
     sendRawData(F(": "));
     if (currentStatus != &WATERING_EVENT_WET_SENSOR_NORMAL){
       sendRawData(F("<span class='red'>")); 
@@ -738,9 +738,9 @@ byte WebServerClass::getWateringIndexFromUrl(const String& url){
 
 void WebServerClass::sendWateringPage(const String& url){
 
-  byte wspIndex = getWateringIndexFromUrl(url);
-  if (wspIndex == 0xFF){
-    wspIndex = 0;
+  byte wsIndex = getWateringIndexFromUrl(url);
+  if (wsIndex == 0xFF){
+    wsIndex = 0;
   }
 
   sendRawData(F("<form>"));
@@ -759,14 +759,14 @@ void WebServerClass::sendWateringPage(const String& url){
     //if (!currentWateringSystemPreferencies.boolPreferencies.isWetSensorConnected && !currentWateringSystemPreferencies.boolPreferencies.isWaterPumpConnected){
     //  description += StringUtils::flashStringLoad(F(" (not connected)"));
     //}
-    sendAppendOptionToSelectDynamic(F("wsIndexCombobox"), String(i+1), description, (wspIndex==i));
+    sendAppendOptionToSelectDynamic(F("wsIndexCombobox"), String(i+1), description, (wsIndex==i));
   }
 
 
-  BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+  BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
 
   sendRawData(F("<br/><big><b>Watering system # ")); 
-  sendRawData(wspIndex+1);  
+  sendRawData(wsIndex+1);  
   sendRawData(F(" preferences</b></big><br/><br/>"));
 
 
@@ -774,7 +774,7 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_watering));
   sendRawData('/');
-  sendRawData(wspIndex+1);
+  sendRawData(wsIndex+1);
   sendRawData(F("' method='post'>"));
   sendTagCheckbox(F("isWetSensorConnected"), F("Sensor connected"), wsp.boolPreferencies.isWetSensorConnected);
 
@@ -784,14 +784,14 @@ void WebServerClass::sendWateringPage(const String& url){
 
   GB_Watering.updateWetStatus();
   sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Current value [<b>"));
-  byte currentValue = GB_Watering.getCurrentWetSensorValue(wspIndex);
+  byte currentValue = GB_Watering.getCurrentWetSensorValue(wsIndex);
   if (GB_Watering.isWetSensorValueReserved(currentValue)){
     sendRawData(F("N/A"));
   } 
   else {
-    sendRawData(GB_Watering.getCurrentWetSensorValue(wspIndex));
+    sendRawData(GB_Watering.getCurrentWetSensorValue(wsIndex));
   }
-  WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wspIndex);
+  WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
   sendRawData(F("</b>], state [<b>"));
   sendRawData(currentStatus->shortDescription);
   sendRawData(F("</b>]</small>"));
@@ -838,7 +838,7 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_watering));
   sendRawData('/');
-  sendRawData(wspIndex+1);
+  sendRawData(wsIndex+1);
   sendRawData(F("' method='post'>"));
 
   sendTagCheckbox(F("isWaterPumpConnected"), F("Pump connected"), wsp.boolPreferencies.isWaterPumpConnected);
@@ -860,6 +860,17 @@ void WebServerClass::sendWateringPage(const String& url){
 
   sendRawData(F("</table>"));
   sendRawData(F("<br/><input type='submit' value='Save'>"));
+  sendRawData(F("</form>"));
+  
+   
+  sendRawData(F("<br/><form action='"));
+  sendRawData(FS(S_url_watering));
+  sendRawData('/');
+  sendRawData(wsIndex+1); 
+  sendRawData(F("' method='post' onSubmit='return confirm(\"Start Dry watering during "));
+  sendRawData(wsp.dryWateringDuration);
+  sendRawData(F(" sec ?\")'>"));
+  sendRawData(F("<input type='submit' name='runDryWateringNow' value='Dry watering'>"));
   sendRawData(F("</form>"));
 
   sendRawData(F("</fieldset>"));
@@ -1223,146 +1234,156 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     c_isWifiForceUpdateGrowboxState = true;
   }  
   else if (StringUtils::flashStringEquals(name, F("isWetSensorConnected"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     if (value.length() != 1){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.boolPreferencies.isWetSensorConnected = (value[0]=='1');
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   }
   else if (StringUtils::flashStringEquals(name, F("isWaterPumpConnected"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     if (value.length() != 1){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.boolPreferencies.isWaterPumpConnected = (value[0]=='1');
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   } 
   else if (StringUtils::flashStringEquals(name, F("inAirValue"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     byte intValue = value.toInt();
     if (intValue == 0){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.inAirValue = intValue;
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   } 
   else if (StringUtils::flashStringEquals(name, F("veryDryValue"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     byte intValue = value.toInt();
     if (intValue == 0){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.veryDryValue = intValue;
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   } 
   else if (StringUtils::flashStringEquals(name, F("dryValue"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     byte intValue = value.toInt();
     if (intValue == 0){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.dryValue = intValue;
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   } 
   else if (StringUtils::flashStringEquals(name, F("normalValue"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     byte intValue = value.toInt();
     if (intValue == 0){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.normalValue = intValue;
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   } 
   else if (StringUtils::flashStringEquals(name, F("wetValue"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     byte intValue = value.toInt();
     if (intValue == 0){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.wetValue = intValue;
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   } 
   else if (StringUtils::flashStringEquals(name, F("veryWetValue"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     byte intValue = value.toInt();
     if (intValue == 0){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.veryWetValue = intValue;
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   }  
   else if (StringUtils::flashStringEquals(name, F("dryWateringDuration"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     byte intValue = value.toInt();
     if (intValue == 0){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.dryWateringDuration = intValue;
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   } 
   else if (StringUtils::flashStringEquals(name, F("veryDryWateringDuration"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     byte intValue = value.toInt();
     if (intValue == 0){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.veryDryWateringDuration = intValue;
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   } 
   else if (StringUtils::flashStringEquals(name, F("wateringIfNoSensorAt"))){
-    byte wspIndex = getWateringIndexFromUrl(url);
-    if (wspIndex == 0xFF){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
       return false;
     }
     word timeValue = getTimeFromInput(value);
     if (timeValue == 0xFFFF){
       return false;
     }
-    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wspIndex);
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     wsp.wateringIfNoSensorAt = timeValue;
-    GB_StorageHelper.setWateringSystemPreferenciesById(wspIndex, wsp);  
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
   } 
+  else if (StringUtils::flashStringEquals(name, F("runDryWateringNow"))){
+    byte wsIndex = getWateringIndexFromUrl(url);
+    if (wsIndex == 0xFF){
+      return false;
+    }
+    GB_Watering.turnOnWaterPumpForce(wsIndex);
+    
+  } 
+  
+  
 
   else {
     return false;
