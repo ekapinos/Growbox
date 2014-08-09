@@ -59,11 +59,13 @@ boolean skipNextWatering :
     byte veryDryWateringDuration; // 1 // seconds
 
     word startWateringAt;    // 2 // minutes from midnight, dryWateringDuration used
+    
+    time_t lastWateringTimeStamp; // 4 
 
   } 
-  wateringSystemPreferencies[MAX_WATERING_SYSTEMS_COUNT]; // 12*MAX_WATERING_SYSTEMS_COUNT(4) = 48
+  wateringSystemPreferencies[MAX_WATERING_SYSTEMS_COUNT]; // 16*MAX_WATERING_SYSTEMS_COUNT(4) = 64
 
-  byte reserved[92];                //  <----reserved
+  byte reserved[76];                //  <----reserved
   char wifiSSID[WIFI_SSID_LENGTH];  // 32  
   char wifiPass[WIFI_PASS_LENGTH];  // 64
   word last_magic;                  //  2  

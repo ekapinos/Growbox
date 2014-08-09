@@ -16,17 +16,18 @@ private:
   static const byte WATERING_DISABLE_VALUE = 0;
   static const byte WATERING_UNSTABLE_VALUE = 1;
 
+  static time_t c_turnOnWetSensorsTimeStamp;
+  static byte c_lastWetSensorValue[MAX_WATERING_SYSTEMS_COUNT];
+
   static TimeAlarmsClass c_PumpOnAlarm;
   static TimeAlarmsClass c_PumpOffAlarm;
   static AlarmID_t c_PumpOnAlarmsArray[MAX_WATERING_SYSTEMS_COUNT];
   static AlarmID_t c_PumpOffAlarmsArray[MAX_WATERING_SYSTEMS_COUNT];
 
-  static time_t c_turnOnWetSensorsTime;
-  static byte c_lastWetSensorValue[MAX_WATERING_SYSTEMS_COUNT];
-
 public:
 
   static void init(time_t turnOnWetSensorsTime);
+  static void checkForMissedWaterings();
   static void updateInternalAlarm();
 
   /////////////////////////////////////////////////////////////////////
@@ -39,10 +40,11 @@ public:
   /////////////////////////////////////////////////////////////////////
   //                           WATER PUMPS                           //
   /////////////////////////////////////////////////////////////////////
-  static boolean turnOnWaterPumpByIndex(byte wsIndex);
-  
+  static time_t getLastWateringTimeStampByIndex(byte wsIndex);
+  static void turnOnWaterPumpManual(byte wsIndex);
 private:
   static void turnOnWaterPumpOnSchedule(); 
+  static void turnOnWaterPumpByIndex(byte wsIndex, boolean isScheduleCall);
   static void turnOffWaterPumpOnSchedule();
 
 public:

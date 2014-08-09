@@ -791,6 +791,14 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(F("<input type='hidden' name='runDryWateringNow'>"));
   sendRawData(F("</form>"));
 
+
+  if(g_useSerialMonitor){ 
+    Serial.println();
+  }
+  GB_Watering.turnOffWetSensorsAndUpdateWetStatus();
+  byte currentValue = GB_Watering.getCurrentWetSensorValue(wsIndex);
+  WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
+
   // General form
   sendRawData(F("<fieldset><legend>General</legend>"));
   sendRawData(F("<form action='"));
@@ -801,14 +809,35 @@ void WebServerClass::sendWateringPage(const String& url){
 
   sendRawData(F("<tr><td colspan='2'>"));
   sendTagCheckbox(F("isWetSensorConnected"), F("Wet sensor connected"), wsp.boolPreferencies.isWetSensorConnected);
+  
+  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Current value [<b>"));
+  if (GB_Watering.isWetSensorValueReserved(currentValue)){
+    sendRawData(F("N/A"));
+  } 
+  else {
+    sendRawData(currentValue);
+  }
+  sendRawData(F("</b>], state [<b>"));
+  sendRawData(currentStatus->shortDescription);
+  sendRawData(F("</b>]</small>"));
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td colspan='2'>"));
   sendTagCheckbox(F("isWaterPumpConnected"), F("Watering Pump connected"), wsp.boolPreferencies.isWaterPumpConnected);
+  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Last watering [<b>"));
+  time_t lastWateringTimeStamp = GB_Watering.getLastWateringTimeStampByIndex(wsIndex);
+  if (lastWateringTimeStamp == 0){
+    sendRawData(F("N/A"));
+  } 
+  else {
+    sendRawData(StringUtils::timeStampToString(lastWateringTimeStamp));
+  }
+  sendRawData(F("</b>]</small>"));
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td>Watering at</td><td>"));
   sendTagInputTime(F("startWateringAt"), 0, wsp.startWateringAt);
+  sendRawData(F("<input type='submit' form='runDryWateringNowForm' value='Watering manual'>"));
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td colspan='2'>"));
@@ -824,8 +853,7 @@ void WebServerClass::sendWateringPage(const String& url){
   
   sendRawData(F("<tr><td colspan='2'><br></td></tr>"));
   
-  sendRawData(F("<tr><td><input type='submit' value='Save'></td><td>"));
-  sendRawData(F("<input type='submit' form='runDryWateringNowForm' value='Dry watering now'></td></tr>"));
+  sendRawData(F("<tr><td><input type='submit' value='Save'></td><td></td></tr>"));
 
   sendRawData(F("</table>"));
   sendRawData(F("</form>"));
@@ -834,28 +862,10 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(F("<br/>"));
   
   // Wet sensor
-  if(g_useSerialMonitor){ 
-    Serial.println();
-  }
-  GB_Watering.turnOffWetSensorsAndUpdateWetStatus();
-  byte currentValue = GB_Watering.getCurrentWetSensorValue(wsIndex);
-  WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
-
   sendRawData(F("<fieldset><legend>Wet sensor</legend>"));
   sendRawData(F("<form action='"));
   sendRawData(actionURL);
   sendRawData(F("' method='post'>"));
-
-  sendRawData(F("Current value [<b>"));
-  if (GB_Watering.isWetSensorValueReserved(currentValue)){
-    sendRawData(F("N/A"));
-  } 
-  else {
-    sendRawData(GB_Watering.getCurrentWetSensorValue(wsIndex));
-  }
-  sendRawData(F("</b>], state [<b>"));
-  sendRawData(currentStatus->shortDescription);
-  sendRawData(F("</b>]<br/>"));
 
   sendRawData(F("<table class='grab'>"));
 
@@ -1370,7 +1380,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     if (wsIndex == 0xFF){
       return false;
     }
-    GB_Watering.turnOnWaterPumpByIndex(wsIndex);
+    GB_Watering.turnOnWaterPumpManual(wsIndex);
 
   } 
 

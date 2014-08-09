@@ -62,7 +62,9 @@ boolean StorageHelperClass::init(){
       wsp.dryWateringDuration = 30;     // 30 sec
       wsp.veryDryWateringDuration = 60; // 60 sec
       
-      wsp.startWateringAt = 9*60;  // 9 AM   
+      wsp.startWateringAt = 9*60;  // 9 AM 
+      
+      wsp.lastWateringTimeStamp = 0; // Unknown
     }
 
     StringUtils::flashStringLoad(bootRecord.wifiSSID, WIFI_SSID_LENGTH, FS(S_WIFI_DEFAULT_SSID));

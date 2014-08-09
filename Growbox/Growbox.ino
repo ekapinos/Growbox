@@ -228,6 +228,8 @@ void setup() {
     RAK410_XBeeWifi.updateWiFiStatus(); // start Web server
   }
   GB_Controller.checkFreeMemory();
+  
+  GB_Watering.checkForMissedWaterings();
 
 }
 
