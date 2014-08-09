@@ -765,19 +765,13 @@ void WebServerClass::sendWateringPage(const String& url){
 
   // out of form 
   for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
-    String url;
-    url += StringUtils::flashStringLoad(FS(S_url_watering));
+    String url = StringUtils::flashStringLoad(FS(S_url_watering));
     if (i > 0){
       url += '/';
       url += (i+1);
     }
-    String description('#');
-    description += ' ';
+    String description = StringUtils::flashStringLoad(F("# "));
     description += (i+1);
-    //BootRecord::WateringSystemPreferencies currentWateringSystemPreferencies = GB_StorageHelper.getWateringSystemPreferenciesById(i);
-    //if (!currentWateringSystemPreferencies.boolPreferencies.isWetSensorConnected && !currentWateringSystemPreferencies.boolPreferencies.isWaterPumpConnected){
-    //  description += StringUtils::flashStringLoad(F(" (not connected)"));
-    //}
     sendAppendOptionToSelectDynamic(F("wsIndexCombobox"), url, description, (wsIndex==i));
   }
 
@@ -791,7 +785,7 @@ void WebServerClass::sendWateringPage(const String& url){
   // run Dry watering form
   sendRawData(F("<form action='"));
   sendRawData(actionURL); 
-  sendRawData(F("' method='post' id='runDryWateringNowForm' onSubmit='return confirm(\"Run Dry watering during "));
+  sendRawData(F("' method='post' id='runDryWateringNowForm' onSubmit='return confirm(\"Dry watering during "));
   sendRawData(wsp.dryWateringDuration);
   sendRawData(F(" sec ?\")'>"));
   sendRawData(F("<input type='hidden' name='runDryWateringNow'>"));
@@ -813,7 +807,7 @@ void WebServerClass::sendWateringPage(const String& url){
   sendTagCheckbox(F("isWaterPumpConnected"), F("Watering Pump connected"), wsp.boolPreferencies.isWaterPumpConnected);
   sendRawData(F("</td></tr>"));
 
-  sendRawData(F("<tr><td>Start watering at</td><td>"));
+  sendRawData(F("<tr><td>Watering at</td><td>"));
   sendTagInputTime(F("startWateringAt"), 0, wsp.startWateringAt);
   sendRawData(F("</td></tr>"));
 
@@ -822,10 +816,16 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>if Wet sensor not connected, [In Air], [Disabled]"));
   sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or [Unstable], then [Dry watering] duration will be used</small>"));
   sendRawData(F("</td></tr>"));
+    
+  sendRawData(F("<tr><td colspan='2'>"));
+  sendTagCheckbox(F("skipNextWatering"), F("Skip next watering"), wsp.boolPreferencies.skipNextWatering);
+  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Unchecked automatically. Useful on time updates</small>"));
+  sendRawData(F("</td></tr>"));
+  
   sendRawData(F("<tr><td colspan='2'><br></td></tr>"));
   
   sendRawData(F("<tr><td><input type='submit' value='Save'></td><td>"));
-  sendRawData(F("<input type='submit' form='runDryWateringNowForm' value='Run Dry watering now'></td></tr>"));
+  sendRawData(F("<input type='submit' form='runDryWateringNowForm' value='Dry watering now'></td></tr>"));
 
   sendRawData(F("</table>"));
   sendRawData(F("</form>"));
@@ -913,11 +913,6 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(F("<tr><td>Very Dry watering</td><td>"));
   sendTagInputNumber(F("veryDryWateringDuration"), 0, 1, 255, wsp.veryDryWateringDuration);
   sendRawData(F(" sec</td></tr>"));
-  
-  sendRawData(F("<tr><td colspan='2'>"));
-  sendTagCheckbox(F("skipNextWatering"), F("Skip next watering"), wsp.boolPreferencies.skipNextWatering);
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Changes automatically, on date/time update</small>"));
-  sendRawData(F("</td></tr>"));
 
   sendRawData(F("</table>"));
   sendRawData(F("<br/><input type='submit' value='Save'>"));

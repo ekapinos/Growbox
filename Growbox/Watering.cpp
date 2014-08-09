@@ -96,7 +96,7 @@ void WateringClass::turnOffWetSensorsAndUpdateWetStatus(){
   long remanedDelay = c_turnOnWetSensorsTime - now() + WATERING_SYSTEM_TURN_ON_DELAY;
   if (remanedDelay > 0){
     if(g_useSerialMonitor){
-      showWateringMessage(F("Update delay "), false);
+      showWateringMessage(F("Wait Wet sensors for "), false);
       Serial.print(remanedDelay);
       Serial.println(F(" sec"));
     }
@@ -204,6 +204,13 @@ void WateringClass::turnOnWaterPumpOnSchedule(){
     return;
   }
 
+  if (wsp.boolPreferencies.skipNextWatering){
+    wsp.boolPreferencies.skipNextWatering = false; 
+    GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);  
+    //showWateringMessage(wsIndex, F("turnOnWaterPumpOnSchedule - skiped watering"));
+    return;
+  } 
+
   // log it
   GB_Logger.logWateringEvent(wsIndex, *wateringEvent, wateringDuration);
 
@@ -213,7 +220,7 @@ void WateringClass::turnOnWaterPumpOnSchedule(){
   // Turn OFF water Pump after delay
   c_PumpOffAlarmsArray[wsIndex] = c_PumpOffAlarm.timerOnce(wateringDuration, turnOffWaterPumpOnSchedule);
 
-  showWateringMessage(wsIndex, F("Turn Pump ON (Schedule)"));
+  //showWateringMessage(wsIndex, F("Turn Pump ON (Schedule)"));
 
 }
 
@@ -250,7 +257,7 @@ boolean WateringClass::turnOnWaterPumpByIndex(byte wsIndex){
   // Turn OFF water Pump after delay
   c_PumpOffAlarmsArray[wsIndex] = c_PumpOffAlarm.timerOnce(wateringDuration, turnOffWaterPumpOnSchedule);
 
-  showWateringMessage(wsIndex, F("Turn Pump ON (Manual)"));
+  //showWateringMessage(wsIndex, F("Turn Pump ON (Manual)"));
   //showWateringMessage(wsIndex, F("turnOnWaterPumpByIndex - ok"));
   //showWateringMessage( c_PumpOffAlarmsArray[wsIndex]);
 
@@ -294,7 +301,7 @@ void WateringClass::turnOffWaterPumpOnSchedule(){
   // Turn OFF water Pump after delay
   c_PumpOffAlarmsArray[wsIndex] = dtINVALID_ALARM_ID;
 
-  showWateringMessage(wsIndex, F("Turn Pump OFF"));
+  //showWateringMessage(wsIndex, F("Turn Pump OFF"));
 
 }
 
@@ -405,6 +412,7 @@ WateringEvent* WateringClass::valueToState(const BootRecord::WateringSystemPrefe
 
 
 WateringClass GB_Watering;
+
 
 
 
