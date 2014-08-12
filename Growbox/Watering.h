@@ -15,7 +15,7 @@ private:
 
   static const byte WATERING_DISABLE_VALUE = 0;
   static const byte WATERING_UNSTABLE_VALUE = 1;
-
+  
   static time_t c_turnOnWetSensorsTimeStamp;
   static byte c_lastWetSensorValue[MAX_WATERING_SYSTEMS_COUNT];
 
@@ -27,7 +27,7 @@ private:
 public:
 
   static void init(time_t turnOnWetSensorsTime);
-  static void checkForMissedWaterings();
+  static void updateWateringSchedule();
   static void updateInternalAlarm();
 
   /////////////////////////////////////////////////////////////////////
@@ -41,8 +41,12 @@ public:
   //                           WATER PUMPS                           //
   /////////////////////////////////////////////////////////////////////
   static time_t getLastWateringTimeStampByIndex(byte wsIndex);
+  static time_t getNextWateringTimeStampByIndex(byte wsIndex);
+  
   static void turnOnWaterPumpManual(byte wsIndex);
 private:
+  static void scheduleNextWateringTime(byte wsIndex);
+
   static void turnOnWaterPumpOnSchedule(); 
   static void turnOnWaterPumpByIndex(byte wsIndex, boolean isScheduleCall);
   static void turnOffWaterPumpOnSchedule();

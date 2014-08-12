@@ -65,6 +65,9 @@ const word ERROR_SHORT_SIGNAL_MS = 100;  // -> 0
 const word ERROR_LONG_SIGNAL_MS = 400;   // -> 1
 const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
 
+// Watering
+const time_t WATERING_MAX_SCHEDULE_CORRECTION_TIME = 6*60*60; // hours
+const time_t WATERING_ERROR_DELTA = 5*60; // 6 minutes
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //

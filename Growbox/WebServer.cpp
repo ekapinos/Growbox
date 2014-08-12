@@ -785,7 +785,7 @@ void WebServerClass::sendWateringPage(const String& url){
   // run Dry watering form
   sendRawData(F("<form action='"));
   sendRawData(actionURL); 
-  sendRawData(F("' method='post' id='runDryWateringNowForm' onSubmit='return confirm(\"Dry watering during "));
+  sendRawData(F("' method='post' id='runDryWateringNowForm' onSubmit='return confirm(\"Start manual Dry watering during "));
   sendRawData(wsp.dryWateringDuration);
   sendRawData(F(" sec ?\")'>"));
   sendRawData(F("<input type='hidden' name='runDryWateringNow'>"));
@@ -835,20 +835,20 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(F("</b>]</small>"));
   sendRawData(F("</td></tr>"));
 
-  sendRawData(F("<tr><td>Watering at</td><td>"));
+  sendRawData(F("<tr><td>Schedule waterind at</td><td>"));
   sendTagInputTime(F("startWateringAt"), 0, wsp.startWateringAt);
-  sendRawData(F("<input type='submit' form='runDryWateringNowForm' value='Watering manual'>"));
+  sendRawData(F("<input type='submit' form='runDryWateringNowForm' value='Water now'>"));
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td colspan='2'>"));
-  sendTagCheckbox(F("useWetSensorForWatering"), F("Use Wet sensor for watering"), wsp.boolPreferencies.useWetSensorForWatering);
+  sendTagCheckbox(F("useWetSensorForWatering"), F("Use Wet sensor to detect State"), wsp.boolPreferencies.useWetSensorForWatering);
   sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>if Wet sensor not connected, [In Air], [Disabled]"));
   sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or [Unstable], then [Dry watering] duration will be used</small>"));
   sendRawData(F("</td></tr>"));
     
   sendRawData(F("<tr><td colspan='2'>"));
   sendTagCheckbox(F("skipNextWatering"), F("Skip next watering"), wsp.boolPreferencies.skipNextWatering);
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Unchecked automatically. Useful on time updates</small>"));
+  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Useful after manual watering</small>"));
   sendRawData(F("</td></tr>"));
   
   sendRawData(F("<tr><td colspan='2'><br></td></tr>"));

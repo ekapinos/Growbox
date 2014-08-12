@@ -229,7 +229,7 @@ void setup() {
   }
   GB_Controller.checkFreeMemory();
   
-  GB_Watering.checkForMissedWaterings();
+  GB_Watering.updateWateringSchedule(); // Run watering after init
 
 }
 
