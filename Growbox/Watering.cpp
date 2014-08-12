@@ -165,6 +165,8 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
 
   time_t currentTimeStamp = now();
 
+ //Serial.println("a");
+ 
   BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
 
   if (c_PumpOnAlarmsArray[wsIndex] != dtINVALID_ALARM_ID){
@@ -179,11 +181,13 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
   time_t nextNormalScheduleTimeStamp = currentTimeStamp - elapsedSecsToday(currentTimeStamp) + wsp.startWateringAt*60;
   if (nextNormalScheduleTimeStamp < currentTimeStamp){
     nextNormalScheduleTimeStamp += SECS_PER_DAY;
+//     Serial.println("b");
   }
 
   if (wsp.lastWateringTimeStamp == 0){
     // All OK, schedule watering without delta
     c_PumpOnAlarmsArray[wsIndex] = c_PumpOnAlarm.timerOnce(nextNormalScheduleTimeStamp, turnOnWaterPumpOnSchedule);
+//         Serial.println("c");
     return;
   }
 
@@ -205,6 +209,7 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
       Serial.println();
     }
     turnOnWaterPumpByIndex(wsIndex, true);
+//         Serial.println("d");
     return;
   }
 
@@ -212,26 +217,53 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
 
   // Find nearest normal schedule TimeStamp
   time_t calculatedNextTimeStamp = wsp.lastWateringTimeStamp + SECS_PER_DAY;
+  
+//  Serial.print("calculatedNextTimeStamp: ");
+//  Serial.println(StringUtils::timeStampToString(calculatedNextTimeStamp));
+  
   time_t nextNextNormalScheduleTimeStamp = nextNormalScheduleTimeStamp + SECS_PER_DAY;
+
+//  Serial.print("nextNextNormalScheduleTimeStamp: ");
+//  Serial.println(StringUtils::timeStampToString(nextNextNormalScheduleTimeStamp));
+  
 
   long nextDeltaAbs = (nextNormalScheduleTimeStamp > calculatedNextTimeStamp) ? (nextNormalScheduleTimeStamp - calculatedNextTimeStamp) : (calculatedNextTimeStamp - nextNormalScheduleTimeStamp);
   long nextNextDeltaAbs = (nextNextNormalScheduleTimeStamp > calculatedNextTimeStamp) ? (nextNextNormalScheduleTimeStamp - calculatedNextTimeStamp) : (calculatedNextTimeStamp - nextNextNormalScheduleTimeStamp);
 
+//  Serial.print("nextDeltaAbs: ");
+//  Serial.println(nextDeltaAbs);
+//  
+//  Serial.print("nextNextDeltaAbs: ");
+//  Serial.println(nextNextDeltaAbs);
+  
+
   time_t nearestNormalScheduleTimeStamp = (nextDeltaAbs < nextNextDeltaAbs) ? nextNormalScheduleTimeStamp : nextNextNormalScheduleTimeStamp;
   long nearestDeltaAbs = (nextDeltaAbs < nextNextDeltaAbs) ? nextDeltaAbs : nextNextDeltaAbs;
+
+//  Serial.print("nearestNormalScheduleTimeStamp: ");
+//  Serial.println(StringUtils::timeStampToString(nearestNormalScheduleTimeStamp));
+//  
+//  Serial.print("nearestDeltaAbs: ");
+//  Serial.println(nearestDeltaAbs);
+//  
+//  Serial.print("nearestDeltaAbs - WATERING_ERROR_DELTA: ");
+//  Serial.println(nearestDeltaAbs - WATERING_ERROR_DELTA);
 
   if (nearestDeltaAbs - WATERING_ERROR_DELTA < WATERING_MAX_SCHEDULE_CORRECTION_TIME){
     // Not all OK, but schedule without delta
     c_PumpOnAlarmsArray[wsIndex] = c_PumpOnAlarm.timerOnce(nearestNormalScheduleTimeStamp, turnOnWaterPumpOnSchedule);
+//         Serial.println("e");
     return;
   }
 
   // decrease delta on WATERING_MAX_SCHEDULE_CORRECTION_TIME but not more
   if (nearestNormalScheduleTimeStamp > calculatedNextTimeStamp){
     calculatedNextTimeStamp += WATERING_MAX_SCHEDULE_CORRECTION_TIME; 
+//        Serial.println("f");
   } 
   else {
     calculatedNextTimeStamp -= WATERING_MAX_SCHEDULE_CORRECTION_TIME;
+//     Serial.println("g");
   }
   c_PumpOnAlarmsArray[wsIndex] = c_PumpOnAlarm.timerOnce(calculatedNextTimeStamp, turnOnWaterPumpOnSchedule);
 
@@ -323,6 +355,7 @@ void WateringClass::turnOnWaterPumpByIndex(byte wsIndex, boolean isSchedulecCall
     }
   } 
   else {
+    //   Serial.println("!isSchedulecCall");
     wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_MANUAL_DRY;
     wateringDuration = wsp.dryWateringDuration;
   }
@@ -331,7 +364,9 @@ void WateringClass::turnOnWaterPumpByIndex(byte wsIndex, boolean isSchedulecCall
   //    return;
   //  }
 
-  if (skipRealWatering) {
+  if (!skipRealWatering) {
+    //Serial.println("!skipRealWatering");
+
     // log it
     GB_Logger.logWateringEvent(wsIndex, *wateringEvent, wateringDuration);
 
@@ -441,9 +476,9 @@ byte WateringClass::readWetValue(byte wsIndex){
 
         if (g_useSerialMonitor){
           if (isWetSensorValueReserved(currentValue)){
-            Serial.println(F(" -> 2 "));
+            Serial.print(F(" -> 2 "));
           }
-          Serial.println(F("OK"));
+          Serial.println(F(" OK"));
         }
         return currentValue;
       }
@@ -455,7 +490,7 @@ byte WateringClass::readWetValue(byte wsIndex){
     delay(10);
   }
   if (g_useSerialMonitor){
-    Serial.println(F("FAIL"));
+    Serial.println(F(" FAIL"));
   }
   return WATERING_UNSTABLE_VALUE;
 }
