@@ -21,14 +21,13 @@ private:
 
   static TimeAlarmsClass c_PumpOnAlarm;
   static TimeAlarmsClass c_PumpOffAlarm;
-  static AlarmID_t c_PumpOnAlarmsArray[MAX_WATERING_SYSTEMS_COUNT];
-  static AlarmID_t c_PumpOffAlarmsArray[MAX_WATERING_SYSTEMS_COUNT];
+  static AlarmID_t c_PumpOnAlarmIDArray[MAX_WATERING_SYSTEMS_COUNT];
+  static AlarmID_t c_PumpOffAlarmIDArray[MAX_WATERING_SYSTEMS_COUNT];
 
 public:
 
   static void init(time_t turnOnWetSensorsTime);
-  static void updateWateringSchedule();
-  static void updateInternalAlarm();
+  static void updateInternalAlarms();
 
   /////////////////////////////////////////////////////////////////////
   //                           WET SENSORS                           //
@@ -40,6 +39,8 @@ public:
   /////////////////////////////////////////////////////////////////////
   //                           WATER PUMPS                           //
   /////////////////////////////////////////////////////////////////////
+  static void updateWateringSchedule();
+    
   static time_t getLastWateringTimeStampByIndex(byte wsIndex);
   static time_t getNextWateringTimeStampByIndex(byte wsIndex);
   

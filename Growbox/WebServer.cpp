@@ -377,12 +377,14 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   sendRawData(F("  <title>Growbox</title>"));
   sendRawData(F("  <meta name='viewport' content='width=device-width, initial-scale=1'/>"));  
   sendRawData(F("<style type='text/css'>"));
-  sendRawData(F("  body {font-family:Arial; max-width:400px; }"));
+  sendRawData(F("  body {font-family:Arial; max-width:600px; }")); // 350px 
   sendRawData(F("  form {margin: 0px;}"));
   sendRawData(F("  .red {color: red;}"));
+  sendRawData(F("  .right {float: right;}"));
   sendRawData(F("  .grab {border-spacing:5px; width:100%; }")); 
   sendRawData(F("  .align_center {text-align:center; }")); 
-  sendRawData(F("  dt {font-weight: bold; margin-top: 5px;}")); 
+  sendRawData(F("  dt {font-weight: bold; margin-top:5px;}")); 
+  sendRawData(F("  .description {font-size:small; margin-left:20px;}")); 
   sendRawData(F("</style>"));  
   sendRawData(F("</head>"));
 
@@ -816,7 +818,7 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(F("<tr><td colspan='2'>"));
   sendTagCheckbox(F("isWetSensorConnected"), F("Wet sensor connected"), wsp.boolPreferencies.isWetSensorConnected);
   
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Current value [<b>"));
+  sendRawData(F("<div class='description'>Current value [<b>"));
   if (GB_Watering.isWetSensorValueReserved(currentValue)){
     sendRawData(F("N/A"));
   } 
@@ -825,13 +827,12 @@ void WebServerClass::sendWateringPage(const String& url){
   }
   sendRawData(F("</b>], state [<b>"));
   sendRawData(currentStatus->shortDescription);
-  sendRawData(F("</b>]</small>"));
+  sendRawData(F("</b>]</div>"));
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td colspan='2'>"));
-  sendTagCheckbox(F("isWaterPumpConnected"), F("Watering Pump connected"), wsp.boolPreferencies.isWaterPumpConnected);
-  sendRawData(F("<small>"));  
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Last watering&emsp;["));
+  sendTagCheckbox(F("isWaterPumpConnected"), F("Watering Pump connected"), wsp.boolPreferencies.isWaterPumpConnected);  
+  sendRawData(F("<div class='description'>Last watering&emsp;["));
   time_t lastWateringTimeStamp = GB_Watering.getLastWateringTimeStampByIndex(wsIndex);
   if (lastWateringTimeStamp == 0){
     sendRawData(F("N/A"));
@@ -841,11 +842,11 @@ void WebServerClass::sendWateringPage(const String& url){
   }
   sendRawData(F("]"));
 
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current time &nbsp;&emsp;[<b>"));
+  sendRawData(F("<br/>Current time &nbsp;&emsp;[<b>"));
   sendRawData(StringUtils::timeStampToString(now()));
   sendRawData(F("</b>]"));
 
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Next watering&emsp;["));
+  sendRawData(F("<br/>Next watering&emsp;["));
   time_t nextWateringTimeStamp = GB_Watering.getNextWateringTimeStampByIndex(wsIndex);
   if (nextWateringTimeStamp == 0){
     sendRawData(F("N/A"));
@@ -854,22 +855,21 @@ void WebServerClass::sendWateringPage(const String& url){
     sendRawData(StringUtils::timeStampToString(nextWateringTimeStamp));
   }
   sendRawData(F("]"));
-  sendRawData(F("</small>"));
+  sendRawData(F("</div>"));
   sendRawData(F("</td></tr>"));
   
-  sendRawData(F("<tr><td>Schedule watering at</td><td>"));
+  sendRawData(F("<tr><td>Every day watering at</td><td>"));
   sendTagInputTime(F("startWateringAt"), 0, wsp.startWateringAt);
   sendRawData(F("</td></tr>"));
 
   sendRawData(F("<tr><td colspan='2'>"));
   sendTagCheckbox(F("useWetSensorForWatering"), F("Use Wet sensor to detect State"), wsp.boolPreferencies.useWetSensorForWatering);
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>if Wet sensor not connected, [In Air], [Disabled]"));
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or [Unstable], then [Dry watering] duration will be used</small>"));
+  sendRawData(F("<div class='description'>If Wet sensor [Not connected], [In Air], [Disabled] or [Unstable], then [Dry watering] duration will be used</div>"));
   sendRawData(F("</td></tr>"));
     
   sendRawData(F("<tr><td colspan='2'>"));
-  sendTagCheckbox(F("skipNextWatering"), F("Skip watering on next schedule event"), wsp.boolPreferencies.skipNextWatering);
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Useful after manual watering</small>"));
+  sendTagCheckbox(F("skipNextWatering"), F("Skip next scheduled watering"), wsp.boolPreferencies.skipNextWatering);
+  sendRawData(F("<div class='description'>Useful after manual watering</div>"));
   sendRawData(F("</td></tr>"));
   
   sendRawData(F("<tr><td colspan='2'><br></td></tr>"));
@@ -1028,7 +1028,7 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(FS(S_url_configuration));
   sendRawData(F("' method='post'>"));
   sendTagRadioButton(F("isWifiStationMode"), F("Create new Network"), F("0"),!isWifiStationMode);
-  sendRawData(F("<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Hidden, security WPA2, ip 192.168.0.1</small><br/>"));
+  sendRawData(F("<div class='description'>Hidden, security WPA2, ip 192.168.0.1</div>"));
   sendTagRadioButton(F("isWifiStationMode"), F("Join existed Network"), F("1"), isWifiStationMode);
   sendRawData(F("<table>"));
   sendRawData(F("<tr><td><label for='wifiSSID'>SSID</label></td><td><input type='text' name='wifiSSID' required value='"));

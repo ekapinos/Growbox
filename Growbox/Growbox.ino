@@ -239,7 +239,7 @@ void loop() {
   Alarm.delay(0); 
   
   // We use another instance of Alarm object to increase MAX alarms count (6 by default, look dtNBR_ALARMS in TimeAlarms.h
-  GB_Watering.updateInternalAlarm();
+  GB_Watering.updateInternalAlarms();
 }
 
 void serialEvent(){
