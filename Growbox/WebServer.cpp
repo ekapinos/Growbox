@@ -928,7 +928,7 @@ void WebServerClass::sendWateringPage(const String& url){
 
   //Watering pump
   if (c_isWifiResponseError) return;
-  
+
   sendRawData(F("<fieldset><legend>Watering pump</legend>"));
 
   sendRawData(F("<form action='"));
@@ -960,6 +960,57 @@ void WebServerClass::sendWateringPage(const String& url){
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendConfigurationPage(const String& getParams){
+
+  sendRawData(F("<fieldset><legend>Current time</legend>"));
+    
+  sendRawData(F("<table>"));
+  sendRawData(F("<tr><th>Device</th><th>Date/Time</th></tr>"));
+  sendRawData(F("<tr><td>This computer</td><td><span id='thisComputerTimeStamp'></span></td></tr>"));
+  sendRawData(F("<tr><td>Growbox</td><td><span id='growboxTimeStamp'></span></td></tr>"));
+  sendRawData(F("<tr><td><small> Difference</small></td><td><small><span id='timeStampDiff'></span></small></td></tr>")); 
+  sendRawData(F("</table>"));
+
+  tmElements_t nowTmElements; 
+  breakTime(now(), nowTmElements);
+
+  sendRawData(F("<script type='text/javascript'>"));
+  sendRawData(F("var growboxTimeStamp = new Date("));
+  //sendRawData((unsigned long) now());
+  sendRawData(tmYearToCalendar(nowTmElements.Year));
+  sendRawData(',');
+  sendRawData(nowTmElements.Month-1);
+  sendRawData(',');
+  sendRawData(nowTmElements.Day);
+  sendRawData(',');
+  sendRawData(nowTmElements.Hour);
+  sendRawData(',');
+  sendRawData(nowTmElements.Minute);
+  sendRawData(',');
+  sendRawData(nowTmElements.Second);
+  sendRawData(F(");"));
+  sendRawData(F("var timeStampDiff = new Date().getTime() - growboxTimeStamp;"));
+  sendRawData(F("var diffSpan = document.getElementById('timeStampDiff');"));    
+  sendRawData(F("diffSpan.innerHTML = Math.round(timeStampDiff/1000/60) + 'minutes ' + Math.round(timeStampDiff/1000%60) + ' seconds';"));    
+  sendRawData(F("if (Math.abs(timeStampDiff) > 5*60) {diffSpan.style.color='red';}"));    
+  sendRawData(F("function updateTimeStamps() {"));
+  sendRawData(F("    var thisComputerTimeStamp = new Date();"));
+  sendRawData(F("    growboxTimeStamp.setTime(thisComputerTimeStamp.getTime() - timeStampDiff);"));
+  sendRawData(F("    document.getElementById('growboxTimeStamp').innerHTML = growboxTimeStamp.toLocaleString();"));
+  sendRawData(F("    document.getElementById('thisComputerTimeStamp').innerHTML = thisComputerTimeStamp.toLocaleString();"));
+  sendRawData(F("    setTimeout(function () {updateTimeStamps(); }, 1000);"));
+  sendRawData(F("};"));
+  sendRawData(F("updateTimeStamps();"));
+  sendRawData(F("</script>"));
+  
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_configuration));
+  sendRawData(F("' method='post' onSubmit='if(!confirm(\"Syncronize Growbox time with current computer?\")) {return false;} document.getElementById(\"newTimeStamp\").value = new Date().UTC(); return true;'>"));
+  sendRawData(F("<input type='hidden' name='newTimeStamp'>"));
+  sendRawData(F("<input type='submit' value='Sync'>"));
+  sendRawData(F("</form>"));
+  
+  sendRawData(F("</fieldset>"));
+  sendRawData(F("<br/>"));
 
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
@@ -1436,6 +1487,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
 
 
 
