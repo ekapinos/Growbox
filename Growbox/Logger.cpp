@@ -77,7 +77,7 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
   byte data = (logRecord.data & B00111111);   
   if (isEvent(logRecord)){
     Event* foundItemPtr = Event::findByKey(data);
-    if (foundItemPtr == 0){
+    if (foundItemPtr == NULL){
       return F("Unknown Event");
     } 
     else {
@@ -87,7 +87,7 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
   byte wateringEventIndex = (data & B00001111); 
   if (isWateringEvent(logRecord)){
     WateringEvent* foundItemPtr = WateringEvent::findByKey(wateringEventIndex);
-    if (foundItemPtr == 0){
+    if (foundItemPtr == NULL){
       return F("Unknown Watering event");
     } 
     else {
@@ -101,7 +101,7 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
     byte sequence = (data & B00001111); 
     byte sequenceSize = ((data & B00110000)>>4) + 1; 
     Error* foundItemPtr = Error::findByKey(sequence, sequenceSize);
-    if (foundItemPtr == 0){
+    if (foundItemPtr == NULL){
       return F("Unknown Error");
     } 
     else {
@@ -124,7 +124,7 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){
     byte wateringEventIndex = (logRecord.data & B00001111);  
     WateringEvent* foundItemPtr = WateringEvent::findByKey(wateringEventIndex);
     
-    if (foundItemPtr != 0){   
+    if (foundItemPtr != NULL){   
       if (foundItemPtr->isData2Value){
         out += StringUtils::flashStringLoad(F(" value ["));
         out += logRecord.data1;

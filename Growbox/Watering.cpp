@@ -35,7 +35,7 @@ void WateringClass::init(time_t turnOnWetSensorsTimeStamp){
   }
 }
 
-void WateringClass::updateInternalAlarms(){
+void WateringClass::updateAlarms(){
   c_PumpOnAlarm.delay(0);
   c_PumpOffAlarm.delay(0);
 }
@@ -501,7 +501,7 @@ byte WateringClass::readWetValue(byte wsIndex){
           if (isWetSensorValueReserved(currentValue)){
             Serial.print(F(" -> 2 "));
           }
-          Serial.println(F(" OK"));
+          Serial.println(F("OK"));
         }
         return currentValue;
       }
@@ -513,7 +513,7 @@ byte WateringClass::readWetValue(byte wsIndex){
     delay(10);
   }
   if (g_useSerialMonitor){
-    Serial.println(F(" FAIL"));
+    Serial.println(F("FAIL"));
   }
   return WATERING_UNSTABLE_VALUE;
 }

@@ -16,6 +16,7 @@ public:
   /////////////////////////////////////////////////////////////////////
 
   boolean init();
+  boolean loadConfiguration();
   void update();
 
   time_t getFirstStartupTimeStamp();
@@ -38,6 +39,7 @@ public:
 
   void setStoreLogRecordsEnabled(boolean flag);
   boolean isStoreLogRecordsEnabled();
+  boolean isStorageHardwarePresent();
 
   boolean storeLogRecord(LogRecord &logRecord);
 
@@ -88,6 +90,7 @@ private :
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
+
 
 
 

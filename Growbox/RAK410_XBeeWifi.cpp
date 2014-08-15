@@ -57,7 +57,7 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
   boolean isStartedUp = false;
 
   for (int i=0; i<3; i++){
-    if (g_useSerialMonitor){
+    if (g_useSerialMonitor && i > 0){
       Serial.println();
     }
 

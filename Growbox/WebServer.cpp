@@ -230,8 +230,13 @@ void WebServerClass::sendRawData(time_t data, boolean interpretateAsULong){
     sendRawData(str);
   } 
   else {
-    String str = StringUtils::timeStampToString(data);
-    sendRawData(str);
+    if (data == 0){
+      sendRawData(F("N/A"));
+    } 
+    else {
+      String str = StringUtils::timeStampToString(data);
+      sendRawData(str);
+    }
   }
 }
 
@@ -366,9 +371,9 @@ void WebServerClass::sendTimeStampJavaScript(const __FlashStringHelper* growboxT
 
   sendRawData(F("<script type='text/javascript'>"));
   sendRawData(F("var g_timeFormat = {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'};"));
-  sendRawData(F("var g_growboxTimeStamp = new Date("));
+  sendRawData(F("var g_growboxTimeStamp = new Date(("));
   sendRawData(now(), true);
-  sendRawData(F("000 + (new Date().getTimezoneOffset()*60*1000)"));
+  sendRawData(F(" + new Date().getTimezoneOffset()*60) * 1000"));
   //  tmElements_t nowTmElements; 
   //  breakTime(now(), nowTmElements);
   //  sendRawData(tmYearToCalendar(nowTmElements.Year));
@@ -558,19 +563,19 @@ void WebServerClass::sendStatusPage(){
   }
   GB_Watering.turnOffWetSensorsAndUpdateWetStatus();
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
-    
+
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
-    
+
     if (!wsp.boolPreferencies.isWetSensorConnected && !wsp.boolPreferencies.isWaterPumpConnected){
       continue;
     }
-    
+
     sendRawData(F("<dt>Watering system #"));
     sendRawData(wsIndex+1); 
     sendRawData(F("</dt>")); 
-    
+
     if (wsp.boolPreferencies.isWetSensorConnected) {
-      sendRawData(F("<dd>Wet sensor  "));
+      sendRawData(F("<dd>Wet sensor: "));
       WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
       if (currentStatus != &WATERING_EVENT_WET_SENSOR_NORMAL){
         sendRawData(F("<span class='red'>")); 
@@ -581,26 +586,14 @@ void WebServerClass::sendStatusPage(){
       sendRawData(currentStatus->shortDescription);
       sendRawData(F("</span></dd>"));
     }
-    
+
     if (wsp.boolPreferencies.isWaterPumpConnected) {
       sendRawData(F("<dd>Last watering: "));
-      time_t lastWateringTimeStamp = GB_Watering.getLastWateringTimeStampByIndex(wsIndex);
-      if (lastWateringTimeStamp == 0){
-        sendRawData(F("N/A"));
-      } 
-      else {
-        sendRawData(lastWateringTimeStamp);
-      }
+      sendRawData(GB_Watering.getLastWateringTimeStampByIndex(wsIndex));
       sendRawData(F("</dd>"));
-      
+
       sendRawData(F("<dd>Next watering: "));
-      time_t nextWateringTimeStamp = GB_Watering.getNextWateringTimeStampByIndex(wsIndex);
-      if (nextWateringTimeStamp == 0){
-        sendRawData(F("N/A"));
-      } 
-      else {
-        sendRawData(nextWateringTimeStamp);
-      }
+      sendRawData(GB_Watering.getNextWateringTimeStampByIndex(wsIndex));
       sendRawData(F("</dd>")); 
     }
   }
@@ -898,7 +891,7 @@ void WebServerClass::sendWateringPage(const String& url){
   // run Dry watering form
   sendRawData(F("<form action='"));
   sendRawData(actionURL); 
-  sendRawData(F("' method='post' id='runDryWateringNowForm' onSubmit='return confirm(\"Start manual Dry watering during "));
+  sendRawData(F("' method='post' id='runDryWateringNowForm' onSubmit='return confirm(\"Start manually Dry watering during "));
   sendRawData(wsp.dryWateringDuration);
   sendRawData(F(" sec ?\")'>"));
   sendRawData(F("<input type='hidden' name='runDryWateringNow'>"));
@@ -940,29 +933,13 @@ void WebServerClass::sendWateringPage(const String& url){
   sendRawData(F("</b>]</div>"));
 
   sendTagCheckbox(F("isWaterPumpConnected"), F("Watering Pump connected"), wsp.boolPreferencies.isWaterPumpConnected);  
-  sendRawData(F("<div class='description'>Last watering&emsp;["));
-  time_t lastWateringTimeStamp = GB_Watering.getLastWateringTimeStampByIndex(wsIndex);
-  if (lastWateringTimeStamp == 0){
-    sendRawData(F("N/A"));
-  } 
-  else {
-    sendRawData(StringUtils::timeStampToString(lastWateringTimeStamp));
-  }
-  sendRawData(F("]<br/>"));
-
-  sendRawData(F("Current time &nbsp;&emsp;[<b>"));
-  sendRawData(StringUtils::timeStampToString(now()));
+  sendRawData(F("<div class='description'>Last watering&emsp;"));
+  sendRawData(GB_Watering.getLastWateringTimeStampByIndex(wsIndex));
+  sendRawData(F("<br/>Current time &nbsp;&emsp;<b>"));
+  sendRawData(now());
   sendRawData(F("</b>]<br/>"));
-
-  sendRawData(F("Next watering&emsp;["));
-  time_t nextWateringTimeStamp = GB_Watering.getNextWateringTimeStampByIndex(wsIndex);
-  if (nextWateringTimeStamp == 0){
-    sendRawData(F("N/A"));
-  } 
-  else {
-    sendRawData(StringUtils::timeStampToString(nextWateringTimeStamp));
-  }
-  sendRawData(F("]"));
+  sendRawData(F("Next watering&emsp;"));
+  sendRawData(GB_Watering.getNextWateringTimeStampByIndex(wsIndex));
   sendRawData(F("</div>"));
 
   sendRawData(F("<table><tr><td>"));
@@ -1076,48 +1053,26 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
 
   sendRawData(F("<table>"));
   sendRawData(F("<tr><th>Device</th><th>Date/Time</th></tr>"));
-  sendRawData(F("<tr><td>This computer</td><td><span id='thisComputerTimeStamp'></span></td></tr>"));
-  sendRawData(F("<tr><td>Growbox</td><td><span id='growboxTimeStamp'></span></td></tr>"));
-  sendRawData(F("<tr><td><small>Difference</small></td><td><small><span id='timeStampDiff'></span></small></td></tr>")); 
+  sendRawData(F("<tr><td>This browser</td><td><span id='browserTimeStampId'></span></td></tr>"));
+  sendRawData(F("<tr><td>Growbox</td><td><span id='growboxTimeStampId'></span></td></tr>"));
+  sendRawData(F("<tr><td><small>Difference</small></td><td><small><span id='diffTimeStampId'></span></small></td></tr>")); 
   sendRawData(F("</table>"));
-
-  tmElements_t nowTmElements; 
-  breakTime(now(), nowTmElements);
-
+  
+  sendTimeStampJavaScript(F("growboxTimeStampId"), F("browserTimeStampId"), F("diffTimeStampId"));
   sendRawData(F("<script type='text/javascript'>"));
-  sendRawData(F("var growboxTimeStamp = new Date("));
-  sendRawData((unsigned long) now());
-  sendRawData(F("000"));
-  //  sendRawData(tmYearToCalendar(nowTmElements.Year));
-  //  sendRawData(',');
-  //  sendRawData(nowTmElements.Month-1);
-  //  sendRawData(',');
-  //  sendRawData(nowTmElements.Day);
-  //  sendRawData(',');
-  //  sendRawData(nowTmElements.Hour);
-  //  sendRawData(',');
-  //  sendRawData(nowTmElements.Minute);
-  //  sendRawData(',');
-  //  sendRawData(nowTmElements.Second);
-  sendRawData(F(");"));
-  sendRawData(F("var timeStampDiff = new Date().getTime() - growboxTimeStamp;"));
-  sendRawData(F("var diffSpan = document.getElementById('timeStampDiff');"));    
-  sendRawData(F("diffSpan.innerHTML = Math.round(timeStampDiff/1000/60) + 'minutes ' + Math.round(timeStampDiff/1000%60) + ' seconds';"));    
-  sendRawData(F("if (Math.abs(timeStampDiff) > 5*60) {diffSpan.style.color='red';}"));    
-  sendRawData(F("function updateTimeStamps() {"));
-  sendRawData(F("    var thisComputerTimeStamp = new Date();"));
-  sendRawData(F("    growboxTimeStamp.setTime(thisComputerTimeStamp.getTime() - timeStampDiff);"));
-  sendRawData(F("    document.getElementById('growboxTimeStamp').innerHTML = growboxTimeStamp.toLocaleString();"));
-  sendRawData(F("    document.getElementById('thisComputerTimeStamp').innerHTML = thisComputerTimeStamp.toLocaleString();"));
-  sendRawData(F("    setTimeout(function () {updateTimeStamps(); }, 1000);"));
-  sendRawData(F("};"));
-  sendRawData(F("updateTimeStamps();"));
+  sendRawData(F("var g_checkGrowboxTimeStamp = function () {"));
+  sendRawData(F("  if(!confirm(\"Syncronize Growbox time with browser time?\")) {"));
+  sendRawData(F("    return false;"));
+  sendRawData(F("  }"));
+  sendRawData(F("  document.getElementById(\"growboxTimeStampInput\").value = Math.floor(new Date().getTime()/1000 - new Date().getTimezoneOffset()*60);"));
+  sendRawData(F("  return true;"));
+  sendRawData(F("}"));
   sendRawData(F("</script>"));
 
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post' onSubmit='if(!confirm(\"Syncronize Growbox time with current computer?\")) {return false;} document.getElementById(\"newTimeStamp\").value = new Date().UTC(); return true;'>"));
-  sendRawData(F("<input type='hidden' name='newTimeStamp'>"));
+  sendRawData(F("' method='post' onSubmit='return g_checkGrowboxTimeStamp()'>"));
+  sendRawData(F("<input type='hidden' name='growboxTimeStamp' id='growboxTimeStampInput'>"));
   sendRawData(F("<input type='submit' value='Sync'>"));
   sendRawData(F("</form>"));
 
@@ -1591,6 +1546,11 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 
     GB_Watering.updateWateringSchedule();
   } 
+  
+  else if (StringUtils::flashStringEquals(name, F("growboxTimeStamp"))){
+    time_t newTimeStamp = strtoul(value.c_str(), NULL, 0);
+    Serial.println(StringUtils::timeStampToString(newTimeStamp));
+  } 
 
   else {
     return false;
@@ -1600,6 +1560,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
 
 
 

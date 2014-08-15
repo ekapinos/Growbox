@@ -26,7 +26,7 @@ Error* Error::findByKey(byte sequence, byte sequenceSize){
       return currentItemPtr;
     }
   }
-  return 0;
+  return NULL;
 }
 
 boolean Error::isInitialized(){
@@ -76,11 +76,11 @@ Event* Event::findByKey(byte index){
       return currentItemPtr;
     }
   }
-  return 0;
+  return NULL;
 }
 
 boolean Event::isInitialized(){
-  return (findByKey(0xFF) == 0);
+  return (findByKey(0xFF) == NULL);
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -110,11 +110,11 @@ WateringEvent* WateringEvent::findByKey(byte index){
       return currentItemPtr;
     }
   }
-  return 0;
+  return NULL;
 }
 
 boolean WateringEvent::isInitialized(){
-  return (findByKey(0xFF) == 0);
+  return (findByKey(0xFF) == NULL);
 }
 
 
@@ -180,13 +180,13 @@ void initLoggerModel(){
   EVENT_LOGGER_DISABLED.init(11, F("Logger disabled"));
   
   // 0..15 (max)
-  WATERING_EVENT_WET_SENSOR_IN_AIR.init(1, F("Wet sensor [In Air]"), F("In Air"), false, false);
+  WATERING_EVENT_WET_SENSOR_IN_AIR.init(1, F("Wet sensor [In Air]"), F("In Air"), true, false);
   WATERING_EVENT_WET_SENSOR_VERY_DRY.init(2, F("Wet sensor [Very Dry]"), F("Very Dry"), true, false);
   WATERING_EVENT_WET_SENSOR_DRY.init(3, F("Wet sensor [Dry]"), F("Dry"), true, false);
   WATERING_EVENT_WET_SENSOR_NORMAL.init(4, F("Wet sensor [Normal]"), F("Normal"), true, false);
   WATERING_EVENT_WET_SENSOR_WET.init(5, F("Wet sensor [Wet]"), F("Wet"), true, false);
   WATERING_EVENT_WET_SENSOR_VERY_WET.init(6, F("Wet sensor [Very Wet]"), F("Very Wet"), true, false);
-  WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT.init(7, F("Wet sensor [Short Circit]"), F("Short Circit"), false, false);
+  WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT.init(7, F("Wet sensor [Short Circit]"), F("Short Circit"), true, false);
   WATERING_EVENT_WET_SENSOR_UNSTABLE.init(8, F("Wet sensor [Unstable]"), F("Unstable"), false, false);
   WATERING_EVENT_WET_SENSOR_DISABLED.init(9, F("Wet sensor [Disabled]"), F("Disabled"), false, false);
   

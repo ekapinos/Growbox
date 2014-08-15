@@ -116,17 +116,10 @@ void setup() {
   // Configure inputs
   //attachInterrupt(0, interrapton0handler, CHANGE); // PIN 2
 
-  g_isGrowboxStarted = false;
-
-  GB_Controller.updateHardwareInputStatus();
+  GB_Controller.checkInputPins(); // Check for Serial monitor
+  GB_Controller.checkFreeMemory();
   
-  RAK410_XBeeWifi.init();
-
-  // We should init Errors & Events before checkSerialWifi->(), cause we may use them after
-  if(g_useSerialMonitor){
-    printStatusOnBoot(F("software configuration"));
-  }
-
+  printStatusOnBoot(F("software configuration"));
   initLoggerModel();
   if (!Event::isInitialized()){
     stopOnFatalError(F("not all Events initialized"));
@@ -138,11 +131,13 @@ void setup() {
     stopOnFatalError(F("not all Errors initialized"));
   }
   if (BOOT_RECORD_SIZE != sizeof(BootRecord)){
-    Serial.print(F("Expected "));
-    Serial.print(BOOT_RECORD_SIZE);  
-    Serial.print(F(" bytes, used ")); 
-    Serial.println(sizeof(BootRecord));
-    Serial.print(F(" bytes")); 
+    if (g_useSerialMonitor){
+      Serial.print(F("Expected "));
+      Serial.print(BOOT_RECORD_SIZE);  
+      Serial.print(F(" bytes, used ")); 
+      Serial.println(sizeof(BootRecord));
+      Serial.print(F(" bytes")); 
+    }
     stopOnFatalError(F("wrong BootRecord size"));
   }
   if (MAX_WATERING_SYSTEMS_COUNT != sizeof(WATERING_WET_SENSOR_IN_PINS)){
@@ -155,61 +150,41 @@ void setup() {
     stopOnFatalError(F("wrong WATERING_PUMP_PINS size"));
   }
   GB_Controller.checkFreeMemory();
-
-  if(g_useSerialMonitor){ 
-    printStatusOnBoot(F("clock"));
+  
+  printStatusOnBoot(F("storage"));
+  if (!GB_StorageHelper.init()){
+    stopOnFatalError(F("Not all required starage hardware present"));
   }
-
-  // Configure clock
-  setSyncProvider(RTC.get);   // the function to get the time from the RTC
-  while(timeStatus() == timeNotSet || 2014<year() || year()>2020) { // ... and check it
-    GB_Logger.logError(ERROR_TIMER_NOT_SET);
-    setSyncProvider(RTC.get); // try to refresh clock
-  }
-  GB_Logger.stopLogError(ERROR_TIMER_NOT_SET); 
-
   GB_Controller.checkFreeMemory();
-
-  if(g_useSerialMonitor){ 
-    printStatusOnBoot(F("termometer"));
-  }
-
-  // Configure termometer
+  
+  printStatusOnBoot(F("termometer"));
   GB_Thermometer.init();
   while(!GB_Thermometer.updateStatistics()) { // Load temperature on startup
     delay(1000);
   }
-
   GB_Controller.checkFreeMemory();
 
   if(g_useSerialMonitor){ 
-    printStatusOnBoot(F("storage"));
+    Serial.println(F("Growbox successfully booted up"));
   }
-
-  // Check EEPROM, if Arduino doesn't reboot - all OK
-  boolean itWasRestart = GB_StorageHelper.init();
   
-  g_isGrowboxStarted = true;
-  
-  // Now we can use logger
-  if (itWasRestart){
-    GB_Logger.logEvent(EVENT_RESTART);
-  } 
-  else {
-    GB_Logger.logEvent(EVENT_FIRST_START_UP);
-  }
+  printStatusOnBoot(F("clock")); // used in GB_StorageHelper.loadConfiguration.. needs log
+  GB_Controller.startupClock(); // may be disconnected - it is OK
   GB_Controller.checkFreeMemory();
 
+  printStatusOnBoot(F("stored configuration"));
+  g_isGrowboxStarted = true;
+  GB_StorageHelper.loadConfiguration();  // after we a ready for logging
+  GB_Controller.checkFreeMemory();
+
+  //printStatusOnBoot(F("watering systems")); // used time
   time_t pinConfiguredTime = now() - (millis() - pinConfiguredMillis)/1000;
   GB_Watering.init(pinConfiguredTime); // call before updateGrowboxState();
   GB_Controller.checkFreeMemory();
 
-  updateGrowboxState();
-  GB_Controller.checkFreeMemory();
-
   // Max 6 Alarms in instance
   Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
-  Alarm.timerRepeat(UPDATE_CONTROLLER_STATUS_DELAY, updateControllerHardwareInputStatus);
+  Alarm.timerRepeat(UPDATE_CONTROLLER_STATUS_DELAY, updateController);
   Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
   Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
   Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);  // repeat every N seconds
@@ -220,9 +195,13 @@ void setup() {
   //Alarm.alarmRepeat(downHour, downMinute, 00, switchToNightMode);  // repeat once every day
   GB_Controller.checkFreeMemory();
 
-  if(g_useSerialMonitor){ 
-    Serial.println(F("Growbox successfully started"));
-  }
+  updateGrowboxState();
+  GB_Controller.checkFreeMemory();
+
+  printStatusOnBoot(F("Wi-Fi"));
+  RAK410_XBeeWifi.init(); // check is Present - once
+  GB_Controller.checkFreeMemory();
+ 
 
   if (RAK410_XBeeWifi.isPresent()){ 
     RAK410_XBeeWifi.updateWiFiStatus(); // start Web server
@@ -230,6 +209,10 @@ void setup() {
   GB_Controller.checkFreeMemory();
   
   GB_Watering.updateWateringSchedule(); // Run watering after init
+
+  if(g_useSerialMonitor){ 
+    Serial.println(F("Growbox successfully started"));
+  }
 
 }
 
@@ -239,7 +222,7 @@ void loop() {
   Alarm.delay(0); 
   
   // We use another instance of Alarm object to increase MAX alarms count (6 by default, look dtNBR_ALARMS in TimeAlarms.h
-  GB_Watering.updateInternalAlarms();
+  GB_Watering.updateAlarms();
 }
 
 void serialEvent(){
@@ -354,8 +337,8 @@ void updateWiFiStatus(){ // should return void
   RAK410_XBeeWifi.updateWiFiStatus(); 
 }
 
-void updateControllerHardwareInputStatus(){ // should return void
-  GB_Controller.updateHardwareInputStatus(); 
+void updateController(){ // should return void
+  GB_Controller.update(); 
 }
 
 void updateBreezeStatus() {

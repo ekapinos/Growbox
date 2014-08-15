@@ -18,12 +18,17 @@ const word StorageHelperClass::LOG_CAPACITY             = (LOG_CAPACITY_ARDUINO 
 /////////////////////////////////////////////////////////////////////
 
 boolean StorageHelperClass::init(){
+  return isStorageHardwarePresent();
+}
+
+boolean StorageHelperClass::loadConfiguration(){
 
   BootRecord bootRecord = EEPROM.readBlock<BootRecord>(0);
-
+  
+  boolean itWasRestart;
   if ((bootRecord.first_magic == MAGIC_NUMBER) && (bootRecord.last_magic == MAGIC_NUMBER)){ 
     EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp), now());      
-    return true;   
+    itWasRestart = true;   
   } 
   else {
     bootRecord.first_magic = MAGIC_NUMBER;
@@ -77,8 +82,17 @@ boolean StorageHelperClass::init(){
 
     EEPROM.updateBlock<BootRecord>(0, bootRecord);
 
-    return false; 
+    itWasRestart =  false; 
   }
+  
+  if (itWasRestart){
+    GB_Logger.logEvent(EVENT_RESTART);
+  } 
+  else {
+    GB_Logger.logEvent(EVENT_FIRST_START_UP);
+  }
+  
+  return itWasRestart;
 }
 
 void update(){
@@ -153,8 +167,12 @@ boolean StorageHelperClass::isStoreLogRecordsEnabled(){
   return getBoolPreferencies().isLoggerEnabled;
 }
 
+boolean StorageHelperClass::isStorageHardwarePresent(){
+  return EEPROM.isPresent() && EEPROM_AT24C32.isPresent();
+}
+
 boolean StorageHelperClass::storeLogRecord(LogRecord &logRecord){ 
-  boolean storeLog = g_isGrowboxStarted && isStoreLogRecordsEnabled() && EEPROM.isPresent() && EEPROM_AT24C32.isPresent();
+  boolean storeLog = g_isGrowboxStarted && isStoreLogRecordsEnabled() && isStorageHardwarePresent();
   if (!storeLog){
     return false;
   }

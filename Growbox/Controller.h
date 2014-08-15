@@ -4,19 +4,22 @@
 #include "Global.h"
 
 class ControllerClass{
-  
+
   int c_freeMemoryLastCheck;
-  
+
 public:
   ControllerClass();
+  void startupClock();
 
   void rebootController();
 
   // discover memory overflow errors in the arduino C++ code
+  void checkInputPins();
   void checkFreeMemory();
-  
-  void updateHardwareInputStatus();
-  
+  void checkClock();
+
+  void update();
+
   /////////////////////////////////////////////////////////////////////
   //                              OTHER                              //
   /////////////////////////////////////////////////////////////////////
@@ -35,4 +38,7 @@ public:
 extern ControllerClass GB_Controller;
 
 #endif
+
+
+
 

@@ -1,4 +1,7 @@
 #include <MemoryFree.h>
+// RTC
+#include <Wire.h>  
+#include <DS1307RTC.h>
 
 #include "Controller.h"
 #include "Logger.h"
@@ -9,35 +12,17 @@ ControllerClass::ControllerClass():
 c_freeMemoryLastCheck(0){
 }
 
+void ControllerClass::startupClock(){
+  setSyncProvider(RTC.get);   // the function to get the time from the RTC
+  //checkClock();
+}
+
 void ControllerClass::rebootController() {
   void(* resetFunc) (void) = 0; // Reset MC function
   resetFunc(); // call
 }
 
-void ControllerClass::checkFreeMemory(){
-  
-  int currentFreeMemory = freeMemory();
-  if(currentFreeMemory< 2000){ 
-    GB_Logger.logError(ERROR_MEMORY_LOW);
-    rebootController();   
-  } 
-//  else {
-//    GB_Logger.stopLogError(ERROR_MEMORY_LOW); 
-//  }
-  
-  if (c_freeMemoryLastCheck != currentFreeMemory){
-    if (g_useSerialMonitor){
-      showControllerMessage(F("Free memory: ["), false);  
-      Serial.print(currentFreeMemory);
-      Serial.println(']');
-    }
-    c_freeMemoryLastCheck = currentFreeMemory;
-  }
-}
-
-void ControllerClass::updateHardwareInputStatus(){
-
-  checkFreeMemory();
+void ControllerClass::checkInputPins(){
 
   boolean newUseSerialMonitor = (digitalRead(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN) == HARDWARE_BUTTON_ON);
 
@@ -83,7 +68,52 @@ void ControllerClass::updateHardwareInputStatus(){
   }
 }
 
+void ControllerClass::checkFreeMemory(){
+
+  int currentFreeMemory = freeMemory();
+  if(currentFreeMemory< 2000){ 
+    GB_Logger.logError(ERROR_MEMORY_LOW);
+    rebootController();   
+  } 
+  //  else {
+  //    GB_Logger.stopLogError(ERROR_MEMORY_LOW); 
+  //  }
+
+  if (c_freeMemoryLastCheck != currentFreeMemory){
+    if (g_useSerialMonitor){
+      showControllerMessage(F("Free memory: ["), false);  
+      Serial.print(currentFreeMemory);
+      Serial.println(']');
+    }
+    c_freeMemoryLastCheck = currentFreeMemory;
+  }
+}
+
+void ControllerClass::checkClock(){
+
+  now(); // try to refresh clock
+
+  if (timeStatus() == timeNotSet) { 
+    GB_Logger.logError(ERROR_TIMER_NOT_SET);  
+  } 
+  else if (timeStatus() == timeNeedsSync) { 
+    GB_Logger.logError(ERROR_TIMER_NEEDS_SYNC);
+  } 
+  else {
+    GB_Logger.stopLogError(ERROR_TIMER_NOT_SET);
+    GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
+  } 
+}
+
+void ControllerClass::update(){
+
+  checkInputPins();
+  checkFreeMemory();
+  checkClock();
+
+}
 ControllerClass GB_Controller;
+
 
 
 

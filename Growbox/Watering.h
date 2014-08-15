@@ -27,7 +27,7 @@ private:
 public:
 
   static void init(time_t turnOnWetSensorsTime);
-  static void updateInternalAlarms();
+  static void updateAlarms();
 
   /////////////////////////////////////////////////////////////////////
   //                           WET SENSORS                           //
