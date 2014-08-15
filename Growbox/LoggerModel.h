@@ -97,10 +97,12 @@ public:
   byte index;
   const __FlashStringHelper* description; // FLASH  
   const __FlashStringHelper* shortDescription; // FLASH
-
+  boolean isData2Value;
+  boolean isData2Duration;
+  
   WateringEvent();
 
-  void init(byte index, const __FlashStringHelper* description, const __FlashStringHelper* shortDescription) ;
+  void init(byte index, const __FlashStringHelper* description, const __FlashStringHelper* shortDescription, boolean isData2Value, boolean isData2Duration) ;
 
   static WateringEvent* findByKey(byte index);
 

@@ -51,7 +51,7 @@ private:
   void sendRawData(const __FlashStringHelper* data);
   void sendRawData(const String &data);
   void sendRawData(float data);
-  void sendRawData(time_t data);
+  void sendRawData(time_t data, boolean interpretateAsULong = false);
   template <class T> void sendRawData(T data){
     String str(data);
     sendRawData(str);
@@ -67,6 +67,8 @@ private:
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected);
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected);
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected);
+
+  void sendTimeStampJavaScript(const __FlashStringHelper* growboxTimeStampId = 0, const __FlashStringHelper* browserTimeStampId = 0, const __FlashStringHelper* diffTimeStampId = 0);
 
   /////////////////////////////////////////////////////////////////////
   //                        COMMON FOR PAGES                         //

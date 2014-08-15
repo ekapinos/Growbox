@@ -84,9 +84,9 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
       return foundItemPtr->description;
     }
   } 
-  byte wateringIndex = (data & B00001111); 
+  byte wateringEventIndex = (data & B00001111); 
   if (isWateringEvent(logRecord)){
-    WateringEvent* foundItemPtr = WateringEvent::findByKey(wateringIndex);
+    WateringEvent* foundItemPtr = WateringEvent::findByKey(wateringEventIndex);
     if (foundItemPtr == 0){
       return F("Unknown Watering event");
     } 
@@ -120,23 +120,22 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){
     out += StringUtils::flashStringLoad(F(" system [#"));
     out += (wsIndex+1);
     out += StringUtils::flashStringLoad(F("]"));
+   
+    byte wateringEventIndex = (logRecord.data & B00001111);  
+    WateringEvent* foundItemPtr = WateringEvent::findByKey(wateringEventIndex);
     
-    byte wateringEventIndex = (logRecord.data & B00001111);
-    if (wateringEventIndex >= WATERING_EVENT_WET_SENSOR_IN_AIR.index && wateringEventIndex <= WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT.index){
-      out += StringUtils::flashStringLoad(F(" value ["));
-      out += logRecord.data1;
-      out += StringUtils::flashStringLoad(F("]"));
-
-    } 
-    else if (wateringEventIndex == WATERING_EVENT_WATER_PUMP_ON_DRY.index ||
-      wateringEventIndex == WATERING_EVENT_WATER_PUMP_ON_VERY_DRY.index ||
-      wateringEventIndex == WATERING_EVENT_WATER_PUMP_ON_AUTO_DRY.index) {
-        
-      out += StringUtils::flashStringLoad(F(" during "));
-      out += logRecord.data1;
-      out += StringUtils::flashStringLoad(F(" sec"));
-      
-    }  
+    if (foundItemPtr != 0){   
+      if (foundItemPtr->isData2Value){
+        out += StringUtils::flashStringLoad(F(" value ["));
+        out += logRecord.data1;
+        out += StringUtils::flashStringLoad(F("]"));  
+      } 
+      else if (foundItemPtr->isData2Duration) {   
+        out += StringUtils::flashStringLoad(F(" during "));
+        out += logRecord.data1;
+        out += StringUtils::flashStringLoad(F(" sec"));       
+      }  
+    }
   }
   else if (isTemperature(logRecord)) {
     byte temperature = (logRecord.data & B00111111);

@@ -224,9 +224,15 @@ void WebServerClass::sendRawData(float data){
   sendRawData(str);
 }
 
-void WebServerClass::sendRawData(time_t data){
-  String str = StringUtils::timeStampToString(data);
-  sendRawData(str);
+void WebServerClass::sendRawData(time_t data, boolean interpretateAsULong){
+  if (interpretateAsULong == true){
+    String str(data);
+    sendRawData(str);
+  } 
+  else {
+    String str = StringUtils::timeStampToString(data);
+    sendRawData(str);
+  }
 }
 
 void WebServerClass::sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* text, boolean isSelected){
@@ -356,6 +362,83 @@ void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* 
   sendAppendOptionToSelectDynamic(selectId, StringUtils::flashStringLoad(value), StringUtils::flashStringLoad(text), isSelected);
 }
 
+void WebServerClass::sendTimeStampJavaScript(const __FlashStringHelper* growboxTimeStampId, const __FlashStringHelper* browserTimeStampId, const __FlashStringHelper* diffTimeStampId){
+
+  sendRawData(F("<script type='text/javascript'>"));
+  sendRawData(F("var g_timeFormat = {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'};"));
+  sendRawData(F("var g_growboxTimeStamp = new Date("));
+  sendRawData(now(), true);
+  sendRawData(F("000 + (new Date().getTimezoneOffset()*60*1000)"));
+  //  tmElements_t nowTmElements; 
+  //  breakTime(now(), nowTmElements);
+  //  sendRawData(tmYearToCalendar(nowTmElements.Year));
+  //  sendRawData(',');
+  //  sendRawData(nowTmElements.Month-1);
+  //  sendRawData(',');
+  //  sendRawData(nowTmElements.Day);
+  //  sendRawData(',');
+  //  sendRawData(nowTmElements.Hour);
+  //  sendRawData(',');
+  //  sendRawData(nowTmElements.Minute);
+  //  sendRawData(',');
+  //  sendRawData(nowTmElements.Second);
+  sendRawData(F(");"));
+  sendRawData(F("var g_timeStampDiff = new Date().getTime() - g_growboxTimeStamp;"));
+  if (diffTimeStampId != 0){
+    sendRawData(F("var absDiffInSeconds = Math.abs(Math.floor(g_timeStampDiff/1000));"));    
+    sendRawData(F("var diffSeconds = absDiffInSeconds % 60;"));    
+    sendRawData(F("var diffMinutes = Math.floor(absDiffInSeconds/60) % 60;"));    
+    sendRawData(F("var diffHours = Math.floor(absDiffInSeconds/60/60);"));    
+    sendRawData(F("var resultDiffString;"));    
+    sendRawData(F("if (diffHours > 365*24) {"));    
+    sendRawData(F("  resultDiffString = 'over year';"));    
+    sendRawData(F("} else if (diffHours > 30*24) {"));    
+    sendRawData(F("  resultDiffString = 'over month';"));    
+    sendRawData(F("} else if (diffHours > 7*24) {"));    
+    sendRawData(F("  resultDiffString = 'over week';"));    
+    sendRawData(F("} else if (diffHours > 24) {"));    
+    sendRawData(F("  resultDiffString = 'over day';"));    
+    sendRawData(F("} else if (diffHours > 0) {"));    
+    sendRawData(F("  resultDiffString = diffHours + ' h ' + diffMinutes + ' m ' + diffSeconds + ' s';"));    
+    sendRawData(F("} else if (diffMinutes > 0) {"));    
+    sendRawData(F("  resultDiffString = diffMinutes + ' min ' + diffSeconds + ' sec';"));    
+    sendRawData(F("} else if (diffSeconds > 0) {"));    
+    sendRawData(F("  resultDiffString = diffSeconds + ' sec';"));    
+    sendRawData(F("} else {"));    
+    sendRawData(F("  resultDiffString = 'synced with browser time';"));    
+    sendRawData(F("}"));  
+
+    sendRawData(F("var diffSpan = document.getElementById('"));    
+    sendRawData(diffTimeStampId);    
+    sendRawData(F("');"));    
+    sendRawData(F("diffSpan.innerHTML = resultDiffString;"));    
+    sendRawData(F("if (absDiffInSeconds != 0) {"));  
+    sendRawData(F("diffSpan.innerHTML = ' out of sync ' + diffSpan.innerHTML + ' with browser time';"));   
+    sendRawData(F("}")); 
+
+    sendRawData(F("if (diffHours > 0 || diffMinutes > 0) {"));  
+    sendRawData(F("  diffSpan.style.color='red';"));  
+    sendRawData(F("}"));  
+  }  
+  sendRawData(F("function updateTimeStamps() {"));
+  sendRawData(F("    var browserTimeStamp = new Date();"));
+  sendRawData(F("    g_growboxTimeStamp.setTime(browserTimeStamp.getTime() - g_timeStampDiff);"));
+  if (growboxTimeStampId != 0){
+    sendRawData(F("document.getElementById('"));
+    sendRawData(growboxTimeStampId);
+    sendRawData(F("').innerHTML = g_growboxTimeStamp.toLocaleString('uk', g_timeFormat);"));
+  }
+  if (browserTimeStampId != 0){
+    sendRawData(F("document.getElementById('"));
+    sendRawData(browserTimeStampId);
+    sendRawData(F("').innerHTML = browserTimeStamp.toLocaleString('uk', g_timeFormat);"));
+  }
+  sendRawData(F("    setTimeout(function () {updateTimeStamps(); }, 1000);"));
+  sendRawData(F("};"));
+  sendRawData(F("updateTimeStamps();"));
+  sendRawData(F("</script>"));
+}
+
 /////////////////////////////////////////////////////////////////////
 //                        COMMON FOR PAGES                         //
 /////////////////////////////////////////////////////////////////////
@@ -444,13 +527,16 @@ void WebServerClass::sendStatusPage(){
     sendRawData((digitalRead(FAN_SPEED_PIN) == FAN_SPEED_MIN) ? F("min") : F("max"));
   }
   sendRawData(F(" speed</dd>"));
-  sendRawData(F("<dd>Current time: ")); 
-  sendRawData(now());
-  sendRawData(F("</dd>")); 
+
   sendRawData(F("<dd>Last startup: ")); 
   sendRawData(GB_StorageHelper.getLastStartupTimeStamp());
   sendRawData(F("</dd>")); 
+  sendRawData(F("<dd>Current time: ")); 
+  sendRawData(F("<span id='growboxTimeStampId'></span><small><br/><span id='diffTimeStampId'></span></small>"));
+  sendTimeStampJavaScript(F("growboxTimeStampId"), 0, F("diffTimeStampId"));
+  sendRawData(F("</dd>")); 
 
+  if (c_isWifiResponseError) return;
 
   float workingTemperature, statisticsTemperature;
   int statisticsCount;
@@ -465,42 +551,62 @@ void WebServerClass::sendStatusPage(){
   sendRawData(statisticsCount);
   sendRawData(F(" measurements)</dd>"));
 
-  sendRawData(F("<dt>Watering</dt>"));
+  if (c_isWifiResponseError) return;
+
   if(g_useSerialMonitor){ 
     Serial.println();
   }
   GB_Watering.turnOffWetSensorsAndUpdateWetStatus();
-  boolean isEnabledWetSensorsExists = false;
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
-    WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
-    if (currentStatus == &WATERING_EVENT_WET_SENSOR_DISABLED){
+    
+    BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
+    
+    if (!wsp.boolPreferencies.isWetSensorConnected && !wsp.boolPreferencies.isWaterPumpConnected){
       continue;
     }
-    isEnabledWetSensorsExists = true;
-
-    sendRawData(F("<dd>Wet sensor #")); 
+    
+    sendRawData(F("<dt>Watering system #"));
     sendRawData(wsIndex+1); 
-    sendRawData(F(": "));
-    if (currentStatus != &WATERING_EVENT_WET_SENSOR_NORMAL){
-      sendRawData(F("<span class='red'>")); 
-    } 
-    else {
-      sendRawData(F("<span>")); 
+    sendRawData(F("</dt>")); 
+    
+    if (wsp.boolPreferencies.isWetSensorConnected) {
+      sendRawData(F("<dd>Wet sensor  "));
+      WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
+      if (currentStatus != &WATERING_EVENT_WET_SENSOR_NORMAL){
+        sendRawData(F("<span class='red'>")); 
+      } 
+      else {
+        sendRawData(F("<span>")); 
+      }
+      sendRawData(currentStatus->shortDescription);
+      sendRawData(F("</span></dd>"));
     }
-    sendRawData(currentStatus->shortDescription);
-    sendRawData(F("</span></dd>")); 
+    
+    if (wsp.boolPreferencies.isWaterPumpConnected) {
+      sendRawData(F("<dd>Last watering: "));
+      time_t lastWateringTimeStamp = GB_Watering.getLastWateringTimeStampByIndex(wsIndex);
+      if (lastWateringTimeStamp == 0){
+        sendRawData(F("N/A"));
+      } 
+      else {
+        sendRawData(lastWateringTimeStamp);
+      }
+      sendRawData(F("</dd>"));
+      
+      sendRawData(F("<dd>Next watering: "));
+      time_t nextWateringTimeStamp = GB_Watering.getNextWateringTimeStampByIndex(wsIndex);
+      if (nextWateringTimeStamp == 0){
+        sendRawData(F("N/A"));
+      } 
+      else {
+        sendRawData(nextWateringTimeStamp);
+      }
+      sendRawData(F("</dd>")); 
+    }
   }
-
-  if (!isEnabledWetSensorsExists){
-    sendRawData(F("<dd>All Wet sensors disabled</dd>")); 
-  }
-
 
   sendRawData(F("<dt>Logger</dt>"));
-  if (GB_StorageHelper.isStoreLogRecordsEnabled()){
-    sendRawData(F("<dd>Enabled</dd>"));
-  } 
-  else {
+  if (!GB_StorageHelper.isStoreLogRecordsEnabled()){
     sendRawData(F("<dd class='red'>Disabled</dd>"));
   }
   sendRawData(F("<dd>Stored records: "));
@@ -511,6 +617,8 @@ void WebServerClass::sendStatusPage(){
     sendRawData(F(", <span class='red'>overflow</span>"));
   }
   sendRawData(F("</dd>"));
+
+  if (c_isWifiResponseError) return;
 
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
@@ -620,6 +728,8 @@ void WebServerClass::sendLogPage(const String& getParams){
     }
   } 
 
+  if (c_isWifiResponseError) return;
+
   // fill previousTm
   previousTm.Day = previousTm.Month = previousTm.Year = 0; //remove compiller warning
 
@@ -631,12 +741,6 @@ void WebServerClass::sendLogPage(const String& getParams){
   sendRawData(F("<select id='dateCombobox' name='date'></select>"));
   sendRawData(F("<input type='submit' value='Show'/>"));
   sendRawData(F("</form>"));
-  // out of form
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("all"), F("All records"),                      printEvents &&  printWateringEvents &&  printErrors &&  printTemperature);
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("events"), F("Events only"),                   printEvents && !printWateringEvents && !printErrors && !printTemperature);
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("wateringevents"), F("Watering Events only"), !printEvents &&  printWateringEvents && !printErrors && !printTemperature);
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("errors"), F("Errors only"),                  !printEvents && !printWateringEvents &&  printErrors && !printTemperature);
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("temperature"), F("Temperature only"),        !printEvents && !printWateringEvents && !printErrors &&  printTemperature);
 
   sendRawData(F("</td><td class='align_right'>"));
   sendRawData(F("<form action='"));
@@ -653,6 +757,13 @@ void WebServerClass::sendLogPage(const String& getParams){
   sendRawData(F("<input type='submit' value='Reset log'/>"));
   sendRawData(F("</form>"));
   sendRawData(F("</td></table>"));
+
+  // out of form and table
+  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("all"), F("All records"),                      printEvents &&  printWateringEvents &&  printErrors &&  printTemperature);
+  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("events"), F("Events only"),                   printEvents && !printWateringEvents && !printErrors && !printTemperature);
+  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("wateringevents"), F("Watering Events only"), !printEvents &&  printWateringEvents && !printErrors && !printTemperature);
+  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("errors"), F("Errors only"),                  !printEvents && !printWateringEvents &&  printErrors && !printTemperature);
+  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("temperature"), F("Temperature only"),        !printEvents && !printWateringEvents && !printErrors &&  printTemperature);
 
   boolean isTableTagPrinted = false;   
   word index;
@@ -962,12 +1073,12 @@ void WebServerClass::sendWateringPage(const String& url){
 void WebServerClass::sendConfigurationPage(const String& getParams){
 
   sendRawData(F("<fieldset><legend>Current time</legend>"));
-    
+
   sendRawData(F("<table>"));
   sendRawData(F("<tr><th>Device</th><th>Date/Time</th></tr>"));
   sendRawData(F("<tr><td>This computer</td><td><span id='thisComputerTimeStamp'></span></td></tr>"));
   sendRawData(F("<tr><td>Growbox</td><td><span id='growboxTimeStamp'></span></td></tr>"));
-  sendRawData(F("<tr><td><small> Difference</small></td><td><small><span id='timeStampDiff'></span></small></td></tr>")); 
+  sendRawData(F("<tr><td><small>Difference</small></td><td><small><span id='timeStampDiff'></span></small></td></tr>")); 
   sendRawData(F("</table>"));
 
   tmElements_t nowTmElements; 
@@ -975,18 +1086,19 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
 
   sendRawData(F("<script type='text/javascript'>"));
   sendRawData(F("var growboxTimeStamp = new Date("));
-  //sendRawData((unsigned long) now());
-  sendRawData(tmYearToCalendar(nowTmElements.Year));
-  sendRawData(',');
-  sendRawData(nowTmElements.Month-1);
-  sendRawData(',');
-  sendRawData(nowTmElements.Day);
-  sendRawData(',');
-  sendRawData(nowTmElements.Hour);
-  sendRawData(',');
-  sendRawData(nowTmElements.Minute);
-  sendRawData(',');
-  sendRawData(nowTmElements.Second);
+  sendRawData((unsigned long) now());
+  sendRawData(F("000"));
+  //  sendRawData(tmYearToCalendar(nowTmElements.Year));
+  //  sendRawData(',');
+  //  sendRawData(nowTmElements.Month-1);
+  //  sendRawData(',');
+  //  sendRawData(nowTmElements.Day);
+  //  sendRawData(',');
+  //  sendRawData(nowTmElements.Hour);
+  //  sendRawData(',');
+  //  sendRawData(nowTmElements.Minute);
+  //  sendRawData(',');
+  //  sendRawData(nowTmElements.Second);
   sendRawData(F(");"));
   sendRawData(F("var timeStampDiff = new Date().getTime() - growboxTimeStamp;"));
   sendRawData(F("var diffSpan = document.getElementById('timeStampDiff');"));    
@@ -1001,14 +1113,14 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("};"));
   sendRawData(F("updateTimeStamps();"));
   sendRawData(F("</script>"));
-  
+
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
   sendRawData(F("' method='post' onSubmit='if(!confirm(\"Syncronize Growbox time with current computer?\")) {return false;} document.getElementById(\"newTimeStamp\").value = new Date().UTC(); return true;'>"));
   sendRawData(F("<input type='hidden' name='newTimeStamp'>"));
   sendRawData(F("<input type='submit' value='Sync'>"));
   sendRawData(F("</form>"));
-  
+
   sendRawData(F("</fieldset>"));
   sendRawData(F("<br/>"));
 
@@ -1122,7 +1234,8 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("</form>"));
 
   sendRawData(F("</td><td>"));
-  sendRawData(F("<small>and update page manually. Default Wi-Fi SSID and pass will be used</small>"));
+  //sendRawData(F("<small>and update page manually. Default Wi-Fi SSID and pass will be used</small>"));
+  sendRawData(F("<small>and update page manually. Default Wi-Fi SSID and pass will be used  </small>"));
   sendRawData(F("</td></tr></table>"));
   sendRawData(F("</fieldset>"));
 }
@@ -1487,6 +1600,10 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
+
+
+
 
 
 
