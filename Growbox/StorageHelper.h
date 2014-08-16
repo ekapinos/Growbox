@@ -16,6 +16,7 @@ public:
   /////////////////////////////////////////////////////////////////////
 
   boolean init();
+  boolean isStorageHardwarePresent();
   boolean loadConfiguration();
   void update();
 
@@ -39,7 +40,6 @@ public:
 
   void setStoreLogRecordsEnabled(boolean flag);
   boolean isStoreLogRecordsEnabled();
-  boolean isStorageHardwarePresent();
 
   boolean storeLogRecord(LogRecord &logRecord);
 

@@ -168,14 +168,24 @@ void setup() {
     Serial.println(F("Growbox successfully booted up"));
   }
   
-  printStatusOnBoot(F("clock")); // used in GB_StorageHelper.loadConfiguration.. needs log
-  GB_Controller.startupClock(); // may be disconnected - it is OK
-  GB_Controller.checkFreeMemory();
-
   printStatusOnBoot(F("stored configuration"));
-  g_isGrowboxStarted = true;
-  GB_StorageHelper.loadConfiguration();  // after we a ready for logging
+  boolean itWasRestart = GB_StorageHelper.loadConfiguration();  
   GB_Controller.checkFreeMemory();
+  
+  printStatusOnBoot(F("clock")); 
+  GB_Controller.startupClock(); // may be disconnected - it is OK, then we will use last log time 
+  GB_Controller.checkFreeMemory();
+  
+  // after set clock and load configuration we are ready for logging
+  g_isGrowboxStarted = true;
+  if (itWasRestart){
+    GB_Logger.logEvent(EVENT_RESTART);
+  } 
+  else {
+    GB_Logger.logEvent(EVENT_FIRST_START_UP);
+  }
+  
+  
 
   //printStatusOnBoot(F("watering systems")); // used time
   time_t pinConfiguredTime = now() - (millis() - pinConfiguredMillis)/1000;

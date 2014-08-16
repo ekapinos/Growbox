@@ -21,6 +21,10 @@ boolean StorageHelperClass::init(){
   return isStorageHardwarePresent();
 }
 
+boolean StorageHelperClass::isStorageHardwarePresent(){
+  return EEPROM.isPresent() && EEPROM_AT24C32.isPresent();
+}
+
 boolean StorageHelperClass::loadConfiguration(){
 
   BootRecord bootRecord = EEPROM.readBlock<BootRecord>(0);
@@ -83,13 +87,6 @@ boolean StorageHelperClass::loadConfiguration(){
     EEPROM.updateBlock<BootRecord>(0, bootRecord);
 
     itWasRestart =  false; 
-  }
-  
-  if (itWasRestart){
-    GB_Logger.logEvent(EVENT_RESTART);
-  } 
-  else {
-    GB_Logger.logEvent(EVENT_FIRST_START_UP);
   }
   
   return itWasRestart;
@@ -165,10 +162,6 @@ void StorageHelperClass::setStoreLogRecordsEnabled(boolean flag){
 
 boolean StorageHelperClass::isStoreLogRecordsEnabled(){
   return getBoolPreferencies().isLoggerEnabled;
-}
-
-boolean StorageHelperClass::isStorageHardwarePresent(){
-  return EEPROM.isPresent() && EEPROM_AT24C32.isPresent();
 }
 
 boolean StorageHelperClass::storeLogRecord(LogRecord &logRecord){ 

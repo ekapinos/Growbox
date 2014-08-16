@@ -38,7 +38,7 @@ void LoggerClass::logError(Error &error){
     isStoredNow = true;
   } 
   printLogRecordToSerialMonotior(logRecord, error.description, isStoredNow);
-  error.isStored = true;   
+  //error.isStored = true;   
   error.notify();
 }
 
