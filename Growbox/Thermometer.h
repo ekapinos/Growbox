@@ -6,30 +6,30 @@
 #include "Logger.h"
 
 class ThermometerClass{
-
 private:
   // Pass our oneWire reference to Dallas Temperature. 
-  static DallasTemperature c_dallasTemperature;
-  static DeviceAddress c_oneWireAddress;
+  DallasTemperature c_dallasTemperature;
 
-  static float c_workingTemperature;
-  static double c_statisticsTemperatureSumm;
-  static int c_statisticsTemperatureCount;
+  float c_lastTemperature;
+  double c_statisticsTemperatureSumm;
+  int c_statisticsTemperatureCount;
 
 public:
-
-  static void init();
+  ThermometerClass(OneWire*);
+private:
+  float getHardwareTemperature();
   
-  static boolean updateStatistics();
-  
-  static float getTemperature(boolean forceLog = false);
-
-  static void getStatistics(float &_workingTemperature, float &_statisticsTemperature, int &_statisticsTemperatureCount);
+public:
+  boolean isPresent();
+  void updateStatistics();
+  float getTemperature(); // may be NAN
+  void getStatistics(float &_workingTemperature, float &_statisticsTemperature, int &_statisticsTemperatureCount);
 
 };
 
 extern ThermometerClass GB_Thermometer;
 #endif
+
 
 
 

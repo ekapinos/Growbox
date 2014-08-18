@@ -32,6 +32,7 @@ void LoggerClass::logWateringEvent(byte wsIndex, WateringEvent& wateringEvent, b
 //   DDDD - sequence data
 void LoggerClass::logError(Error &error){
   LogRecord logRecord(B01000000| ((B00000011 & (error.sequenceSize-1))<<4) | (B00001111 & error.sequence));
+  error.isActive = true;
   boolean isStoredNow = false;
   if(!error.isStored){
     error.isStored = GB_StorageHelper.storeLogRecord(logRecord);
@@ -43,7 +44,8 @@ void LoggerClass::logError(Error &error){
 }
 
 boolean LoggerClass::stopLogError(Error &error){
-  if (error.isStored){
+  if (error.isActive){
+    error.isActive = false;
     error.isStored = false;
     return true;
   }

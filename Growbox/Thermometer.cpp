@@ -1,40 +1,56 @@
 #include "Thermometer.h"
-
 #include "Logger.h"
 
-// Pass our oneWire reference to Dallas Temperature. 
-DallasTemperature ThermometerClass::c_dallasTemperature(&g_oneWirePin);
-DeviceAddress ThermometerClass::c_oneWireAddress;
-
-// Visible only in this file
-float ThermometerClass::c_workingTemperature = 0.0;
-double ThermometerClass::c_statisticsTemperatureSumm = 0.0;
-int ThermometerClass::c_statisticsTemperatureCount = 0;
-
-
-void ThermometerClass::init(){
-  c_dallasTemperature.begin();
-  while(c_dallasTemperature.getDeviceCount() == 0){
-    GB_Logger.logError(ERROR_TERMOMETER_DISCONNECTED);
-    c_dallasTemperature.begin();
-  }  
-  GB_Logger.stopLogError(ERROR_TERMOMETER_DISCONNECTED);
-
-  c_dallasTemperature.getAddress(c_oneWireAddress, 0); // search for devices on the bus and assign based on an index.
+// public:
+ 
+ThermometerClass::ThermometerClass(OneWire* oneWirePin) : 
+c_dallasTemperature(oneWirePin), c_lastTemperature(NAN), c_statisticsTemperatureSumm(0.0), c_statisticsTemperatureCount(0) {
 }
 
-boolean ThermometerClass::updateStatistics(){
+// private :
 
-  if(!c_dallasTemperature.requestTemperaturesByAddress(c_oneWireAddress)){
+float ThermometerClass::getHardwareTemperature(){
+
+  c_dallasTemperature.begin();
+
+  if(c_dallasTemperature.getDeviceCount() == 0){
     GB_Logger.logError(ERROR_TERMOMETER_DISCONNECTED);
-    return false;
+    return NAN;
+  } 
+
+  DeviceAddress oneWireAddress;
+
+  if(!c_dallasTemperature.getAddress(oneWireAddress, 0)) { 
+    GB_Logger.logError(ERROR_TERMOMETER_DISCONNECTED);
+    return NAN;
+  }
+
+  if(!c_dallasTemperature.requestTemperaturesByAddress(oneWireAddress)){
+    GB_Logger.logError(ERROR_TERMOMETER_DISCONNECTED);
+    return NAN;
   };
 
-  float freshTemperature = c_dallasTemperature.getTempC(c_oneWireAddress);
+  float temperature = c_dallasTemperature.getTempC(oneWireAddress);
 
-  if ((int)freshTemperature == 0){
+  if ((int)temperature == 0){
     GB_Logger.logError(ERROR_TERMOMETER_ZERO_VALUE);  
-    return false;
+    return NAN;
+  }
+
+  return temperature;
+}
+
+// public:
+
+boolean ThermometerClass::isPresent(){
+  return !isnan(getHardwareTemperature());
+}
+
+void ThermometerClass::updateStatistics(){
+
+  float freshTemperature = getHardwareTemperature();
+  if (isnan(freshTemperature)){
+    return; // Errors already logged
   }
 
   c_statisticsTemperatureSumm += freshTemperature;
@@ -42,48 +58,49 @@ boolean ThermometerClass::updateStatistics(){
 
   boolean forceLog = 
     GB_Logger.stopLogError(ERROR_TERMOMETER_ZERO_VALUE) |
-    GB_Logger.stopLogError(ERROR_TERMOMETER_DISCONNECTED); 
-  if (forceLog) {
-    getTemperature(true);
-  }
-  else if (c_statisticsTemperatureCount > 50){
-    getTemperature(); // prevents overflow 
-  }
+    GB_Logger.stopLogError(ERROR_TERMOMETER_DISCONNECTED);
 
-  return true;
+  if (forceLog || c_statisticsTemperatureCount > 50) {// prevents overflow 
+    getTemperature();
+  }
 }
 
-float ThermometerClass::getTemperature(boolean forceLog){
-
-  if (c_statisticsTemperatureCount == 0){
-    return c_workingTemperature; 
+float ThermometerClass::getTemperature(){
+  float freshTemperature;
+  if (c_statisticsTemperatureCount == 0) {   
+    // Lets try to get temperature direcly
+    freshTemperature = getHardwareTemperature();
+  } 
+  else {
+    freshTemperature = c_statisticsTemperatureSumm/c_statisticsTemperatureCount;
   }
-
-  float freshTemperature = c_statisticsTemperatureSumm/c_statisticsTemperatureCount;
-
-  if (((int)freshTemperature != (int)c_workingTemperature) || forceLog) {          
-    GB_Logger.logTemperature((byte)freshTemperature);
+  if (!isnan(freshTemperature)){
+    if (isnan(c_lastTemperature) || ((int)freshTemperature != (int)c_lastTemperature)) {          
+      GB_Logger.logTemperature((byte)freshTemperature);
+    }
   }
-
-  c_workingTemperature = freshTemperature;
-
+  c_lastTemperature = freshTemperature;
   c_statisticsTemperatureSumm = 0.0;
   c_statisticsTemperatureCount = 0;
 
-  return c_workingTemperature;
+  return freshTemperature;
 }
 
-void ThermometerClass::getStatistics(float &_workingTemperature, float &_statisticsTemperature, int &_statisticsTemperatureCount){
-  _workingTemperature = c_workingTemperature;
+void ThermometerClass::getStatistics(float &_lastTemperature, float &_statisticsTemperature, int &_statisticsTemperatureCount){
+  _lastTemperature = c_lastTemperature;
 
   if (c_statisticsTemperatureCount != 0){
     _statisticsTemperature = c_statisticsTemperatureSumm/c_statisticsTemperatureCount;
   } 
   else {
-    _statisticsTemperature = c_workingTemperature;
+    _statisticsTemperature = c_lastTemperature;
   }
   _statisticsTemperatureCount = c_statisticsTemperatureCount;
 }
 
-ThermometerClass GB_Thermometer;
+// Pass our oneWire reference to Dallas Temperature.
+ThermometerClass GB_Thermometer(&g_oneWirePin);
+
+
+
 

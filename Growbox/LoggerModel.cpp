@@ -7,7 +7,7 @@
 LinkedList<Error> Error::fullList = LinkedList<Error>();
 
 Error::Error() : 
-sequence(0xFF), sequenceSize(0xFF), isStored(false){
+sequence(0xFF), sequenceSize(0xFF), isActive(false), isStored(false){
   fullList.add(this);
 }
 

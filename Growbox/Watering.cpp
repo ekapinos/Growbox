@@ -15,7 +15,8 @@ AlarmID_t WateringClass::c_PumpOffAlarmIDArray[MAX_WATERING_SYSTEMS_COUNT];
 void WateringClass::init(time_t turnOnWetSensorsTimeStamp){
 
   c_turnOnWetSensorsTimeStamp = turnOnWetSensorsTimeStamp;
-
+  boolean isSensorsTurnedOn = false;
+  
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
 
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
@@ -23,6 +24,7 @@ void WateringClass::init(time_t turnOnWetSensorsTimeStamp){
     if (wsp.boolPreferencies.isWetSensorConnected){
       // We will use turned on state after in main file
       c_lastWetSensorValue[wsIndex] = WATERING_UNSTABLE_VALUE; // Not read yet  
+      isSensorsTurnedOn = true;
     } 
     else {
       // Turn OFF unused Wet sensor pins
@@ -33,6 +35,11 @@ void WateringClass::init(time_t turnOnWetSensorsTimeStamp){
     c_PumpOnAlarmIDArray[wsIndex] = dtINVALID_ALARM_ID;
     c_PumpOffAlarmIDArray[wsIndex] = dtINVALID_ALARM_ID;
   }
+  
+  if (!isSensorsTurnedOn){
+    c_turnOnWetSensorsTimeStamp = 0; // clear to call turnOffWetSensorsAndUpdateWetStatus correctly if no sensors present
+  }
+  
 }
 
 void WateringClass::updateAlarms(){

@@ -17,7 +17,8 @@ public:
   byte sequence; 
   byte sequenceSize;
   const __FlashStringHelper* description; // FLASH
-  boolean isStored; // should be stored in Log only once, but notification should repeated
+  boolean isActive; // should be stored in Log only once, but notification should repeated
+  boolean isStored;
 
     Error();
 

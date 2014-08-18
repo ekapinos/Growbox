@@ -547,18 +547,15 @@ void WebServerClass::sendStatusPage(){
   boolean isFanEnabled = (digitalRead(FAN_PIN) == RELAY_ON);
   sendRawData(isFanEnabled ? F("enabled, ") : F("disabled"));
   if (isFanEnabled){
-    sendRawData((digitalRead(FAN_SPEED_PIN) == FAN_SPEED_MIN) ? F("min") : F("max"));
+    sendRawData((digitalRead(FAN_SPEED_PIN) == FAN_SPEED_MIN) ? F("min speed") : F("max speed"));
   }
-  sendRawData(F(" speed</dd>"));
+  sendRawData(F("</dd>"));
 
-  sendRawData(F("<dd>Clock: "));
-  if (GB_Controller.isHardwareClockPresent()) {
-    sendRawData(F("Connected"));
-  } 
-  else {
+  if (!GB_Controller.isHardwareClockPresent()) {
+    sendRawData(F("<dd>Clock: "));
     sendTextRedIfTrue(F("Not connected"), true);
+    sendRawData(F("</dd>")); 
   }
-  sendRawData(F("</dd>")); 
   sendRawData(F("<dd>Last startup: ")); 
   sendRawData(GB_StorageHelper.getLastStartupTimeStamp());
   sendRawData(F("</dd>")); 
@@ -569,16 +566,37 @@ void WebServerClass::sendStatusPage(){
 
   if (c_isWifiResponseError) return;
 
-  float workingTemperature, statisticsTemperature;
+  float lastTemperature, statisticsTemperature;
   int statisticsCount;
-  GB_Thermometer.getStatistics(workingTemperature, statisticsTemperature, statisticsCount);
-  sendRawData(F("<dt>Temperature</dt>")); 
-  sendRawData(F("<dd>Current: ")); 
-  sendRawData(workingTemperature);
-  sendRawData(F(" C</dd>")); 
+  GB_Thermometer.getStatistics(lastTemperature, statisticsTemperature, statisticsCount);
+
+  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
+  GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
+
+
+  sendRawData(F("<dt>Temperature</dt>"));   
+  if (!GB_Thermometer.isPresent()){
+    sendTextRedIfTrue(F("<dd>Not connected</dd>"), true);
+  }
+  sendRawData(F("<dd>Last: "));
+  if (isnan(lastTemperature)){
+    sendRawData(F("N/A"));
+  } 
+  else {
+    sendRawData(lastTemperature);
+    sendRawData(F(" C")); 
+  }
+  sendRawData(F("</dd>")); 
+
   sendRawData(F("<dd>Forecast: ")); 
-  sendRawData(statisticsTemperature);
-  sendRawData(F(" C (")); 
+  if (isnan(statisticsTemperature)){
+    sendRawData(F("N/A"));
+  } 
+  else {
+    sendRawData(statisticsTemperature);
+    sendRawData(F(" C")); 
+  }
+  sendRawData(F(" ("));
   sendRawData(statisticsCount);
   sendRawData(F(" measurements)</dd>"));
 
@@ -645,9 +663,6 @@ void WebServerClass::sendStatusPage(){
   sendRawData(F("</dd><dd>Turn to Night mode at: "));
   sendRawData(StringUtils::wordTimeToString(downTime));
   sendRawData(F("</dd>"));
-
-  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
-  GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
 
   sendRawData(F("<dd>Day temperature: "));
   sendRawData(normalTemperatueDayMin);
@@ -1574,7 +1589,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
   else if (StringUtils::flashStringEquals(name, F("setClockTime"))){
     time_t newTimeStamp = strtoul(value.c_str(), NULL, 0);
     GB_Controller.setClockTime(newTimeStamp);
-    
+
     c_isWifiForceUpdateGrowboxState = true; // Switch to Day/Night mode
   } 
 
@@ -1586,6 +1601,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
 
 
 
