@@ -193,7 +193,7 @@ void setup() {
   // Max 6 Alarms in instance
   Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
   Alarm.timerRepeat(UPDATE_CONTROLLER_STATE_DELAY, updateControllerStatus);
-//  Alarm.timerRepeat(UPDATE_CONTROLLER_CLOCK_STATE_DELAY, updateGrowboxClockState);
+  Alarm.timerRepeat(UPDATE_CONTROLLER_CLOCK_STATE_DELAY, updateGrowboxClockState);
   Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);
   Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);
   Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
@@ -343,9 +343,9 @@ void updateControllerStatus(){ // should return void
   GB_Controller.update(); // Check serial monitor without Firmware reset
 }
 
-//void updateGrowboxClockState(){
-//  GB_Controller.updateClockState();
-//}
+void updateGrowboxClockState(){
+  GB_Controller.updateClockState();
+}
 void updateBreezeStatus() {
   digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
 }

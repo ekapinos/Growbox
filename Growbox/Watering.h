@@ -28,7 +28,9 @@ public:
 
   static void init(time_t turnOnWetSensorsTime);
   static void updateAlarms();
-
+  
+  static void adjustWatringTimeOnClockSet(long);
+  
   /////////////////////////////////////////////////////////////////////
   //                           WET SENSORS                           //
   /////////////////////////////////////////////////////////////////////

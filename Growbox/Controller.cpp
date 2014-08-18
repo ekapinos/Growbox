@@ -8,6 +8,7 @@
 #include "Controller.h"
 #include "Logger.h"
 #include "StorageHelper.h"
+#include "Watering.h"
 
 
 ControllerClass::ControllerClass(): 
@@ -110,8 +111,15 @@ void ControllerClass::initClock_afterLoadConfiguration(){
 }
 
 void ControllerClass::setClockTime(time_t newTimeStamp){
+  
+  time_t oldTimeStamp = now();
+  long delta = (newTimeStamp > oldTimeStamp) ? (newTimeStamp - oldTimeStamp) : -((long)(oldTimeStamp - newTimeStamp));
+  
   setHarwareAndSoftwareClockTimeStamp(newTimeStamp);
   GB_StorageHelper.setClockTimeStampAutoCalculated(false);
+  
+  // Update wateriring time
+  GB_Watering.adjustWatringTimeOnClockSet(delta);
 }
 
 // private:
@@ -130,21 +138,21 @@ void ControllerClass::setHarwareAndSoftwareClockTimeStamp(time_t newTimeStamp){
 
 // public:
 
-//void ControllerClass::updateClockState(){
-//
-//  now(); // try to resync clock with hardware
-//  
-//  if (timeStatus() == timeNotSet) { 
-//    GB_Logger.logError(ERROR_TIMER_NOT_SET);  
-//  } 
-//  else if (timeStatus() == timeNeedsSync) { 
-//    GB_Logger.logError(ERROR_TIMER_NEEDS_SYNC);
-//  } 
-//  else {
-//    GB_Logger.stopLogError(ERROR_TIMER_NOT_SET);
-//    GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
-//  } 
-//}
+void ControllerClass::updateClockState(){
+
+  now(); // try to resync clock with hardware
+  
+  if (timeStatus() == timeNotSet) { 
+    GB_Logger.logError(ERROR_TIMER_NOT_SET);  
+  } 
+  else if (timeStatus() == timeNeedsSync) { 
+    GB_Logger.logError(ERROR_TIMER_NEEDS_SYNC);
+  } 
+  else {
+    GB_Logger.stopLogError(ERROR_TIMER_NOT_SET);
+    GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
+  } 
+}
 
 boolean ControllerClass::isHardwareClockPresent(){
   RTC.get(); // update status

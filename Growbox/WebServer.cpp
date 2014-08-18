@@ -416,7 +416,7 @@ void WebServerClass::sendTimeStampJavaScript(const __FlashStringHelper* growboxT
     sendRawData(F("var diffSpan = document.getElementById('"));    
     sendRawData(diffTimeStampId);    
     sendRawData(F("');"));   
-   
+
     sendRawData(F("diffSpan.innerHTML = \""));   
     if (GB_StorageHelper.isClockTimeStampAutoCalculated()) {
       sendTextRedIfTrue(F("Auto calculated. "), true);
@@ -620,7 +620,9 @@ void WebServerClass::sendStatusPage(){
 
   sendRawData(F("<dt>Logger</dt>"));
   if (!GB_StorageHelper.isStoreLogRecordsEnabled()){
+    sendRawData(F("<dd>")); 
     sendTextRedIfTrue(F("Disabled"), true);
+    sendRawData(F("</dd>")); 
   }
   sendRawData(F("<dd>Stored records: "));
   sendRawData(GB_StorageHelper.getLogRecordsCount());
@@ -957,9 +959,9 @@ void WebServerClass::sendWateringPage(const String& url){
   sendTagCheckbox(F("isWaterPumpConnected"), F("Watering Pump connected"), wsp.boolPreferencies.isWaterPumpConnected);  
   sendRawData(F("<div class='description'>Last watering&emsp;"));
   sendRawData(GB_Watering.getLastWateringTimeStampByIndex(wsIndex));
-  sendRawData(F("<br/>Current time &nbsp;&emsp;<b>"));
+  sendRawData(F("<br/>Current time &nbsp;&emsp;"));
   sendRawData(now());
-  sendRawData(F("</b>]<br/>"));
+  sendRawData(F("<br/>"));
   sendRawData(F("Next watering&emsp;"));
   sendRawData(GB_Watering.getNextWateringTimeStampByIndex(wsIndex));
   sendRawData(F("</div>"));
@@ -1572,6 +1574,8 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
   else if (StringUtils::flashStringEquals(name, F("setClockTime"))){
     time_t newTimeStamp = strtoul(value.c_str(), NULL, 0);
     GB_Controller.setClockTime(newTimeStamp);
+    
+    c_isWifiForceUpdateGrowboxState = true; // Switch to Day/Night mode
   } 
 
   else {
@@ -1582,6 +1586,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
 
 
 
