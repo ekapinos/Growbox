@@ -23,6 +23,9 @@ boolean isLoggerEnabled :
 boolean isWifiStationMode :
     // false - Access point, true - Station mode
     1;    
+boolean isClockTimeStampAutoCalculated :
+    // false - Access point, true - Station mode
+    1;    
   } 
   boolPreferencies;                 // 1
 

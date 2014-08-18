@@ -410,15 +410,22 @@ void WebServerClass::sendTimeStampJavaScript(const __FlashStringHelper* growboxT
     sendRawData(F("} else if (diffSeconds > 0) {"));    
     sendRawData(F("  resultDiffString = diffSeconds + ' sec';"));    
     sendRawData(F("} else {"));    
-    sendRawData(F("  resultDiffString = 'synced with browser time';"));    
+    sendRawData(F("  resultDiffString = '';"));    
     sendRawData(F("}"));  
 
     sendRawData(F("var diffSpan = document.getElementById('"));    
     sendRawData(diffTimeStampId);    
-    sendRawData(F("');"));    
-    sendRawData(F("diffSpan.innerHTML = resultDiffString;"));    
-    sendRawData(F("if (absDiffInSeconds != 0) {"));  
-    sendRawData(F("diffSpan.innerHTML = ' out of sync ' + diffSpan.innerHTML + ' with browser time';"));   
+    sendRawData(F("');"));   
+   
+    sendRawData(F("diffSpan.innerHTML = \""));   
+    if (GB_StorageHelper.isClockTimeStampAutoCalculated()) {
+      sendTextRedIfTrue(F("Auto calculated. "), true);
+    }
+    sendRawData(F("\";"));   
+    sendRawData(F("if (absDiffInSeconds == 0) {")); 
+    sendRawData(F("  diffSpan.innerHTML += 'Synced with browser time'"));
+    sendRawData(F("} else {")); 
+    sendRawData(F("  diffSpan.innerHTML += 'Out of sync ' + resultDiffString + ' with browser time';"));   
     sendRawData(F("}")); 
 
     sendRawData(F("if (diffHours > 0 || diffMinutes > 0) {"));  
@@ -442,6 +449,17 @@ void WebServerClass::sendTimeStampJavaScript(const __FlashStringHelper* growboxT
   sendRawData(F("};"));
   sendRawData(F("updateTimeStamps();"));
   sendRawData(F("</script>"));
+}
+
+void WebServerClass::sendTextRedIfTrue(const __FlashStringHelper* text, boolean isRed){
+  if (isRed){
+    sendRawData(F("<span class='red'>")); 
+  } 
+  else {
+    sendRawData(F("<span>")); 
+  }
+  sendRawData(text);
+  sendRawData(F("</span>"));
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -533,6 +551,14 @@ void WebServerClass::sendStatusPage(){
   }
   sendRawData(F(" speed</dd>"));
 
+  sendRawData(F("<dd>Clock: "));
+  if (GB_Controller.isHardwareClockPresent()) {
+    sendRawData(F("Connected"));
+  } 
+  else {
+    sendTextRedIfTrue(F("Not connected"), true);
+  }
+  sendRawData(F("</dd>")); 
   sendRawData(F("<dd>Last startup: ")); 
   sendRawData(GB_StorageHelper.getLastStartupTimeStamp());
   sendRawData(F("</dd>")); 
@@ -576,15 +602,9 @@ void WebServerClass::sendStatusPage(){
 
     if (wsp.boolPreferencies.isWetSensorConnected) {
       sendRawData(F("<dd>Wet sensor: "));
-      WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
-      if (currentStatus != &WATERING_EVENT_WET_SENSOR_NORMAL){
-        sendRawData(F("<span class='red'>")); 
-      } 
-      else {
-        sendRawData(F("<span>")); 
-      }
-      sendRawData(currentStatus->shortDescription);
-      sendRawData(F("</span></dd>"));
+      WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);     
+      sendTextRedIfTrue(currentStatus->shortDescription, currentStatus != &WATERING_EVENT_WET_SENSOR_NORMAL);
+      sendRawData(F("</dd>"));
     }
 
     if (wsp.boolPreferencies.isWaterPumpConnected) {
@@ -600,14 +620,15 @@ void WebServerClass::sendStatusPage(){
 
   sendRawData(F("<dt>Logger</dt>"));
   if (!GB_StorageHelper.isStoreLogRecordsEnabled()){
-    sendRawData(F("<dd class='red'>Disabled</dd>"));
+    sendTextRedIfTrue(F("Disabled"), true);
   }
   sendRawData(F("<dd>Stored records: "));
   sendRawData(GB_StorageHelper.getLogRecordsCount());
   sendRawData('/');
-  sendRawData(GB_StorageHelper.LOG_CAPACITY);
+  sendRawData(GB_StorageHelper.getLogRecordsCapacity());
   if (GB_StorageHelper.isLogOverflow()){
-    sendRawData(F(", <span class='red'>overflow</span>"));
+    sendRawData(F(", "));
+    sendTextRedIfTrue(F("overflow"), true);
   }
   sendRawData(F("</dd>"));
 
@@ -742,9 +763,10 @@ void WebServerClass::sendLogPage(const String& getParams){
   sendRawData(F("Stored records: "));
   sendRawData(GB_StorageHelper.getLogRecordsCount());
   sendRawData('/');
-  sendRawData(GB_StorageHelper.LOG_CAPACITY);
+  sendRawData(GB_StorageHelper.getLogRecordsCapacity());
   if (GB_StorageHelper.isLogOverflow()){
-    sendRawData(F(", <span class='red'>overflow</span>"));
+    sendRawData(F(", "));
+    sendTextRedIfTrue(F("overflow"), true);
   }
   sendRawData(F("<input type='hidden' name='resetStoredLog'/>"));
   sendRawData(F("<input type='submit' value='Reset log'/>"));
@@ -1057,14 +1079,14 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<tr><td>Growbox</td><td><span id='growboxTimeStampId'></span></td></tr>"));
   sendRawData(F("<tr><td><small>Difference</small></td><td><small><span id='diffTimeStampId'></span></small></td></tr>")); 
   sendRawData(F("</table>"));
-  
+
   sendTimeStampJavaScript(F("growboxTimeStampId"), F("browserTimeStampId"), F("diffTimeStampId"));
   sendRawData(F("<script type='text/javascript'>"));
   sendRawData(F("var g_checkGrowboxTimeStamp = function () {"));
   sendRawData(F("  if(!confirm(\"Syncronize Growbox time with browser time?\")) {"));
   sendRawData(F("    return false;"));
   sendRawData(F("  }"));
-  sendRawData(F("  document.getElementById(\"growboxTimeStampInput\").value = Math.floor(new Date().getTime()/1000 - new Date().getTimezoneOffset()*60);"));
+  sendRawData(F("  document.getElementById(\"setClockTimeInput\").value = Math.floor(new Date().getTime()/1000 - new Date().getTimezoneOffset()*60);"));
   sendRawData(F("  return true;"));
   sendRawData(F("}"));
   sendRawData(F("</script>"));
@@ -1072,7 +1094,7 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
   sendRawData(F("' method='post' onSubmit='return g_checkGrowboxTimeStamp()'>"));
-  sendRawData(F("<input type='hidden' name='growboxTimeStamp' id='growboxTimeStampInput'>"));
+  sendRawData(F("<input type='hidden' name='setClockTime' id='setClockTimeInput'>"));
   sendRawData(F("<input type='submit' value='Sync'>"));
   sendRawData(F("</form>"));
 
@@ -1546,10 +1568,10 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 
     GB_Watering.updateWateringSchedule();
   } 
-  
-  else if (StringUtils::flashStringEquals(name, F("growboxTimeStamp"))){
+
+  else if (StringUtils::flashStringEquals(name, F("setClockTime"))){
     time_t newTimeStamp = strtoul(value.c_str(), NULL, 0);
-    Serial.println(StringUtils::timeStampToString(newTimeStamp));
+    GB_Controller.setClockTime(newTimeStamp);
   } 
 
   else {
@@ -1560,6 +1582,8 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
+
 
 
 

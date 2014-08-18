@@ -53,7 +53,8 @@ const byte FAN_SPEED_MAX = RELAY_ON;
 // Minimum Growbox reaction time
 const int UPDATE_BREEZE_DELAY = 1;
 const int UPDATE_GROWBOX_STATE_DELAY = 5*60; // 5 min 
-const int UPDATE_CONTROLLER_STATUS_DELAY = 1;
+const int UPDATE_CONTROLLER_STATE_DELAY = 1;
+const int UPDATE_CONTROLLER_CLOCK_STATE_DELAY = 20; // 20 sec
 const int UPDATE_THEMPERATURE_STATISTICS_DELAY = 20; //20 sec 
 const int UPDATE_WIFI_STATUS_DELAY = 20; //20 sec 
 
@@ -75,7 +76,6 @@ const long WATERING_ERROR_DELTA = 5*60; // 6 minutes
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 extern OneWire g_oneWirePin;
-extern boolean g_isGrowboxStarted;
 extern byte g_isDayInGrowbox;
 extern boolean g_useSerialMonitor;
 

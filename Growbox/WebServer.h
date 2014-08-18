@@ -69,7 +69,7 @@ private:
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected);
 
   void sendTimeStampJavaScript(const __FlashStringHelper* growboxTimeStampId = 0, const __FlashStringHelper* browserTimeStampId = 0, const __FlashStringHelper* diffTimeStampId = 0);
-
+void sendTextRedIfTrue(const __FlashStringHelper* text, boolean isRed);
   /////////////////////////////////////////////////////////////////////
   //                        COMMON FOR PAGES                         //
   /////////////////////////////////////////////////////////////////////

@@ -35,7 +35,7 @@ void LoggerClass::logError(Error &error){
   boolean isStoredNow = false;
   if(!error.isStored){
     error.isStored = GB_StorageHelper.storeLogRecord(logRecord);
-    isStoredNow = true;
+    isStoredNow = error.isStored;
   } 
   printLogRecordToSerialMonotior(logRecord, error.description, isStoredNow);
   //error.isStored = true;   

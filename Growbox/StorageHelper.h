@@ -5,23 +5,41 @@
 
 class StorageHelperClass{
 
-public:
-
   static const word LOG_CAPACITY_ARDUINO;
   static const word LOG_CAPACITY_AT24C32;
   static const word LOG_CAPACITY;
 
-  /////////////////////////////////////////////////////////////////////
-  //                            BOOT RECORD                          //
-  /////////////////////////////////////////////////////////////////////
+  boolean c_isConfigurationLoaded;
+
+  boolean isStorageHardwarePresent();
+  boolean isBoolRecordCorrect(BootRecord& bootRecord);
+  boolean isConfigurationLoaded();
+
+  BootRecord getBootRecord();
+  void setBootRecord(BootRecord bootRecord);
+  BootRecord::BoolPreferencies getBoolPreferencies();
+  void setBoolPreferencies(BootRecord::BoolPreferencies boolPreferencies);
+
+public:
+  StorageHelperClass();
 
   boolean init();
-  boolean isStorageHardwarePresent();
-  boolean loadConfiguration();
+  time_t init_getLastStoredTime();
+  boolean init_loadConfiguration(time_t currentTime);
   void update();
 
   time_t getFirstStartupTimeStamp();
   time_t getLastStartupTimeStamp();
+
+  void resetFirmware();
+  void resetStoredLog();
+
+  /////////////////////////////////////////////////////////////////////
+  //                            CONTROLLER                           //
+  /////////////////////////////////////////////////////////////////////
+
+  void setClockTimeStampAutoCalculated(boolean flag);
+  boolean isClockTimeStampAutoCalculated();
 
   void getTurnToDayAndNightTime(word& upTime, word& downTime);
   void setTurnToDayModeTime(const byte upHour, const byte upMinute);
@@ -35,7 +53,7 @@ public:
   void setCriticalTemperatue(const byte criticalTemperatue);
 
   /////////////////////////////////////////////////////////////////////
-  //                            LOG RECORDS                          //
+  //                               LOGGER                            //
   /////////////////////////////////////////////////////////////////////
 
   void setStoreLogRecordsEnabled(boolean flag);
@@ -45,18 +63,16 @@ public:
 
   boolean isLogOverflow();
 
+  word getLogRecordsCapacity();
   word getLogRecordsCount();
   LogRecord getLogRecordByIndex(word index);
 
-  /////////////////////////////////////////////////////////////////////
-  //                        GROWBOX COMMANDS                         //
-  /////////////////////////////////////////////////////////////////////
+private :
 
-  void resetFirmware();
-  void resetStoredLog();
+  word getNextLogRecordIndex();
+  void increaseNextLogRecordIndex();  
 
-  BootRecord getBootRecord();
-
+public :
   /////////////////////////////////////////////////////////////////////
   //                               WI-FI                             //
   /////////////////////////////////////////////////////////////////////
@@ -76,20 +92,15 @@ public:
   BootRecord::WateringSystemPreferencies getWateringSystemPreferenciesById(byte id);
   void setWateringSystemPreferenciesById(byte id, BootRecord::WateringSystemPreferencies wateringSystemPreferencies);
 
-private :
 
-  word getNextLogRecordIndex();
-  void increaseNextLogRecordIndex();
-
-  BootRecord::BoolPreferencies getBoolPreferencies();
-  void setBoolPreferencies(BootRecord::BoolPreferencies boolPreferencies);
 };
-
-
 
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
+
+
+
 
 
 

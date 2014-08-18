@@ -1,4 +1,6 @@
 #include <MemoryFree.h>
+
+#include <Time.h>
 // RTC
 #include <Wire.h>  
 #include <DS1307RTC.h>
@@ -9,20 +11,16 @@
 
 
 ControllerClass::ControllerClass(): 
-c_freeMemoryLastCheck(0){
-}
-
-void ControllerClass::startupClock(){
-  setSyncProvider(RTC.get);   // the function to get the time from the RTC
-  //checkClock();
+c_freeMemoryLastCheck(0), c_isAutoCalculatedTimeStampUsed(false){
 }
 
 void ControllerClass::rebootController() {
+  showControllerMessage(F("Reboot"));
   void(* resetFunc) (void) = 0; // Reset MC function
   resetFunc(); // call
 }
 
-void ControllerClass::checkInputPins(){
+void ControllerClass::checkInputPinsStatus(boolean checkFirmwareReset){
 
   boolean newUseSerialMonitor = (digitalRead(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN) == HARDWARE_BUTTON_ON);
 
@@ -44,7 +42,7 @@ void ControllerClass::checkInputPins(){
     }
   }
 
-  if (g_useSerialMonitor && digitalRead(HARDWARE_BUTTON_RESET_FIRMWARE_PIN) == HARDWARE_BUTTON_ON){ 
+  if (checkFirmwareReset && g_useSerialMonitor && digitalRead(HARDWARE_BUTTON_RESET_FIRMWARE_PIN) == HARDWARE_BUTTON_ON){ 
     showControllerMessage("Resetting firmware...");
     byte counter;
     for (counter = 5; counter>0; counter--){
@@ -89,30 +87,78 @@ void ControllerClass::checkFreeMemory(){
   }
 }
 
-void ControllerClass::checkClock(){
-
-  now(); // try to refresh clock
-
-  if (timeStatus() == timeNotSet) { 
-    GB_Logger.logError(ERROR_TIMER_NOT_SET);  
-  } 
-  else if (timeStatus() == timeNeedsSync) { 
-    GB_Logger.logError(ERROR_TIMER_NEEDS_SYNC);
-  } 
-  else {
-    GB_Logger.stopLogError(ERROR_TIMER_NOT_SET);
-    GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
-  } 
-}
-
 void ControllerClass::update(){
-
-  checkInputPins();
+  checkInputPinsStatus();
   checkFreeMemory();
-  checkClock();
-
 }
+
+void ControllerClass::initClock(time_t defaultTimeStamp){
+
+  setSyncProvider(RTC.get);   // the function to get the time from the RTC
+
+  if (timeStatus() == timeNotSet){    
+    setHarwareAndSoftwareClockTimeStamp(defaultTimeStamp); 
+    c_isAutoCalculatedTimeStampUsed = true;
+  }
+}
+
+void ControllerClass::initClock_afterLoadConfiguration(){
+  if (c_isAutoCalculatedTimeStampUsed){
+    // After init_loadConfiguration, do not clear flag
+    GB_StorageHelper.setClockTimeStampAutoCalculated(true);
+  }
+}
+
+void ControllerClass::setClockTime(time_t newTimeStamp){
+  setHarwareAndSoftwareClockTimeStamp(newTimeStamp);
+  GB_StorageHelper.setClockTimeStampAutoCalculated(false);
+}
+
+// private:
+
+void ControllerClass::setHarwareAndSoftwareClockTimeStamp(time_t newTimeStamp){
+
+  RTC.set(newTimeStamp);
+  setTime(newTimeStamp);
+
+  if (g_useSerialMonitor) {
+    showControllerMessage(F("Set new Clock time ["), false);
+    Serial.print(StringUtils::timeStampToString(newTimeStamp));
+    Serial.println(F("] "));
+  }
+}
+
+// public:
+
+//void ControllerClass::updateClockState(){
+//
+//  now(); // try to resync clock with hardware
+//  
+//  if (timeStatus() == timeNotSet) { 
+//    GB_Logger.logError(ERROR_TIMER_NOT_SET);  
+//  } 
+//  else if (timeStatus() == timeNeedsSync) { 
+//    GB_Logger.logError(ERROR_TIMER_NEEDS_SYNC);
+//  } 
+//  else {
+//    GB_Logger.stopLogError(ERROR_TIMER_NOT_SET);
+//    GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
+//  } 
+//}
+
+boolean ControllerClass::isHardwareClockPresent(){
+  RTC.get(); // update status
+  return RTC.chipPresent();
+}
+
+//boolean ControllerClass::isAutoCalculatedTimeUsed(){
+//  return c_clockIsAutoCalculatedTimeUsed;
+//}
+
+
 ControllerClass GB_Controller;
+
+
 
 
 

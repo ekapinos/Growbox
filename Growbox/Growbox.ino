@@ -111,12 +111,12 @@ void setup() {
     digitalWrite(WATERING_WET_SENSOR_POWER_PINS[i], HIGH);
     digitalWrite(WATERING_PUMP_PINS[i], RELAY_OFF);
   }
-  unsigned long pinConfiguredMillis = millis();
+  unsigned long startupMillis = millis();
 
   // Configure inputs
   //attachInterrupt(0, interrapton0handler, CHANGE); // PIN 2
-
-  GB_Controller.checkInputPins(); // Check for Serial monitor
+  
+  GB_Controller.checkInputPinsStatus(true); // Check for Serial monitor and Firmware reset
   GB_Controller.checkFreeMemory();
   
   printStatusOnBoot(F("software configuration"));
@@ -168,54 +168,45 @@ void setup() {
     Serial.println(F("Growbox successfully booted up"));
   }
   
-  printStatusOnBoot(F("stored configuration"));
-  boolean itWasRestart = GB_StorageHelper.loadConfiguration();  
-  GB_Controller.checkFreeMemory();
-  
   printStatusOnBoot(F("clock")); 
-  GB_Controller.startupClock(); // may be disconnected - it is OK, then we will use last log time 
+  time_t autoCalculatedTimeStamp = GB_StorageHelper.init_getLastStoredTime(); // returns zero, if first startup
+  if (autoCalculatedTimeStamp != 0){
+    autoCalculatedTimeStamp += SECS_PER_MIN; // if not first start, we set +minute as defaul time
+  }
+  GB_Controller.initClock(autoCalculatedTimeStamp); // may be disconnected - it is OK, then we will use last log time 
+  GB_Controller.checkFreeMemory();
+
+
+  time_t startupTimeStamp = now() - (millis() - startupMillis)/1000;
+  
+  
+  printStatusOnBoot(F("stored configuration"));
+  GB_StorageHelper.init_loadConfiguration(startupTimeStamp);  // Logger will enabled after that   // after set clock and load configuration we are ready for logging
   GB_Controller.checkFreeMemory();
   
-  // after set clock and load configuration we are ready for logging
-  g_isGrowboxStarted = true;
-  if (itWasRestart){
-    GB_Logger.logEvent(EVENT_RESTART);
-  } 
-  else {
-    GB_Logger.logEvent(EVENT_FIRST_START_UP);
-  }
-  
-  
+  GB_Controller.initClock_afterLoadConfiguration();
 
-  //printStatusOnBoot(F("watering systems")); // used time
-  time_t pinConfiguredTime = now() - (millis() - pinConfiguredMillis)/1000;
-  GB_Watering.init(pinConfiguredTime); // call before updateGrowboxState();
+  printStatusOnBoot(F("watering systems"));
+  GB_Watering.init(startupTimeStamp); // call before updateGrowboxState();
   GB_Controller.checkFreeMemory();
 
   // Max 6 Alarms in instance
-  Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);  // repeat every N seconds
-  Alarm.timerRepeat(UPDATE_CONTROLLER_STATUS_DELAY, updateController);
-  Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
   Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
-  Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);  // repeat every N seconds
-
-  // TODO update if configuration changed
-  // Create suolemental rare switching
-  //Alarm.alarmRepeat(upHour, upMinute, 00, switchToDayMode);      // repeat once every day
-  //Alarm.alarmRepeat(downHour, downMinute, 00, switchToNightMode);  // repeat once every day
+  Alarm.timerRepeat(UPDATE_CONTROLLER_STATE_DELAY, updateControllerStatus);
+//  Alarm.timerRepeat(UPDATE_CONTROLLER_CLOCK_STATE_DELAY, updateGrowboxClockState);
+  Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);
+  Alarm.timerRepeat(UPDATE_THEMPERATURE_STATISTICS_DELAY, updateThermometerStatistics);
+  Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
   GB_Controller.checkFreeMemory();
+
 
   updateGrowboxState();
   GB_Controller.checkFreeMemory();
 
+
   printStatusOnBoot(F("Wi-Fi"));
   RAK410_XBeeWifi.init(); // check is Present - once
-  GB_Controller.checkFreeMemory();
- 
-
-  if (RAK410_XBeeWifi.isPresent()){ 
-    RAK410_XBeeWifi.updateWiFiStatus(); // start Web server
-  }
+  RAK410_XBeeWifi.updateWiFiStatus(); // start Web server
   GB_Controller.checkFreeMemory();
   
   GB_Watering.updateWateringSchedule(); // Run watering after init
@@ -236,30 +227,31 @@ void loop() {
 }
 
 void serialEvent(){
+//  Serial.println(F("serialEvent fired"));
+//  if(!GB_StorageHelper.isConfigurationLoaded()){ //TODO maybe we should remove it
+//    // We will not handle external events during startup
+//    return;
+//  }
 
-  if(!g_isGrowboxStarted){
-    // We will not handle external events during startup
-    return;
-  }
-
-  boolean forceUpdate = GB_WebServer.handleSerialMonitorEvent();
-  if (forceUpdate){
+  boolean forceUpdateGrowboxState = GB_WebServer.handleSerialMonitorEvent();
+  if (forceUpdateGrowboxState){
     updateGrowboxState();
   }
 }
 
 // Wi-Fi is connected to Serial1
 void serialEvent1(){
+//  Serial.println(F("serialEvent1 fired"));
+//  if(!GB_StorageHelper.isConfigurationLoaded()){
+//    // We will not handle external events during startup
+//    return;
+//  }
 
-  if(!g_isGrowboxStarted){
-    // We will not handle external events during startup
-    return;
-  }
   //  String input;
   //  Serial_readString(input); // at first we should read, after manipulate  
   //  Serial.println(input);
-  boolean forceUpdate = GB_WebServer.handleSerialEvent();
-  if (forceUpdate){
+  boolean forceUpdateGrowboxState = GB_WebServer.handleSerialEvent();
+  if (forceUpdateGrowboxState){
     updateGrowboxState();
   }
 }
@@ -347,10 +339,13 @@ void updateWiFiStatus(){ // should return void
   RAK410_XBeeWifi.updateWiFiStatus(); 
 }
 
-void updateController(){ // should return void
-  GB_Controller.update(); 
+void updateControllerStatus(){ // should return void
+  GB_Controller.update(); // Check serial monitor without Firmware reset
 }
 
+//void updateGrowboxClockState(){
+//  GB_Controller.updateClockState();
+//}
 void updateBreezeStatus() {
   digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
 }

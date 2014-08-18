@@ -6,20 +6,27 @@
 class ControllerClass{
 
   int c_freeMemoryLastCheck;
-
+  boolean c_isAutoCalculatedTimeStampUsed;
 public:
   ControllerClass();
-  void startupClock();
 
   void rebootController();
 
   // discover memory overflow errors in the arduino C++ code
-  void checkInputPins();
+  void checkInputPinsStatus(boolean checkFirmwareReset = false);
   void checkFreeMemory();
-  void checkClock();
-
   void update();
 
+  void initClock(time_t defaultTimeStamp);
+  void initClock_afterLoadConfiguration();
+
+  void setClockTime(time_t newTimeStamp);
+private:
+  void setHarwareAndSoftwareClockTimeStamp(time_t newTimeStamp);
+public:
+  //  void updateClockState();
+  boolean isHardwareClockPresent();
+  //boolean isAutoCalculatedTimeUsed();
   /////////////////////////////////////////////////////////////////////
   //                              OTHER                              //
   /////////////////////////////////////////////////////////////////////
@@ -38,6 +45,8 @@ public:
 extern ControllerClass GB_Controller;
 
 #endif
+
+
 
 
 

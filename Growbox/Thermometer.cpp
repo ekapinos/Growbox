@@ -23,7 +23,6 @@ void ThermometerClass::init(){
   c_dallasTemperature.getAddress(c_oneWireAddress, 0); // search for devices on the bus and assign based on an index.
 }
 
-// TODO rename
 boolean ThermometerClass::updateStatistics(){
 
   if(!c_dallasTemperature.requestTemperaturesByAddress(c_oneWireAddress)){

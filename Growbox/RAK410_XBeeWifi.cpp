@@ -45,12 +45,11 @@ void RAK410_XBeeWifiClass::init(){
 
   if (!c_isWifiPresent){   
     Serial.end(); // Close Serial connection if nessesary
-    return;
   } 
 }
 
 void RAK410_XBeeWifiClass::updateWiFiStatus(){
-  if (!c_isWifiPresent || !g_isGrowboxStarted || !c_restartWifi){
+  if (!c_isWifiPresent || !c_restartWifi){
     return;
   }
   byte resetFails = 0;
@@ -61,7 +60,7 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
       Serial.println();
     }
 
-    showWifiMessage(F("Starting up Web server..."));
+    showWifiMessage(F("Checking hardware..."));
 
     if (restartWifi()){
       wifiExecuteCommand(F("at+pwrmode=0"));
@@ -79,12 +78,12 @@ void RAK410_XBeeWifiClass::updateWiFiStatus(){
     }
 
     if (isStartedUp){
-      showWifiMessage(F("Web server started"));
+      showWifiMessage(F("Hardware OK"));
       c_restartWifi = false;
       break;
     } 
     else {
-      showWifiMessage(F("Web server start failed"));
+      showWifiMessage(F("Hardware NOT PRESENT"));
     }  
   }
 

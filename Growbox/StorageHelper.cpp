@@ -6,43 +6,98 @@
 #include "EEPROM_ARDUINO.h"
 #include "EEPROM_AT24C32.h"
 
-
 #define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
+
+// private:
 
 const word StorageHelperClass::LOG_CAPACITY_ARDUINO     = (EEPROM.getCapacity() - sizeof(BootRecord)) / sizeof(LogRecord);
 const word StorageHelperClass::LOG_CAPACITY_AT24C32     = (EEPROM_AT24C32.getCapacity()) / sizeof(LogRecord);
 const word StorageHelperClass::LOG_CAPACITY             = (LOG_CAPACITY_ARDUINO + LOG_CAPACITY_AT24C32);
 
-/////////////////////////////////////////////////////////////////////
-//                            BOOT RECORD                          //
-/////////////////////////////////////////////////////////////////////
-
-boolean StorageHelperClass::init(){
-  return isStorageHardwarePresent();
+StorageHelperClass::StorageHelperClass() : 
+c_isConfigurationLoaded(false){
 }
 
 boolean StorageHelperClass::isStorageHardwarePresent(){
   return EEPROM.isPresent() && EEPROM_AT24C32.isPresent();
 }
 
-boolean StorageHelperClass::loadConfiguration(){
+boolean StorageHelperClass::isBoolRecordCorrect(BootRecord& bootRecord){
+  return (bootRecord.first_magic == MAGIC_NUMBER) && (bootRecord.last_magic == MAGIC_NUMBER);
+}
 
-  BootRecord bootRecord = EEPROM.readBlock<BootRecord>(0);
-  
-  boolean itWasRestart;
+boolean StorageHelperClass::isConfigurationLoaded() {
+  return c_isConfigurationLoaded;
+}
+
+BootRecord StorageHelperClass::getBootRecord(){
+  return EEPROM.readBlock<BootRecord>(0);
+}
+void StorageHelperClass::setBootRecord(BootRecord bootRecord){
+  EEPROM.updateBlock<BootRecord>(0, bootRecord);
+}
+BootRecord::BoolPreferencies StorageHelperClass::getBoolPreferencies(){  
+  return EEPROM.readBlock<BootRecord::BoolPreferencies>(OFFSETOF(BootRecord, boolPreferencies));
+}
+
+void StorageHelperClass::setBoolPreferencies(BootRecord::BoolPreferencies boolPreferencies){
+  EEPROM.updateBlock<BootRecord::BoolPreferencies>(OFFSETOF(BootRecord, boolPreferencies), boolPreferencies);
+}
+
+// public:
+
+boolean StorageHelperClass::init(){
+  return isStorageHardwarePresent();
+}
+
+time_t StorageHelperClass::init_getLastStoredTime(){
+  // init was OK, loadConfiguration not call
+  BootRecord bootRecord = getBootRecord();
+  if (!isBoolRecordCorrect(bootRecord)){
+    return 0;
+  }
+
+  // check last boot
+  time_t lastStoredTime = getLastStartupTimeStamp();
+
+  // check last watering event
+  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++) {
+    BootRecord::WateringSystemPreferencies wsp = getWateringSystemPreferenciesById(wsIndex);
+    if (wsp.lastWateringTimeStamp > lastStoredTime){
+      lastStoredTime = wsp.lastWateringTimeStamp;
+    }
+  }
+
+  // check last log record
+  word logRecordIndex = getLogRecordsCount()-1;
+  if (logRecordIndex > 0){
+    LogRecord logRecord = getLogRecordByIndex(logRecordIndex);
+    if (logRecord.timeStamp > lastStoredTime){
+      lastStoredTime = logRecord.timeStamp;
+    }
+  }
+
+  return lastStoredTime;
+}
+
+boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
+
+  BootRecord bootRecord = getBootRecord();
+
+  boolean itWasRestart;   
   if ((bootRecord.first_magic == MAGIC_NUMBER) && (bootRecord.last_magic == MAGIC_NUMBER)){ 
-    EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp), now());      
+    EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp), currentTime);      
     itWasRestart = true;   
   } 
   else {
     bootRecord.first_magic = MAGIC_NUMBER;
-    bootRecord.firstStartupTimeStamp = now();
-    bootRecord.lastStartupTimeStamp = bootRecord.firstStartupTimeStamp;
+    bootRecord.firstStartupTimeStamp = currentTime;
+    bootRecord.lastStartupTimeStamp = currentTime;
     bootRecord.nextLogRecordIndex = 0;
     bootRecord.boolPreferencies.isLogOverflow = false;
     bootRecord.boolPreferencies.isLoggerEnabled = true;
-
     bootRecord.boolPreferencies.isWifiStationMode = false; // AP by default
+    bootRecord.boolPreferencies.isClockTimeStampAutoCalculated = false;
 
     bootRecord.turnToDayModeAt = 9*60;
     bootRecord.turnToNightModeAt = 21*60;
@@ -53,9 +108,9 @@ boolean StorageHelperClass::loadConfiguration(){
     bootRecord.criticalTemperatue = 35;
 
     for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
-      
+
       BootRecord::WateringSystemPreferencies& wsp = bootRecord.wateringSystemPreferencies[i];
-      
+
       wsp.boolPreferencies.isWetSensorConnected = false;
       wsp.boolPreferencies.isWaterPumpConnected = false;
       wsp.boolPreferencies.useWetSensorForWatering = false;
@@ -67,12 +122,12 @@ boolean StorageHelperClass::loadConfiguration(){
       wsp.normalValue  = 150;
       wsp.wetValue     = 100;
       wsp.veryWetValue =  50;
-      
+
       wsp.dryWateringDuration = 30;     // 30 sec
       wsp.veryDryWateringDuration = 60; // 60 sec
-      
+
       wsp.startWateringAt = 9*60;  // 9 AM 
-      
+
       wsp.lastWateringTimeStamp = 0; // Unknown
     }
 
@@ -84,15 +139,23 @@ boolean StorageHelperClass::loadConfiguration(){
     }
     bootRecord.last_magic = MAGIC_NUMBER;
 
-    EEPROM.updateBlock<BootRecord>(0, bootRecord);
-
+    setBootRecord(bootRecord);
     itWasRestart =  false; 
+  }
+  
+  c_isConfigurationLoaded = true;
+  if (itWasRestart){
+    GB_Logger.logEvent(EVENT_RESTART);
+  } 
+  else {
+    GB_Logger.logEvent(EVENT_FIRST_START_UP);
   }
   
   return itWasRestart;
 }
 
-void update(){
+
+void StorageHelperClass::update(){
   // TODO implement if extermal EEPROM DISCONNECTED
 }
 
@@ -102,6 +165,33 @@ time_t StorageHelperClass::getFirstStartupTimeStamp(){
 
 time_t StorageHelperClass::getLastStartupTimeStamp(){
   return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp));
+}
+
+void StorageHelperClass::resetFirmware(){
+  EEPROM.updateBlock<word>(OFFSETOF(BootRecord, first_magic), 0x0000);
+}
+
+void StorageHelperClass::resetStoredLog(){  
+  EEPROM.updateBlock<word>(OFFSETOF(BootRecord, nextLogRecordIndex), 0x0000);
+
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.isLogOverflow = false;
+  setBoolPreferencies(boolPreferencies);
+}
+
+
+/////////////////////////////////////////////////////////////////////
+//                            CONTROLLER                           //
+/////////////////////////////////////////////////////////////////////
+
+void StorageHelperClass::setClockTimeStampAutoCalculated(boolean flag){
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.isClockTimeStampAutoCalculated = flag;
+  setBoolPreferencies(boolPreferencies);
+}
+
+boolean StorageHelperClass::isClockTimeStampAutoCalculated(){
+  return getBoolPreferencies().isClockTimeStampAutoCalculated;
 }
 
 void StorageHelperClass::getTurnToDayAndNightTime(word& upTime, word& downTime){
@@ -141,7 +231,7 @@ void StorageHelperClass::setCriticalTemperatue(const byte criticalTemperatue){
 
 
 /////////////////////////////////////////////////////////////////////
-//                            LOG RECORDS                          //
+//                              LOGGER                             //
 /////////////////////////////////////////////////////////////////////
 
 void StorageHelperClass::setStoreLogRecordsEnabled(boolean flag){
@@ -165,7 +255,7 @@ boolean StorageHelperClass::isStoreLogRecordsEnabled(){
 }
 
 boolean StorageHelperClass::storeLogRecord(LogRecord &logRecord){ 
-  boolean storeLog = g_isGrowboxStarted && isStoreLogRecordsEnabled() && isStorageHardwarePresent();
+  boolean storeLog = isStorageHardwarePresent() && isConfigurationLoaded() && isStoreLogRecordsEnabled();
   if (!storeLog){
     return false;
   }
@@ -184,6 +274,10 @@ boolean StorageHelperClass::storeLogRecord(LogRecord &logRecord){
 
 boolean StorageHelperClass::isLogOverflow(){
   return getBoolPreferencies().isLogOverflow;
+}
+
+word StorageHelperClass::getLogRecordsCapacity(){
+  return LOG_CAPACITY; 
 }
 
 word StorageHelperClass::getLogRecordsCount(){
@@ -220,30 +314,31 @@ LogRecord StorageHelperClass::getLogRecordByIndex(word index){
   }
 }
 
-/////////////////////////////////////////////////////////////////////
-//                        GROWBOX COMMANDS                         //
-/////////////////////////////////////////////////////////////////////
+// private :
 
-void StorageHelperClass::resetFirmware(){
-  EEPROM.updateBlock<word>(OFFSETOF(BootRecord, first_magic), 0x0000);
+word StorageHelperClass::getNextLogRecordIndex(){
+  return EEPROM.readBlock<word>(OFFSETOF(BootRecord, nextLogRecordIndex));
 }
 
-void StorageHelperClass::resetStoredLog(){  
-  EEPROM.updateBlock<word>(OFFSETOF(BootRecord, nextLogRecordIndex), 0x0000);
+void StorageHelperClass::increaseNextLogRecordIndex(){
+  word nextLogRecordIndex = getNextLogRecordIndex();
+  nextLogRecordIndex++;
+  if (nextLogRecordIndex >= LOG_CAPACITY){
+    nextLogRecordIndex = 0;
 
-  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
-  boolPreferencies.isLogOverflow = false;
-  setBoolPreferencies(boolPreferencies);
-}
-
-BootRecord StorageHelperClass::getBootRecord(){
-  return EEPROM.readBlock<BootRecord>(0);
+    BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+    boolPreferencies.isLogOverflow = true;
+    setBoolPreferencies(boolPreferencies);
+  }
+  EEPROM.updateBlock(OFFSETOF(BootRecord, nextLogRecordIndex), nextLogRecordIndex); 
 }
 
 
 /////////////////////////////////////////////////////////////////////
 //                               WI-FI                             //
 /////////////////////////////////////////////////////////////////////
+
+// public :
 
 boolean StorageHelperClass::isWifiStationMode(){
   return getBoolPreferencies().isWifiStationMode; 
@@ -287,33 +382,6 @@ void  StorageHelperClass::setWifiPass(String wifiPass){
 }
 
 
-word StorageHelperClass::getNextLogRecordIndex(){
-  return EEPROM.readBlock<word>(OFFSETOF(BootRecord, nextLogRecordIndex));
-}
-
-void StorageHelperClass::increaseNextLogRecordIndex(){
-  word nextLogRecordIndex = getNextLogRecordIndex();
-  nextLogRecordIndex++;
-  if (nextLogRecordIndex >= LOG_CAPACITY){
-    nextLogRecordIndex = 0;
-
-    BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
-    boolPreferencies.isLogOverflow = true;
-    setBoolPreferencies(boolPreferencies);
-  }
-  EEPROM.updateBlock(OFFSETOF(BootRecord, nextLogRecordIndex), nextLogRecordIndex); 
-}
-
-
-BootRecord::BoolPreferencies StorageHelperClass::getBoolPreferencies(){  
-  return EEPROM.readBlock<BootRecord::BoolPreferencies>(OFFSETOF(BootRecord, boolPreferencies));
-}
-
-void StorageHelperClass::setBoolPreferencies(BootRecord::BoolPreferencies boolPreferencies){
-  EEPROM.updateBlock<BootRecord::BoolPreferencies>(OFFSETOF(BootRecord, boolPreferencies), boolPreferencies);
-}
-
-
 /////////////////////////////////////////////////////////////////////
 //                             WATERING                            //
 /////////////////////////////////////////////////////////////////////
@@ -332,15 +400,8 @@ void StorageHelperClass::setWateringSystemPreferenciesById(byte id, BootRecord::
   }
   EEPROM.updateBlock<BootRecord::WateringSystemPreferencies>(OFFSETOF(BootRecord, wateringSystemPreferencies)+id * sizeof(BootRecord::WateringSystemPreferencies), wateringSystemPreferencies);
 }
-    
+
 StorageHelperClass GB_StorageHelper;
-
-
-
-
-
-
-
 
 
 
