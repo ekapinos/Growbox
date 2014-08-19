@@ -192,20 +192,18 @@ void setup() {
   Alarm.timerRepeat(UPDATE_CONTROLLER_CLOCK_STATE_DELAY, updateGrowboxClockState);
   Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);
   Alarm.timerRepeat(UPDATE_TERMOMETER_STATISTICS_DELAY, updateThermometerStatistics);
-  Alarm.timerRepeat(UPDATE_WIFI_STATUS_DELAY, updateWiFiStatus); 
+  Alarm.timerRepeat(UPDATE_WEB_SERVER_STATUS_DELAY, updateWebServerStatus); 
   GB_Controller.checkFreeMemory();
 
 
   updateGrowboxState();
   GB_Controller.checkFreeMemory();
 
-
-  printStatusOnBoot(F("Wi-Fi"));
-  RAK410_XBeeWifi.init(); // check is Present - once
-  RAK410_XBeeWifi.updateWiFiStatus(); // start Web server
+  GB_WebServer.init(); // after load configuration
   GB_Controller.checkFreeMemory();
 
   GB_Watering.updateWateringSchedule(); // Run watering after init
+  GB_Controller.checkFreeMemory();
 
   if(g_useSerialMonitor){ 
     Serial.println(F("Growbox successfully started"));
@@ -331,8 +329,8 @@ void updateThermometerStatistics(){ // should return void
   GB_Thermometer.updateStatistics(); 
 }
 
-void updateWiFiStatus(){ // should return void
-  RAK410_XBeeWifi.updateWiFiStatus(); 
+void updateWebServerStatus(){ // should return void
+  GB_WebServer.update();
 }
 
 void updateControllerStatus(){ // should return void

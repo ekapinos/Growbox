@@ -15,21 +15,22 @@ const char S_url_storage[] PROGMEM  = "/conf/storage";
 
 class WebServerClass{
 private:  
-
   byte c_wifiPortDescriptor;
   byte c_isWifiResponseError;
   byte c_isWifiForceUpdateGrowboxState;
+  
 public:  
-
+  void init();
+  void update();
+  
+public:  
   boolean handleSerialEvent();
   boolean handleSerialMonitorEvent();
-
-private:
 
   /////////////////////////////////////////////////////////////////////
   //                               HTTP                              //
   /////////////////////////////////////////////////////////////////////
-
+private:
   void sendHttpNotFound();
   void sendHttpRedirect(const String &url);
 
@@ -132,33 +133,4 @@ void sendTextRedIfTrue(const __FlashStringHelper* text, boolean isRed);
 extern WebServerClass GB_WebServer;
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
