@@ -376,7 +376,7 @@ void WebServerClass::sendTimeStampJavaScript(const __FlashStringHelper* growboxT
   sendRawData(F("<script type='text/javascript'>"));
   sendRawData(F("var g_timeFormat = {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'};"));
   sendRawData(F("var g_growboxTimeStamp = new Date(("));
-  sendRawData(now(), true);
+  sendRawData(now() + UPDATE_WEB_SERVER_AVERAGE_PAGE_LOAD_DELAY, true);
   sendRawData(F(" + new Date().getTimezoneOffset()*60) * 1000"));
   //  tmElements_t nowTmElements; 
   //  breakTime(now(), nowTmElements);
@@ -588,7 +588,7 @@ void WebServerClass::sendStatusPage(){
   } 
   else {
     sendRawData(lastTemperature);
-    sendRawData(F(" C")); 
+    sendRawData(F(" c")); 
   }
   sendRawData(F("</dd>")); 
 
@@ -598,7 +598,7 @@ void WebServerClass::sendStatusPage(){
   } 
   else {
     sendRawData(statisticsTemperature);
-    sendRawData(F(" C")); 
+    sendRawData(F(" c")); 
   }
   sendRawData(F(" ("));
   sendRawData(statisticsCount);
@@ -672,13 +672,13 @@ void WebServerClass::sendStatusPage(){
   sendRawData(normalTemperatueDayMin);
   sendRawData(F(".."));
   sendRawData(normalTemperatueDayMax);
-  sendRawData(F(" C</dd><dd>Night temperature: "));
+  sendRawData(F(" c</dd><dd>Night temperature: "));
   sendRawData(normalTemperatueNightMin);
   sendRawData(F(".."));
   sendRawData(normalTemperatueNightMax);
-  sendRawData(F(" C</dd><dd>Critical temperature: "));
+  sendRawData(F(" c</dd><dd>Critical temperature: "));
   sendRawData(criticalTemperatue);
-  sendRawData(F("</dd>"));
+  sendRawData(F(" c</dd>"));
 
   sendRawData(F("<dt>Other</dt>"));
   sendRawData(F("<dd>Free memory: "));
@@ -1592,7 +1592,10 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 
   else if (StringUtils::flashStringEquals(name, F("setClockTime"))){
     time_t newTimeStamp = strtoul(value.c_str(), NULL, 0);
-    GB_Controller.setClockTime(newTimeStamp);
+    if (newTimeStamp == 0){
+      return false;
+    }
+    GB_Controller.setClockTime(newTimeStamp + UPDATE_WEB_SERVER_AVERAGE_PAGE_LOAD_DELAY);
 
     c_isWifiForceUpdateGrowboxState = true; // Switch to Day/Night mode
   } 

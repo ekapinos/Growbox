@@ -104,10 +104,10 @@ void ControllerClass::initClock(time_t defaultTimeStamp){
 }
 
 void ControllerClass::initClock_afterLoadConfiguration(){
-  if (c_isAutoCalculatedTimeStampUsed){
+//  if (c_isAutoCalculatedTimeStampUsed){
     // After init_loadConfiguration, do not clear flag
-    GB_StorageHelper.setClockTimeStampAutoCalculated(true);
-  }
+    GB_StorageHelper.setClockTimeStampAutoCalculated(c_isAutoCalculatedTimeStampUsed);
+//  }
 }
 
 void ControllerClass::setClockTime(time_t newTimeStamp){
