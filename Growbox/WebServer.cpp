@@ -8,9 +8,13 @@
 #include "RAK410_XBeeWifi.h" 
 #include "EEPROM_AT24C32.h" 
 
-/////////////////////////////////////////////////////////////////////
-//                           HTTP PROTOCOL                         //
-/////////////////////////////////////////////////////////////////////
+void WebServerClass::init(){ 
+  RAK410_XBeeWifi.init();
+}
+
+void WebServerClass::update(){
+  RAK410_XBeeWifi.update();
+}
 
 boolean WebServerClass::handleSerialEvent(){
 
@@ -1601,24 +1605,5 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

@@ -30,17 +30,18 @@ public:
   RAK410_XBeeWifiClass();
 
   boolean isPresent(); // check if the device is present
-
-    /////////////////////////////////////////////////////////////////////
-  //                            WORKFLOW                             //
-  /////////////////////////////////////////////////////////////////////
-
   void init();
-  void updateWiFiStatus();
+  void update();
+  
+private:
+
+  boolean restartWifi();
+  boolean checkStartedWifi();
 
   /////////////////////////////////////////////////////////////////////
-  //                               TCP                               //
+  //                               HTTP                              //
   /////////////////////////////////////////////////////////////////////
+public:
 
   RequestType handleSerialEvent(byte &wifiPortDescriptor, String &input, String &getParams, String &postParams);
 
@@ -64,9 +65,6 @@ private:
   /////////////////////////////////////////////////////////////////////
   //                               TCP                               //
   /////////////////////////////////////////////////////////////////////
-
-  boolean restartWifi();
-  boolean startupWebServer(boolean forceDefaultParameters = false);
 
   boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY, boolean rebootIfNoResponse=true);
   String wifiExecuteRawCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
@@ -106,35 +104,4 @@ private:
 extern RAK410_XBeeWifiClass RAK410_XBeeWifi;
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

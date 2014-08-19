@@ -21,10 +21,6 @@ boolean RAK410_XBeeWifiClass::isPresent(){ // check if the device is present
   return c_isWifiPresent;
 }
 
-/////////////////////////////////////////////////////////////////////
-//                            WORKFLOW                             //
-/////////////////////////////////////////////////////////////////////
-
 void RAK410_XBeeWifiClass::init(){
 
   Serial1.begin(115200);
@@ -32,65 +28,159 @@ void RAK410_XBeeWifiClass::init(){
     ; // wait for serial port to connect. Needed for Leonardo only
   } 
 
-  c_isWifiPresent = restartWifi();
-
-  if (g_useSerialMonitor){
-    if(c_isWifiPresent){ 
-      showWifiMessage(FS(S_Connected));
-    } 
-    else {
-      showWifiMessage(FS(S_Disconnected));
-    }
-  }
-
-  if (!c_isWifiPresent){   
-    Serial.end(); // Close Serial connection if nessesary
-  } 
+  restartWifi();
 }
 
-void RAK410_XBeeWifiClass::updateWiFiStatus(){
-  if (!c_isWifiPresent || !c_restartWifi){
-    return;
-  }
-  byte resetFails = 0;
-  boolean isStartedUp = false;
-
-  for (int i=0; i<3; i++){
-    if (g_useSerialMonitor && i > 0){
-      Serial.println();
-    }
-
-    showWifiMessage(F("Checking hardware..."));
-
-    if (restartWifi()){
-      wifiExecuteCommand(F("at+pwrmode=0"));
-      //wifiExecuteCommand(F("at+del_data"));
-      //wifiExecuteCommand(F("at+storeenable=0"));
-
-      boolean forceDefaultParameters = ((i-resetFails) == 2);
-      if (i == 2){
-        showWifiMessage(F("Force default parameters on third attempts")); 
+void RAK410_XBeeWifiClass::update(){
+  
+  // Check is Wi-Fi present
+  if (isPresent()){
+    if (!checkStartedWifi()){
+      if (!restartWifi()){
+        return;
       }
-      isStartedUp = startupWebServer(forceDefaultParameters);
-    } 
-    else {
-      resetFails++;
+    }
+  } else {
+    if (!restartWifi()){
+      return;
+    }
+  } 
+  
+  // Restart, if need
+  if (c_restartWifi){
+    restartWifi();
+  }  
+}
+
+// private:
+
+boolean RAK410_XBeeWifiClass::restartWifi(){
+  
+  showWifiMessage(F("Checking Wi-Fi status (restart)...")); 
+  
+  c_isWifiPresent = false;
+
+  for (byte i = 0; i < 3; i++){ // Sometimes first command returns ERROR, two attempts    
+
+    boolean useDefaultParameters = (i == 2);
+    if (useDefaultParameters){
+      showWifiMessage(F("Default parameters will be used"));
+    }
+    String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
+
+    if (!StringUtils::flashStringEquals(input, FS(S_WIFI_RESPONSE_WELLCOME))) {   
+      if (g_useSerialMonitor && input.length() > 0){
+        showWifiMessage(F("Not correct wellcome message: "), false);
+        PrintUtils::printWithoutCRLF(input);
+        Serial.print(FS(S_Next));
+        PrintUtils::printHEX(input); 
+        Serial.println();
+      }      
+      continue;
     }
 
-    if (isStartedUp){
-      showWifiMessage(F("Hardware OK"));
-      c_restartWifi = false;
-      break;
+    wifiExecuteCommand(F("at+pwrmode=0"));
+    //wifiExecuteCommand(F("at+del_data"));
+    //wifiExecuteCommand(F("at+storeenable=0"));
+
+    if (!wifiExecuteCommand(F("at+scan=0"), 5000)){
+      continue;
+    } 
+
+    String wifiSSID, wifiPass;
+    boolean isWifiStationMode;
+    if (useDefaultParameters){    
+      wifiSSID = StringUtils::flashStringLoad(FS(S_WIFI_DEFAULT_SSID));
+      wifiPass = StringUtils::flashStringLoad(FS(S_WIFI_DEFAULT_PASS));
+      isWifiStationMode = false;
     } 
     else {
-      showWifiMessage(F("Hardware NOT PRESENT"));
-    }  
+      wifiSSID = GB_StorageHelper.getWifiSSID();
+      wifiPass = GB_StorageHelper.getWifiPass();
+      isWifiStationMode = GB_StorageHelper.isWifiStationMode();
+    }
+
+    if (wifiPass.length() > 0){
+      wifiExecuteCommandPrint(F("at+psk="));
+      wifiExecuteCommandPrint(wifiPass);
+      if (!wifiExecuteCommand()){
+        continue;
+      }
+    }
+
+    if (isWifiStationMode){
+      wifiExecuteCommandPrint(F("at+connect="));
+      wifiExecuteCommandPrint(wifiSSID);
+      if (!wifiExecuteCommand(0, 5000, false)){ // If password wrong, no response from RAK 410
+        continue;
+      }
+
+      if (!wifiExecuteCommand(F("at+ipdhcp=0"), 5000)){
+        continue;
+      }
+    }
+    else {
+
+      // at+ipstatic=<ip>,<mask>,<gateway>,<dns server1>(0 is valid),<dns server2>(0 is valid)\r\n
+      if (!wifiExecuteCommand(F("at+ipstatic=192.168.0.1,255.255.0.0,0.0.0.0,0,0"))){
+        continue;
+      }
+
+      if (!wifiExecuteCommand(F("at+ipdhcp=1"), 5000)){
+        continue;
+      }
+
+      wifiExecuteCommandPrint(F("at+ap="));
+      wifiExecuteCommandPrint(wifiSSID);
+      wifiExecuteCommandPrint(F(",1"));
+      if (!wifiExecuteCommand(0, 5000)){ 
+        continue;
+      }
+    }
+
+    /*if (!wifiExecuteCommand(F("at+httpd_open"))){
+     continue;
+     }*/
+    if (!wifiExecuteCommand(F("at+ltcp=80"))){
+      continue;
+    }
+
+    c_isWifiPresent = true;
+    c_restartWifi = false;
+    break;
   }
 
+  if(c_isWifiPresent){ 
+    showWifiMessage(F("Wi-Fi connected"));
+  } 
+  else {
+    showWifiMessage(F("Wi-Fi not connected"));
+  }
+
+  return c_isWifiPresent;
 }
+
+boolean RAK410_XBeeWifiClass::checkStartedWifi(){
+  
+  showWifiMessage(F("Checking Wi-Fi status (stand by)...")); 
+  
+  String input = wifiExecuteRawCommand(F("at+con_status"), 500); // Is Wi-Fi OK?
+
+  c_isWifiPresent = StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_OK));
+  
+  if(c_isWifiPresent){ 
+    showWifiMessage(F("Wi-Fi connected"));
+  } 
+  else {
+    showWifiMessage(F("Wi-Fi not connected"));
+  }
+  
+  return c_isWifiPresent;
+}
+// public:
 
 /////////////////////////////////////////////////////////////////////
-//                               TCP                               //
+//                               HTTP                              //
 /////////////////////////////////////////////////////////////////////
 
 RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &wifiPortDescriptor, String &input, String &getParams, String &postParams){
@@ -106,8 +196,7 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
     Serial_readString(input); // at first we should read, after manipulate  
 
     if (StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_WELLCOME)) || StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_ERROR))){
-      c_restartWifi = true;
-      updateWiFiStatus(); // manual restart, or wrong state of Wi-Fi
+      restartWifi();
       return RAK410_XBEEWIFI_REQUEST_TYPE_NONE;
     }
 
@@ -381,99 +470,6 @@ boolean RAK410_XBeeWifiClass::sendCloseConnection(const byte wifiPortDescriptor)
 
 //private:
 
-
-boolean RAK410_XBeeWifiClass::restartWifi(){
-  boolean isWiFiPresent = false;
-
-  for (byte i = 0; i < 2; i++){ // Sometimes first command returns ERROR, two attempts
-
-    String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
-
-    isWiFiPresent = StringUtils::flashStringEquals(input, FS(S_WIFI_RESPONSE_WELLCOME));
-    if (isWiFiPresent) {
-      break;
-    }
-    if (g_useSerialMonitor && input.length() > 0){
-      showWifiMessage(F("Not correct wellcome message: "), false);
-      PrintUtils::printWithoutCRLF(input);
-      Serial.print(FS(S_Next));
-      PrintUtils::printHEX(input); 
-      Serial.println();
-    }
-  }
-  return isWiFiPresent;
-}
-
-boolean RAK410_XBeeWifiClass::startupWebServer(boolean forceDefaultParameters){
-
-  if (!wifiExecuteCommand(F("at+scan=0"), 5000)){
-    return false;
-  } 
-  String wifiSSID, wifiPass;
-  boolean isWifiStationMode;
-  if (forceDefaultParameters){
-    wifiSSID = StringUtils::flashStringLoad(FS(S_WIFI_DEFAULT_SSID));
-    wifiPass = StringUtils::flashStringLoad(FS(S_WIFI_DEFAULT_PASS));
-    isWifiStationMode = false;
-  } 
-  else {
-    wifiSSID = GB_StorageHelper.getWifiSSID();
-    wifiPass = GB_StorageHelper.getWifiPass();
-    isWifiStationMode = GB_StorageHelper.isWifiStationMode();
-  }
-
-  if (wifiPass.length() > 0){
-    wifiExecuteCommandPrint(F("at+psk="));
-    wifiExecuteCommandPrint(wifiPass);
-    if (!wifiExecuteCommand()){
-      return false;
-    }
-  }
-
-  if (isWifiStationMode){
-    wifiExecuteCommandPrint(F("at+connect="));
-    wifiExecuteCommandPrint(wifiSSID);
-    if (!wifiExecuteCommand(0, 5000, false)){ // If password wrong, no response from RAK 410
-      return false;
-    }
-
-    /*if (!wifiExecuteCommand(F("at+listen=20"))){
-     return false;
-     }*/
-
-    if (!wifiExecuteCommand(F("at+ipdhcp=0"), 5000)){
-      return false;
-    }
-  }
-  else {
-
-    // at+ipstatic=<ip>,<mask>,<gateway>,<dns server1>(0 is valid),<dns server2>(0 is valid)\r\n
-    if (!wifiExecuteCommand(F("at+ipstatic=192.168.0.1,255.255.0.0,0.0.0.0,0,0"))){
-      return false;
-    }
-
-    if (!wifiExecuteCommand(F("at+ipdhcp=1"), 5000)){
-      return false;
-    }
-
-    wifiExecuteCommandPrint(F("at+ap="));
-    wifiExecuteCommandPrint(wifiSSID);
-    wifiExecuteCommandPrint(F(",1"));
-    if (!wifiExecuteCommand(0, 5000)){ 
-      return false;
-    }
-  }
-
-  /*if (!wifiExecuteCommand(F("at+httpd_open"))){
-   return false;
-   }*/
-  if (!wifiExecuteCommand(F("at+ltcp=80"))){
-    return false;
-  }
-
-  return true;
-}
-
 boolean RAK410_XBeeWifiClass::wifiExecuteCommand(const __FlashStringHelper* command, size_t maxResponseDeleay, boolean rebootIfNoResponse){   
   String input = wifiExecuteRawCommand(command, maxResponseDeleay);
   if (StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_OK)) && StringUtils::flashStringEndsWith(input, FS(S_CRLF))){
@@ -568,6 +564,7 @@ String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* co
 }
 
 RAK410_XBeeWifiClass RAK410_XBeeWifi;
+
 
 
 
