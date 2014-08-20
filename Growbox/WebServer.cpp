@@ -1116,9 +1116,9 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
 
   sendRawData(F("<table class='grab'>"));
   sendRawData(F("<tr><th>Device</th><th>Date & Time</th></tr>"));
-  sendRawData(F("<tr><td>This browser</td><td><span id='browserTimeStampId'></span></td></tr>"));
+  sendRawData(F("<tr><td>Browser</td><td><span id='browserTimeStampId'></span></td></tr>"));
   sendRawData(F("<tr><td>Growbox</td><td><span id='growboxTimeStampId'></span></td></tr>"));
-  sendRawData(F("<tr><td></td><td><small><span id='diffTimeStampId'></span></small></td></tr>")); 
+  sendRawData(F("<tr><td colspan='2'><small><span id='diffTimeStampId'></span></small></td></tr>")); 
   sendRawData(F("</table>"));
 
   sendTimeStampJavaScript(F("growboxTimeStampId"), F("browserTimeStampId"), F("diffTimeStampId"));

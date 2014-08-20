@@ -57,7 +57,6 @@ boolean ThermometerClass::isPresent(){
 
 void ThermometerClass::updateStatistics(){
   if (!GB_StorageHelper.isUseThermometer()){
-    c_lastTemperature = NAN;
     c_statisticsTemperatureSumm = 0.0;
     c_statisticsTemperatureCount = 0;
     return;
@@ -81,7 +80,8 @@ void ThermometerClass::updateStatistics(){
 
 float ThermometerClass::getTemperature(){
   if (!GB_StorageHelper.isUseThermometer()){
-    return NAN; // Used as normal
+    c_lastTemperature = NAN;
+    return NAN; // Used as normal value
   }
   float freshTemperature;
   if (c_statisticsTemperatureCount == 0) {   
