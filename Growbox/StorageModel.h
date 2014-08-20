@@ -26,7 +26,7 @@ boolean isWifiStationMode :
 boolean isClockTimeStampAutoCalculated :
     // false - Access point, true - Station mode
     1;    
-boolean isEEPROM_AT24C32_Connected :
+boolean useExternal_EEPROM_AT24C32 :
     // false - Access point, true - Station mode
     1;    
   } 
@@ -65,7 +65,7 @@ boolean skipNextWatering :
     byte veryDryWateringDuration; // 1 // seconds
 
     word startWateringAt;    // 2 // minutes from midnight, dryWateringDuration used
-    
+
     time_t lastWateringTimeStamp; // 4 
 
   } 
@@ -89,11 +89,20 @@ struct LogRecord {
   timeStamp(now()), data(data), data1(data1) {
   }
 
-  LogRecord (){
+  LogRecord ():
+  timeStamp(0), data(0), data1(0) {
+  }
+  
+  boolean isEmpty() const {
+    return (timeStamp==0 && data==0 && data1==0);
   }
 };
 
 #endif
+
+
+
+
 
 
 

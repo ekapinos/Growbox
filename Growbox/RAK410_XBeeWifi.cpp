@@ -62,10 +62,6 @@ boolean RAK410_XBeeWifiClass::restartWifi(){
 
   for (byte i = 0; i < 3; i++){ // Sometimes first command returns ERROR, two attempts    
 
-    boolean useDefaultParameters = (i == 2);
-    if (useDefaultParameters){
-      showWifiMessage(F("Default parameters will be used"));
-    }
     String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
 
     if (!StringUtils::flashStringEquals(input, FS(S_WIFI_RESPONSE_WELLCOME))) {   
@@ -86,6 +82,11 @@ boolean RAK410_XBeeWifiClass::restartWifi(){
     if (!wifiExecuteCommand(F("at+scan=0"), 5000)){
       continue;
     } 
+
+    boolean useDefaultParameters = (i == 2);
+    if (useDefaultParameters){
+      showWifiMessage(F("Default parameters will be used"));
+    }
 
     String wifiSSID, wifiPass;
     boolean isWifiStationMode;

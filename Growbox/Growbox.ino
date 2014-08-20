@@ -151,16 +151,10 @@ void setup() {
   }
   GB_Controller.checkFreeMemory();
 
-  printStatusOnBoot(F("storage"));
-  if (!GB_StorageHelper.init()){
-    stopOnFatalError(F("Not all required starage hardware present"));
-  }
-  GB_Controller.checkFreeMemory();
-
   if(g_useSerialMonitor){ 
     Serial.println(F("Growbox successfully booted up"));
   }
-
+  
   printStatusOnBoot(F("clock")); 
   time_t autoCalculatedTimeStamp = GB_StorageHelper.init_getLastStoredTime(); // returns zero, if first startup
   if (autoCalculatedTimeStamp != 0){
@@ -189,7 +183,7 @@ void setup() {
   // Max 6 timer for Alarm instance
   Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
   Alarm.timerRepeat(UPDATE_CONTROLLER_STATE_DELAY, updateControllerStatus);
-  Alarm.timerRepeat(UPDATE_CONTROLLER_CLOCK_STATE_DELAY, updateGrowboxClockState);
+  Alarm.timerRepeat(UPDATE_GROWBOX_CORE_HARDWARE_STATE_DELAY, updateGrowboxCoreHardwareState);
   Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);
   Alarm.timerRepeat(UPDATE_TERMOMETER_STATISTICS_DELAY, updateThermometerStatistics);
   Alarm.timerRepeat(UPDATE_WEB_SERVER_STATUS_DELAY, updateWebServerStatus); 
@@ -337,8 +331,9 @@ void updateControllerStatus(){ // should return void
   GB_Controller.update(); // Check serial monitor without Firmware reset
 }
 
-void updateGrowboxClockState(){
+void updateGrowboxCoreHardwareState(){
   GB_Controller.updateClockState();
+  GB_StorageHelper.check_AT24C32_EEPROM();
 }
 void updateBreezeStatus() {
   digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));

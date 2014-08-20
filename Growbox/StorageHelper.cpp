@@ -12,22 +12,13 @@
 
 const word StorageHelperClass::LOG_CAPACITY_ARDUINO     = (EEPROM.getCapacity() - sizeof(BootRecord)) / sizeof(LogRecord);
 const word StorageHelperClass::LOG_CAPACITY_AT24C32     = (EEPROM_AT24C32.getCapacity()) / sizeof(LogRecord);
-const word StorageHelperClass::LOG_CAPACITY             = (LOG_CAPACITY_ARDUINO + LOG_CAPACITY_AT24C32);
 
 StorageHelperClass::StorageHelperClass() : 
 c_isConfigurationLoaded(false){
 }
 
-boolean StorageHelperClass::isStorageHardwarePresent(){
-  return EEPROM.isPresent() && EEPROM_AT24C32.isPresent();
-}
-
 boolean StorageHelperClass::isBoolRecordCorrect(BootRecord& bootRecord){
   return (bootRecord.first_magic == MAGIC_NUMBER) && (bootRecord.last_magic == MAGIC_NUMBER);
-}
-
-boolean StorageHelperClass::isConfigurationLoaded() {
-  return c_isConfigurationLoaded;
 }
 
 BootRecord StorageHelperClass::getBootRecord(){
@@ -45,10 +36,6 @@ void StorageHelperClass::setBoolPreferencies(BootRecord::BoolPreferencies boolPr
 }
 
 // public:
-
-boolean StorageHelperClass::init(){
-  return isStorageHardwarePresent();
-}
 
 time_t StorageHelperClass::init_getLastStoredTime(){
   // init was OK, loadConfiguration not call
@@ -72,6 +59,8 @@ time_t StorageHelperClass::init_getLastStoredTime(){
   word logRecordIndex = getLogRecordsCount()-1;
   if (logRecordIndex > 0){
     LogRecord logRecord = getLogRecordByIndex(logRecordIndex);
+    
+    // If No External EEPROM zero value doesn't break this code
     if (logRecord.timeStamp > lastStoredTime){
       lastStoredTime = logRecord.timeStamp;
     }
@@ -98,7 +87,7 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
     bootRecord.boolPreferencies.isLoggerEnabled = true;
     bootRecord.boolPreferencies.isWifiStationMode = false; // AP by default
     bootRecord.boolPreferencies.isClockTimeStampAutoCalculated = false;
-    bootRecord.boolPreferencies.isEEPROM_AT24C32_Connected = EEPROM_AT24C32.isPresent();
+    bootRecord.boolPreferencies.useExternal_EEPROM_AT24C32 = EEPROM_AT24C32.isPresent();
 
     bootRecord.turnToDayModeAt = 9*60;
     bootRecord.turnToNightModeAt = 21*60;
@@ -151,15 +140,22 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
   else {
     GB_Logger.logEvent(EVENT_FIRST_START_UP);
   }
+  check_AT24C32_EEPROM();
   
   return itWasRestart;
 }
 
-
-void StorageHelperClass::update(){
-  // TODO implement if extermal EEPROM DISCONNECTED
+boolean StorageHelperClass::check_AT24C32_EEPROM(){
+  if (isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()){
+    GB_Logger.logError(ERROR_AT24C32_EEPROM_DISCONNECTED);
+    return false;
+  } else {
+    GB_Logger.stopLogError(ERROR_AT24C32_EEPROM_DISCONNECTED);
+    return true;
+  }
 }
 
+// public:
 time_t StorageHelperClass::getFirstStartupTimeStamp(){
   return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, firstStartupTimeStamp)); 
 }
@@ -186,20 +182,32 @@ void StorageHelperClass::resetFirmware(){
 
 void StorageHelperClass::resetStoredLog(){  
   EEPROM.updateBlock<word>(OFFSETOF(BootRecord, nextLogRecordIndex), 0x0000);
-
-  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
-  boolPreferencies.isLogOverflow = false;
-  setBoolPreferencies(boolPreferencies);
+  setLogOverflow(false);
 }
 
-void StorageHelperClass::setEEPROM_AT24C32_Connected(boolean flag){  
+void StorageHelperClass::setUseExternal_EEPROM_AT24C32(boolean useExternal){  
   BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
-  boolPreferencies.isEEPROM_AT24C32_Connected = flag;
-  setBoolPreferencies(boolPreferencies);
+  if (boolPreferencies.useExternal_EEPROM_AT24C32 == useExternal){
+    return;
+  }
+  boolPreferencies.useExternal_EEPROM_AT24C32 = useExternal; 
+  setBoolPreferencies(boolPreferencies);  
+ 
+  // Prepare log
+  if (isLogOverflow()){
+    setLogOverflow(false); // records 0..next => saved, next..arduinoCapacity => lost
+  }
+  if(!useExternal){
+    // Decrease log space
+    // we cam use getLogRecordsCount() cause we already invoke setLogOverflow(false)
+    if (getLogRecordsCount() > LOG_CAPACITY_ARDUINO){
+      resetStoredLog(); // last record can't be saved without move
+    }
+  }
 }
 
-boolean StorageHelperClass::isEEPROM_AT24C32_Connected(){  
-  return getBoolPreferencies().isEEPROM_AT24C32_Connected;
+boolean StorageHelperClass::isUseExternal_EEPROM_AT24C32(){  
+  return getBoolPreferencies().useExternal_EEPROM_AT24C32;
 }
 
 
@@ -278,7 +286,7 @@ boolean StorageHelperClass::isStoreLogRecordsEnabled(){
 }
 
 boolean StorageHelperClass::storeLogRecord(LogRecord &logRecord){ 
-  boolean storeLog = isStorageHardwarePresent() && isConfigurationLoaded() && isStoreLogRecordsEnabled();
+  boolean storeLog = c_isConfigurationLoaded && isStoreLogRecordsEnabled();
   if (!storeLog){
     return false;
   }
@@ -288,6 +296,9 @@ boolean StorageHelperClass::storeLogRecord(LogRecord &logRecord){
     EEPROM.updateBlock<LogRecord>(address, logRecord);
   } 
   else {
+    if (!check_AT24C32_EEPROM()){
+      return false;
+    }
     word address = (nextLogRecordIndex - LOG_CAPACITY_ARDUINO) * sizeof(logRecord);
     EEPROM_AT24C32.updateBlock<LogRecord>(address, logRecord);
   }
@@ -295,17 +306,29 @@ boolean StorageHelperClass::storeLogRecord(LogRecord &logRecord){
   return true;
 }
 
+// private:
+void StorageHelperClass::setLogOverflow(boolean flag){
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.isLogOverflow = flag;
+  setBoolPreferencies(boolPreferencies);
+}
+
+// public:
 boolean StorageHelperClass::isLogOverflow(){
   return getBoolPreferencies().isLogOverflow;
 }
 
 word StorageHelperClass::getLogRecordsCapacity(){
-  return LOG_CAPACITY; 
+  word capacity = LOG_CAPACITY_ARDUINO;
+  if (isUseExternal_EEPROM_AT24C32()){
+    capacity += LOG_CAPACITY_AT24C32;
+  }
+  return capacity; 
 }
 
 word StorageHelperClass::getLogRecordsCount(){
   if (isLogOverflow()){
-    return LOG_CAPACITY; 
+    return getLogRecordsCapacity(); 
   } 
   else {
     return getNextLogRecordIndex();
@@ -314,7 +337,7 @@ word StorageHelperClass::getLogRecordsCount(){
 
 LogRecord StorageHelperClass::getLogRecordByIndex(word index){
   if (index >= getLogRecordsCount()){
-    return false;
+    return LogRecord(); // Empty
   }
 
   word planeIndex = 0;
@@ -325,14 +348,17 @@ LogRecord StorageHelperClass::getLogRecordByIndex(word index){
   planeIndex += index;
 
   //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
-  if (planeIndex >= LOG_CAPACITY){
-    planeIndex -= LOG_CAPACITY;
+  if (planeIndex >= getLogRecordsCapacity()){
+    planeIndex -= getLogRecordsCapacity();
   }
   //Serial.print("logRecordOffset"); Serial.println(logRecordOffset);
   if (planeIndex < LOG_CAPACITY_ARDUINO){
     return EEPROM.readBlock<LogRecord>(sizeof(BootRecord) + planeIndex*sizeof(LogRecord));
   } 
   else {
+    if (!check_AT24C32_EEPROM()){
+      return LogRecord(); // Empty
+    }
     return EEPROM_AT24C32.readBlock<LogRecord>((planeIndex-LOG_CAPACITY_ARDUINO)*sizeof(LogRecord));
   }
 }
@@ -346,12 +372,10 @@ word StorageHelperClass::getNextLogRecordIndex(){
 void StorageHelperClass::increaseNextLogRecordIndex(){
   word nextLogRecordIndex = getNextLogRecordIndex();
   nextLogRecordIndex++;
-  if (nextLogRecordIndex >= LOG_CAPACITY){
+  if (nextLogRecordIndex >= getLogRecordsCapacity()){
     nextLogRecordIndex = 0;
-
-    BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
-    boolPreferencies.isLogOverflow = true;
-    setBoolPreferencies(boolPreferencies);
+     
+    setLogOverflow(true);
   }
   EEPROM.updateBlock(OFFSETOF(BootRecord, nextLogRecordIndex), nextLogRecordIndex); 
 }

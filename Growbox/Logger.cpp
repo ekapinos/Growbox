@@ -76,6 +76,11 @@ String LoggerClass::getLogRecordPrefix(const LogRecord &logRecord){
 }
 
 const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRecord) {
+  
+  if (logRecord.isEmpty()){
+     return F("Log record not loaded");
+  }
+  
   byte data = (logRecord.data & B00111111);   
   if (isEvent(logRecord)){
     Event* foundItemPtr = Event::findByKey(data);
@@ -115,8 +120,13 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
   }
 }
 
-String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){        
+String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){  
+  
   String out;
+  if (logRecord.isEmpty()){
+     return out;
+  }  
+
   if (isWateringEvent(logRecord)) {
     byte wsIndex = ((logRecord.data & B00110000) >> 4);
     out += StringUtils::flashStringLoad(F(" system [#"));
@@ -152,27 +162,27 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord){
 }
 
 boolean LoggerClass::isEvent(const LogRecord &logRecord){
-  return (logRecord.data & B11000000) == B00000000;
+  return !logRecord.isEmpty() && ((logRecord.data & B11000000) == B00000000);
 }
 boolean LoggerClass::isWateringEvent(const LogRecord &logRecord){
-  return (logRecord.data & B11000000) == B10000000;
+  return !logRecord.isEmpty() && ((logRecord.data & B11000000) == B10000000);
 }
 boolean LoggerClass::isError(const LogRecord &logRecord){
-  return (logRecord.data & B11000000) == B01000000;
+  return !logRecord.isEmpty() && ((logRecord.data & B11000000) == B01000000);
 }
 boolean LoggerClass::isTemperature(const LogRecord &logRecord){
-  return (logRecord.data & B11000000) == B11000000;
+  return !logRecord.isEmpty() && ((logRecord.data & B11000000) == B11000000);
 }
 
 
 //private:
 
-void LoggerClass::printLogRecordToSerialMonotior(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean isStored, const byte temperature){
+void LoggerClass::printLogRecordToSerialMonotior(const LogRecord &logRecord, const __FlashStringHelper* description, const boolean wasStored, const byte temperature){
   if (!g_useSerialMonitor) {
     return;
   }
   Serial.print(F("LOG> ")); 
-  if (!isStored) {
+  if (!wasStored) {
     Serial.print(F("NOT STORED "));
   }
   Serial.print(getLogRecordPrefix(logRecord));    

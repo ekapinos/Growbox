@@ -5,15 +5,13 @@
 
 class StorageHelperClass{
 
+private:
   static const word LOG_CAPACITY_ARDUINO;
   static const word LOG_CAPACITY_AT24C32;
-  static const word LOG_CAPACITY;
 
   boolean c_isConfigurationLoaded;
 
-  boolean isStorageHardwarePresent();
   boolean isBoolRecordCorrect(BootRecord& bootRecord);
-  boolean isConfigurationLoaded();
 
   BootRecord getBootRecord();
   void setBootRecord(BootRecord bootRecord);
@@ -23,11 +21,12 @@ class StorageHelperClass{
 public:
   StorageHelperClass();
 
-  boolean init();
   time_t init_getLastStoredTime();
   boolean init_loadConfiguration(time_t currentTime);
-  void update();
-
+  
+  boolean check_AT24C32_EEPROM();
+  
+public:
   time_t getFirstStartupTimeStamp();
   time_t getLastStartupTimeStamp();
   void adjustFirstStartupTimeStamp(long delta);
@@ -36,8 +35,8 @@ public:
   void resetFirmware();
   void resetStoredLog();
 
-  void setEEPROM_AT24C32_Connected(boolean flag); 
-  boolean isEEPROM_AT24C32_Connected();
+  void setUseExternal_EEPROM_AT24C32(boolean flag); 
+  boolean isUseExternal_EEPROM_AT24C32();
 
   /////////////////////////////////////////////////////////////////////
   //                             GROWBOX                             //
@@ -65,7 +64,11 @@ public:
   boolean isStoreLogRecordsEnabled();
 
   boolean storeLogRecord(LogRecord &logRecord);
-
+  
+private:
+  void setLogOverflow(boolean flag);
+  
+public:
   boolean isLogOverflow();
 
   word getLogRecordsCapacity();
@@ -103,27 +106,6 @@ public :
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

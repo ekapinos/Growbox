@@ -643,11 +643,11 @@ void WebServerClass::sendStatusPage(){
   }
 
   sendRawData(F("<dt>Logger</dt>"));
-  if (GB_StorageHelper.isEEPROM_AT24C32_Connected() && !EEPROM_AT24C32.isPresent()) {
+  if (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) {
     sendRawData(F("<dd>External AT24C32 EEPROM: "));
     sendTextRedIfTrue(F("Not connected"), true);
     sendRawData(F("</dd>")); 
-  } else if (!GB_StorageHelper.isEEPROM_AT24C32_Connected() && EEPROM_AT24C32.isPresent()) {
+  } else if (!GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && EEPROM_AT24C32.isPresent()) {
     sendRawData(F("<dd>External AT24C32 EEPROM: "));
     sendRawData(F("Connected, not used"));
     sendRawData(F("</dd>")); 
@@ -836,17 +836,22 @@ void WebServerClass::sendLogPage(const String& getParams){
     if (!isTargetDay){
       continue;
     }
-    if (!printEvents && GB_Logger.isEvent(logRecord)){
+    
+    boolean isEvent         = GB_Logger.isEvent(logRecord);
+    boolean isWateringEvent = GB_Logger.isWateringEvent(logRecord);
+    boolean isError         = GB_Logger.isError(logRecord);
+    boolean isTemperature   = GB_Logger.isTemperature(logRecord);
+    
+    if (!printEvents && isEvent){
       continue;
     } 
-    if (!printWateringEvents && GB_Logger.isWateringEvent(logRecord)){
+    if (!printWateringEvents && isWateringEvent){
       continue;
-    } 
-    boolean isError = GB_Logger.isError(logRecord);
+    }
     if (!printErrors && isError){
       continue;
     } 
-    if (!printTemperature && GB_Logger.isTemperature(logRecord)){
+    if (!printTemperature && isTemperature){
       continue;
     }
 
@@ -856,10 +861,10 @@ void WebServerClass::sendLogPage(const String& getParams){
       sendRawData(F("<tr><th>#</th><th>Time</th><th>Description</th></tr>"));
     }
     sendRawData(F("<tr"));
-    if (isError){
+    if (isError || logRecord.isEmpty()){
       sendRawData(F(" class='red'"));
     } 
-    else if (logRecord.data == EVENT_FIRST_START_UP.index || logRecord.data == EVENT_RESTART.index){ // TODO create check method in Logger.h  
+    else if (isEvent && (logRecord.data == EVENT_FIRST_START_UP.index || logRecord.data == EVENT_RESTART.index)){ // TODO create check method in Logger.h  
       sendRawData(F(" style='font-weight:bold;'"));
     }
     sendRawData(F("><td>"));
@@ -875,7 +880,7 @@ void WebServerClass::sendLogPage(const String& getParams){
     sendRawData(F("</table>"));
   } 
   else {  
-    sendRawData(F("No stored log records found during "));
+    sendRawData(F("No stored Log Records found during "));
     sendRawData(targetDateAsString);
   }
 }
@@ -1110,7 +1115,7 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<tr><th>Device</th><th>Date & Time</th></tr>"));
   sendRawData(F("<tr><td>This browser</td><td><span id='browserTimeStampId'></span></td></tr>"));
   sendRawData(F("<tr><td>Growbox</td><td><span id='growboxTimeStampId'></span></td></tr>"));
-  sendRawData(F("<tr><td><small>Difference</small></td><td><small><span id='diffTimeStampId'></span></small></td></tr>")); 
+  sendRawData(F("<tr><td></td><td><small><span id='diffTimeStampId'></span></small></td></tr>")); 
   sendRawData(F("</table>"));
 
   sendTimeStampJavaScript(F("growboxTimeStampId"), F("browserTimeStampId"), F("diffTimeStampId"));
@@ -1231,9 +1236,9 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("' method='post' onSubmit='return confirm(\"Logged records maybe will be reset?\")'>")); 
   sendRawData(F("<table class='grab'>"));
   sendRawData(F("<tr><td colspan='2'>"));
-  sendTagCheckbox(F("isEEPROM_AT24C32_Connected"), F("Use external AT24C32 EEPROM"), GB_StorageHelper.isEEPROM_AT24C32_Connected());
+  sendTagCheckbox(F("isEEPROM_AT24C32_Connected"), F("Use external AT24C32 EEPROM"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32());
   sendRawData(F("<div class='description'>Current state [<b>"));
-  sendRawData(EEPROM_AT24C32.isPresent() ? F("Connected") : F("Not connected"));
+  sendTextRedIfTrue(EEPROM_AT24C32.isPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent());
   sendRawData(F("</b>]</div>"));
   sendRawData(F("</td></tr>"));
   sendRawData(F("<tr><td>"));
@@ -1643,7 +1648,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
       return false;
     }
     boolean boolValue = (value[0]=='1');   
-    GB_StorageHelper.setEEPROM_AT24C32_Connected(boolValue);
+    GB_StorageHelper.setUseExternal_EEPROM_AT24C32(boolValue);
   } 
   else {
     return false;
