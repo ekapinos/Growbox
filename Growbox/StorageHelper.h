@@ -30,12 +30,17 @@ public:
 
   time_t getFirstStartupTimeStamp();
   time_t getLastStartupTimeStamp();
-
+  void adjustFirstStartupTimeStamp(long delta);
+  void adjustLastStartupTimeStamp(long delta);
+  
   void resetFirmware();
   void resetStoredLog();
 
+  void setEEPROM_AT24C32_Connected(boolean flag); 
+  boolean isEEPROM_AT24C32_Connected();
+
   /////////////////////////////////////////////////////////////////////
-  //                            CONTROLLER                           //
+  //                             GROWBOX                             //
   /////////////////////////////////////////////////////////////////////
 
   void setClockTimeStampAutoCalculated(boolean flag);
@@ -98,6 +103,7 @@ public :
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
+
 
 
 

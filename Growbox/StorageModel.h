@@ -26,6 +26,9 @@ boolean isWifiStationMode :
 boolean isClockTimeStampAutoCalculated :
     // false - Access point, true - Station mode
     1;    
+boolean isEEPROM_AT24C32_Connected :
+    // false - Access point, true - Station mode
+    1;    
   } 
   boolPreferencies;                 // 1
 

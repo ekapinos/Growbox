@@ -98,6 +98,7 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
     bootRecord.boolPreferencies.isLoggerEnabled = true;
     bootRecord.boolPreferencies.isWifiStationMode = false; // AP by default
     bootRecord.boolPreferencies.isClockTimeStampAutoCalculated = false;
+    bootRecord.boolPreferencies.isEEPROM_AT24C32_Connected = EEPROM_AT24C32.isPresent();
 
     bootRecord.turnToDayModeAt = 9*60;
     bootRecord.turnToNightModeAt = 21*60;
@@ -167,6 +168,18 @@ time_t StorageHelperClass::getLastStartupTimeStamp(){
   return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp));
 }
 
+void StorageHelperClass::adjustFirstStartupTimeStamp(long delta){
+  time_t time = EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, firstStartupTimeStamp)); 
+  time += delta;
+  EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, firstStartupTimeStamp), time); 
+}
+
+void StorageHelperClass::adjustLastStartupTimeStamp(long delta){
+  time_t time = EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp)); 
+  time += delta;
+  EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp), time); 
+}
+
 void StorageHelperClass::resetFirmware(){
   EEPROM.updateBlock<word>(OFFSETOF(BootRecord, first_magic), 0x0000);
 }
@@ -179,9 +192,19 @@ void StorageHelperClass::resetStoredLog(){
   setBoolPreferencies(boolPreferencies);
 }
 
+void StorageHelperClass::setEEPROM_AT24C32_Connected(boolean flag){  
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.isEEPROM_AT24C32_Connected = flag;
+  setBoolPreferencies(boolPreferencies);
+}
+
+boolean StorageHelperClass::isEEPROM_AT24C32_Connected(){  
+  return getBoolPreferencies().isEEPROM_AT24C32_Connected;
+}
+
 
 /////////////////////////////////////////////////////////////////////
-//                            CONTROLLER                           //
+//                             GROWBOX                             //
 /////////////////////////////////////////////////////////////////////
 
 void StorageHelperClass::setClockTimeStampAutoCalculated(boolean flag){

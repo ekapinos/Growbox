@@ -116,10 +116,19 @@ void ControllerClass::setClockTime(time_t newTimeStamp){
   long delta = (newTimeStamp > oldTimeStamp) ? (newTimeStamp - oldTimeStamp) : -((long)(oldTimeStamp - newTimeStamp));
   
   setHarwareAndSoftwareClockTimeStamp(newTimeStamp);
-  GB_StorageHelper.setClockTimeStampAutoCalculated(false);
   
-  // Update wateriring time
-  GB_Watering.adjustWatringTimeOnClockSet(delta);
+  if (GB_StorageHelper.isClockTimeStampAutoCalculated()){
+    
+    GB_StorageHelper.setClockTimeStampAutoCalculated(false);
+    
+//    GB_StorageHelper.adjustLastStartupTimeStamp(delta);  
+//    if (GB_StorageHelper.getFirstStartupTimeStamp() == 0){
+//      GB_StorageHelper.adjustFirstStartupTimeStamp(delta);
+//    }  
+  }
+  
+  // Update watering time
+  GB_Watering.adjustWatringTimeOnClockSet(delta); 
 }
 
 // private:
