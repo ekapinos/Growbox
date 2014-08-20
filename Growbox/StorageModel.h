@@ -21,14 +21,13 @@ boolean isLogOverflow :
 boolean isLoggerEnabled :
     1;      
 boolean isWifiStationMode :
-    // false - Access point, true - Station mode
-    1;    
+    1;    // false - Access point, true - Station mode
 boolean isClockTimeStampAutoCalculated :
-    // false - Access point, true - Station mode
     1;    
 boolean useExternal_EEPROM_AT24C32 :
-    // false - Access point, true - Station mode
     1;    
+boolean useThermometer :
+    1;  
   } 
   boolPreferencies;                 // 1
 

@@ -228,13 +228,13 @@ void WebServerClass::sendRawData(float data){
   sendRawData(str);
 }
 
-void WebServerClass::sendRawData(time_t data, boolean interpretateAsULong){
+void WebServerClass::sendRawData(time_t data, boolean interpretateAsULong, boolean forceShowZeroTimeStamp){
   if (interpretateAsULong == true){
     String str(data);
     sendRawData(str);
   } 
   else {
-    if (data == 0){
+    if (data == 0 && !forceShowZeroTimeStamp){
       sendRawData(F("N/A"));
     } 
     else {
@@ -560,52 +560,49 @@ void WebServerClass::sendStatusPage(){
   }
   sendRawData(F("</dd>"));
   sendRawData(F("<dd>Last startup: ")); 
-  sendRawData(GB_StorageHelper.getLastStartupTimeStamp());
+  sendRawData(GB_StorageHelper.getLastStartupTimeStamp(), false, true);
   sendRawData(F("</dd>")); 
-  sendRawData(F("<dd>Current time: ")); 
+  sendRawData(F("<dd>Growbox time: ")); 
   sendRawData(F("<span id='growboxTimeStampId'></span><small><br/><span id='diffTimeStampId'></span></small>"));
   sendTimeStampJavaScript(F("growboxTimeStampId"), 0, F("diffTimeStampId"));
   sendRawData(F("</dd>")); 
 
   if (c_isWifiResponseError) return;
 
-  float lastTemperature, statisticsTemperature;
-  int statisticsCount;
-  GB_Thermometer.getStatistics(lastTemperature, statisticsTemperature, statisticsCount);
+  if (GB_StorageHelper.isUseThermometer()){
+    float lastTemperature, statisticsTemperature;
+    int statisticsCount;
+    GB_Thermometer.getStatistics(lastTemperature, statisticsTemperature, statisticsCount);
 
-  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
-  GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
-
-
-  sendRawData(F("<dt>Temperature</dt>"));   
-  if (!GB_Thermometer.isPresent()){
-    sendTextRedIfTrue(F("<dd>Not connected</dd>"), true);
+    sendRawData(F("<dt>Thermometer</dt>"));   
+    if (!GB_Thermometer.isPresent()){
+      sendTextRedIfTrue(F("<dd>Not connected</dd>"), true);
+    }
+    sendRawData(F("<dd>Last check: "));
+    if (isnan(lastTemperature)){
+      sendRawData(F("N/A"));
+    } 
+    else {
+      sendRawData(lastTemperature);
+      sendRawData(F(" &deg;C")); 
+    }
+    sendRawData(F("</dd>")); 
+    sendRawData(F("<dd>Forecast: ")); 
+    if (isnan(statisticsTemperature)){
+      sendRawData(F("N/A"));
+    } 
+    else {
+      sendRawData(statisticsTemperature);
+      sendRawData(F(" &deg;C")); 
+    }
+    sendRawData(F(" ("));
+    sendRawData(statisticsCount);
+    sendRawData(F(" measurement"));
+    if (statisticsCount > 1){
+      sendRawData('s');
+    }
+    sendRawData(F(")</dd>"));
   }
-  sendRawData(F("<dd>Last check: "));
-  if (isnan(lastTemperature)){
-    sendRawData(F("N/A"));
-  } 
-  else {
-    sendRawData(lastTemperature);
-    sendRawData(F(" &deg;C")); 
-  }
-  sendRawData(F("</dd>")); 
-  sendRawData(F("<dd>Forecast: ")); 
-  if (isnan(statisticsTemperature)){
-    sendRawData(F("N/A"));
-  } 
-  else {
-    sendRawData(statisticsTemperature);
-    sendRawData(F(" &deg;C")); 
-  }
-  sendRawData(F(" ("));
-  sendRawData(statisticsCount);
-  sendRawData(F(" measurement"));
-  if (statisticsCount > 1){
-    sendRawData('s');
-  }
-  sendRawData(F(")</dd>"));
-
   if (c_isWifiResponseError) return;
 
   if(g_useSerialMonitor){ 
@@ -647,12 +644,13 @@ void WebServerClass::sendStatusPage(){
     sendRawData(F("<dd>External AT24C32 EEPROM: "));
     sendTextRedIfTrue(F("Not connected"), true);
     sendRawData(F("</dd>")); 
-  } else if (!GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && EEPROM_AT24C32.isPresent()) {
+  } 
+  else if (!GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && EEPROM_AT24C32.isPresent()) {
     sendRawData(F("<dd>External AT24C32 EEPROM: "));
     sendRawData(F("Connected, not used"));
     sendRawData(F("</dd>")); 
   }
-  
+
   if (!GB_StorageHelper.isStoreLogRecordsEnabled()){
     sendRawData(F("<dd>")); 
     sendTextRedIfTrue(F("Disabled"), true);
@@ -680,24 +678,29 @@ void WebServerClass::sendStatusPage(){
   sendRawData(StringUtils::wordTimeToString(downTime));
   sendRawData(F("</dd>"));
 
-  sendRawData(F("<dd>Day temperature: "));
-  sendRawData(normalTemperatueDayMin);
-  sendRawData(F(".."));
-  sendRawData(normalTemperatueDayMax);
-  sendRawData(F(" &deg;C</dd><dd>Night temperature: "));
-  sendRawData(normalTemperatueNightMin);
-  sendRawData(F(".."));
-  sendRawData(normalTemperatueNightMax);
-  sendRawData(F(" &deg;C</dd><dd>Critical temperature: "));
-  sendRawData(criticalTemperatue);
-  sendRawData(F(" &deg;C</dd>"));
+  if (GB_StorageHelper.isUseThermometer()){
+    byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
+    GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
 
+    sendRawData(F("<dd>Day temperature: "));
+    sendRawData(normalTemperatueDayMin);
+    sendRawData(F(".."));
+    sendRawData(normalTemperatueDayMax);
+    sendRawData(F(" &deg;C</dd><dd>Night temperature: "));
+    sendRawData(normalTemperatueNightMin);
+    sendRawData(F(".."));
+    sendRawData(normalTemperatueNightMax);
+    sendRawData(F(" &deg;C</dd><dd>Critical temperature: "));
+    sendRawData(criticalTemperatue);
+    sendRawData(F(" &deg;C</dd>"));
+  }
+  
   sendRawData(F("<dt>Other</dt>"));
   sendRawData(F("<dd>Free memory: "));
   sendRawData(freeMemory()); 
   sendRawData(F(" bytes</dd>"));
   sendRawData(F("<dd>First startup: ")); 
-  sendRawData(GB_StorageHelper.getFirstStartupTimeStamp());
+  sendRawData(GB_StorageHelper.getFirstStartupTimeStamp(), false, true);
   sendRawData(F("</dd>")); 
 
   sendRawData(F("</dl>")); 
@@ -836,12 +839,12 @@ void WebServerClass::sendLogPage(const String& getParams){
     if (!isTargetDay){
       continue;
     }
-    
+
     boolean isEvent         = GB_Logger.isEvent(logRecord);
     boolean isWateringEvent = GB_Logger.isWateringEvent(logRecord);
     boolean isError         = GB_Logger.isError(logRecord);
     boolean isTemperature   = GB_Logger.isTemperature(logRecord);
-    
+
     if (!printEvents && isEvent){
       continue;
     } 
@@ -1135,12 +1138,12 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<input type='hidden' name='setClockTime' id='setClockTimeInput'>"));
   sendRawData(F("<input type='submit' value='Sync'>"));
   sendRawData(F("</form>"));
-  
+
   sendRawData(F("</fieldset>"));
-  
+
   sendRawData(F("<br/>"));
   if (c_isWifiResponseError) return;
-  
+
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
 
@@ -1162,16 +1165,24 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<input type='submit' value='Save'>"));
   sendRawData(F("</form>"));
   sendRawData(F("</fieldset>"));
-  
+
   sendRawData(F("<br/>"));
   if (c_isWifiResponseError) return;
 
-  sendRawData(F("<fieldset><legend>Temperature</legend>"));
+  sendRawData(F("<fieldset><legend>Thermometer</legend>"));
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
   sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"normalTemperatueDayMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
   sendRawData(F("|| document.getElementById(\"normalTemperatueNightMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
   sendRawData(F("<table>"));
+  sendRawData(F("<tr><td colspan='2'>"));
+  sendTagCheckbox(F("useThermometer"), F("Use thermometer DS18B20, DS18S20 or DS1822"), GB_StorageHelper.isUseThermometer());
+  
+  sendRawData(F("<div class='description'>Current state [<b>"));
+  sendTextRedIfTrue(GB_Thermometer.isPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseThermometer() && !GB_Thermometer.isPresent());
+  sendRawData(F("</b>]</div>"));
+  
+  sendRawData(F("</td><tr>"));
   sendRawData(F("<tr><td>Normal Day temperature</td><td>"));
   sendTagInputNumber(F("normalTemperatueDayMin"), 0, 1, 50, normalTemperatueDayMin);
   sendRawData(F(" .. "));
@@ -1199,10 +1210,10 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<br/><input type='submit' value='Save'>"));
   sendRawData(F("</form>"));
   sendRawData(F("</fieldset>"));
-  
+
   sendRawData(F("<br/>"));
   if (c_isWifiResponseError) return;
-  
+
   boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
   sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
   sendRawData(F("<form action='"));
@@ -1223,13 +1234,13 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(WIFI_PASS_LENGTH);
   sendRawData(F("'/></td></tr>"));
   sendRawData(F("</table>")); 
-  sendRawData(F("<input type='submit' value='Save'><small>and reboot Growbox manually</small>"));
+  sendRawData(F("<input type='submit' value='Save'><small>and reboot Wi-Fi manually</small>"));
   sendRawData(F("</form>"));
   sendRawData(F("</fieldset>"));
 
   sendRawData(F("<br/>"));
   if (c_isWifiResponseError) return;
-  
+
   sendRawData(F("<fieldset><legend>EEPROM</legend>"));  
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_configuration));
@@ -1254,7 +1265,7 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
 
   sendRawData(F("<br/>"));
   if (c_isWifiResponseError) return;
-  
+
   sendRawData(F("<fieldset><legend>Other</legend>"));  
   sendRawData(F("<table style='vertical-align:top; border-spacing:0px;'>"));
   sendRawData(F("<tr><td>"));
@@ -1343,10 +1354,10 @@ void WebServerClass::sendStorageDumpPage(const String& getParams){
   }
 
   if (!isArduino && !EEPROM_AT24C32.isPresent()){
-     sendRawData(F("<br/>External AT24C32 EEPROM not connected"));
-     return;
+    sendRawData(F("<br/>External AT24C32 EEPROM not connected"));
+    return;
   }
-  
+
   sendRawData(F("<table class='grab align_center'><tr><th/>"));
   for (word i = 0; i < 0x10 ; i++){
     sendRawData(F("<th>"));
@@ -1649,6 +1660,13 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     }
     boolean boolValue = (value[0]=='1');   
     GB_StorageHelper.setUseExternal_EEPROM_AT24C32(boolValue);
+  }  
+  else if (StringUtils::flashStringEquals(name, F("useThermometer"))){
+    if (value.length() != 1){
+      return false;
+    }
+    boolean boolValue = (value[0]=='1');   
+    GB_StorageHelper.setUseThermometer(boolValue);
   } 
   else {
     return false;
@@ -1658,5 +1676,6 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
 
 

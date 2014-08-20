@@ -23,15 +23,15 @@ public:
 
   time_t init_getLastStoredTime();
   boolean init_loadConfiguration(time_t currentTime);
-  
+
   boolean check_AT24C32_EEPROM();
-  
+
 public:
   time_t getFirstStartupTimeStamp();
   time_t getLastStartupTimeStamp();
   void adjustFirstStartupTimeStamp(long delta);
   void adjustLastStartupTimeStamp(long delta);
-  
+
   void resetFirmware();
   void resetStoredLog();
 
@@ -49,6 +49,8 @@ public:
   void setTurnToDayModeTime(const byte upHour, const byte upMinute);
   void setTurnToNightModeTime(const byte downHour, const byte downMinute);
 
+  void setUseThermometer(boolean flag);
+  boolean isUseThermometer();
   void getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatue);
   void setNormalTemperatueDayMin(const byte normalTemperatueDayMin);
   void setNormalTemperatueDayMax(const byte normalTemperatueDayMax);
@@ -64,10 +66,10 @@ public:
   boolean isStoreLogRecordsEnabled();
 
   boolean storeLogRecord(LogRecord &logRecord);
-  
+
 private:
   void setLogOverflow(boolean flag);
-  
+
 public:
   boolean isLogOverflow();
 
@@ -106,6 +108,7 @@ public :
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
+
 
 
 

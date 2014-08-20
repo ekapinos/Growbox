@@ -17,7 +17,7 @@ private:
 public:
   ThermometerClass(OneWire*);
 private:
-  float getHardwareTemperature();
+  float getHardwareTemperature(boolean logOnError);
   
 public:
   boolean isPresent();

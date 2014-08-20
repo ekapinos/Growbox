@@ -3,6 +3,7 @@
 #include "StringUtils.h"
 #include "Logger.h"
 #include "Watering.h"
+#include "Thermometer.h"
 #include "EEPROM_ARDUINO.h"
 #include "EEPROM_AT24C32.h"
 
@@ -88,6 +89,7 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
     bootRecord.boolPreferencies.isWifiStationMode = false; // AP by default
     bootRecord.boolPreferencies.isClockTimeStampAutoCalculated = false;
     bootRecord.boolPreferencies.useExternal_EEPROM_AT24C32 = EEPROM_AT24C32.isPresent();
+    bootRecord.boolPreferencies.useThermometer = GB_Thermometer.isPresent();
 
     bootRecord.turnToDayModeAt = 9*60;
     bootRecord.turnToNightModeAt = 21*60;
@@ -210,7 +212,6 @@ boolean StorageHelperClass::isUseExternal_EEPROM_AT24C32(){
   return getBoolPreferencies().useExternal_EEPROM_AT24C32;
 }
 
-
 /////////////////////////////////////////////////////////////////////
 //                             GROWBOX                             //
 /////////////////////////////////////////////////////////////////////
@@ -234,6 +235,16 @@ void StorageHelperClass::setTurnToDayModeTime(const byte upHour, const byte upMi
 }
 void StorageHelperClass::setTurnToNightModeTime(const byte downHour, const byte downMinute){
   EEPROM.writeBlock<word>(OFFSETOF(BootRecord, turnToNightModeAt), downHour*60+downMinute);
+}
+
+
+void StorageHelperClass::setUseThermometer(boolean flag){  
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.useThermometer = flag; 
+  setBoolPreferencies(boolPreferencies);  
+}
+boolean StorageHelperClass::isUseThermometer(){  
+  return getBoolPreferencies().useThermometer;
 }
 
 void StorageHelperClass::getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatue){

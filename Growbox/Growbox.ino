@@ -150,10 +150,8 @@ void setup() {
     stopOnFatalError(F("wrong WATERING_PUMP_PINS size"));
   }
   GB_Controller.checkFreeMemory();
-
-  if(g_useSerialMonitor){ 
-    Serial.println(F("Growbox successfully booted up"));
-  }
+  
+  // Booted up
   
   printStatusOnBoot(F("clock")); 
   time_t autoCalculatedTimeStamp = GB_StorageHelper.init_getLastStoredTime(); // returns zero, if first startup
@@ -177,7 +175,8 @@ void setup() {
   GB_Watering.init(startupTimeStamp); // call before updateGrowboxState();
   GB_Controller.checkFreeMemory();
   
-//  GB_Thermometer.updateStatistics(); // call before updateGrowboxState();
+//  No need to call  
+//  GB_Thermometer.updateStatistics(); 
 //  GB_Controller.checkFreeMemory();
 
   // Max 6 timer for Alarm instance

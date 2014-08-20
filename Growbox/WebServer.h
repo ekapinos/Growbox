@@ -52,7 +52,7 @@ private:
   void sendRawData(const __FlashStringHelper* data);
   void sendRawData(const String &data);
   void sendRawData(float data);
-  void sendRawData(time_t data, boolean interpretateAsULong = false);
+  void sendRawData(time_t data, boolean interpretateAsULong = false, boolean forceShowZeroTimeStamp = false);
   template <class T> void sendRawData(T data){
     String str(data);
     sendRawData(str);
