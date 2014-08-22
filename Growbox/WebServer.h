@@ -9,20 +9,25 @@
 
 const char S_url_root[] PROGMEM  = "/";
 const char S_url_log[] PROGMEM  = "/log";
-const char S_url_watering[] PROGMEM  = "/watering";
-const char S_url_configuration[] PROGMEM  = "/conf";
-const char S_url_storage[] PROGMEM  = "/conf/storage";
+const char S_url_watering[] PROGMEM  = "/ws";
+const char S_url_general [] PROGMEM  = "/general";
+const char S_url_hardware [] PROGMEM  = "/hardware";
+const char S_url_wifi [] PROGMEM  = "/hardware/wifi";
+const char S_url_dump_internal[] PROGMEM  = "/hardware/dump/internal";
+const char S_url_dump_AT24C32[] PROGMEM  = "/hardware/dump/AT24C32";
+const char S_url_other [] PROGMEM  = "/hardware/other";
+
 
 class WebServerClass{
 private:  
   byte c_wifiPortDescriptor;
   byte c_isWifiResponseError;
   byte c_isWifiForceUpdateGrowboxState;
-  
+
 public:  
   void init();
   void update();
-  
+
 public:  
   boolean handleSerialEvent();
   boolean handleSerialMonitorEvent();
@@ -65,17 +70,21 @@ private:
   void sendTagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value);
   word getTimeFromInput(const String& value);
 
+  void sendTagOption(const String& value, const String& text, boolean isSelected,  boolean isDisabled = false);
+  void sendTagOption(const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected,  boolean isDisabled = false);
+
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected);
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected);
   void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected);
 
   void sendTimeStampJavaScript(const __FlashStringHelper* growboxTimeStampId = 0, const __FlashStringHelper* browserTimeStampId = 0, const __FlashStringHelper* diffTimeStampId = 0);
-void sendTextRedIfTrue(const __FlashStringHelper* text, boolean isRed);
+  void sendTextRedIfTrue(const __FlashStringHelper* text, boolean isRed);
+  
   /////////////////////////////////////////////////////////////////////
-  //                        COMMON FOR PAGES                         //
+  //                     COMMON FOR ALL PAGES                        //
   /////////////////////////////////////////////////////////////////////
 
-  void sendHttpPageBody(const String &input, const String &getParams);
+  void processHttpGet(const String &input, const String &getParams);
 
   /////////////////////////////////////////////////////////////////////
   //                          STATUS PAGE                            //
@@ -84,28 +93,32 @@ void sendTextRedIfTrue(const __FlashStringHelper* text, boolean isRed);
   void sendStatusPage();
 
   /////////////////////////////////////////////////////////////////////
-  //                         WATERING PAGE                           //
-  /////////////////////////////////////////////////////////////////////
-  byte getWateringIndexFromUrl(const String& url);
-  void sendWateringPage(const String& url);
-
-  /////////////////////////////////////////////////////////////////////
-  //                      CONFIGURATION PAGE                         //
-  /////////////////////////////////////////////////////////////////////
-
-  void sendConfigurationPage(const String& getParams);
-  void sendStorageDumpPage(const String& getParams);
-
-  /////////////////////////////////////////////////////////////////////
   //                             LOG PAGE                            //
   /////////////////////////////////////////////////////////////////////
 
   void sendLogPage(const String& getParams);
-
+  
   /////////////////////////////////////////////////////////////////////
-  //                          OTHER PAGES                            //
+  //                          GENERAL PAGE                           //
+  /////////////////////////////////////////////////////////////////////
+  
+  void sendGeneralPage(const String& getParams);
+ 
+  /////////////////////////////////////////////////////////////////////
+  //                         WATERING PAGE                           //
+  /////////////////////////////////////////////////////////////////////
+  
+  byte getWateringIndexFromUrl(const String& url);
+  void sendWateringPage(const String& url, byte wsIndex);
+ 
+  /////////////////////////////////////////////////////////////////////
+  //                        HARDWARE PAGES                           //
   /////////////////////////////////////////////////////////////////////
 
+  void sendHardwarePage(const String& getParams);
+  void sendWifiPage(const String& getParams);
+  void sendStorageDumpPage(const String& getParams, boolean isInternal);
+  void sendOtherPage(const String& getParams);
 
   /////////////////////////////////////////////////////////////////////
   //                          POST HANDLING                          //
@@ -133,4 +146,5 @@ void sendTextRedIfTrue(const __FlashStringHelper* text, boolean isRed);
 extern WebServerClass GB_WebServer;
 
 #endif
+
 

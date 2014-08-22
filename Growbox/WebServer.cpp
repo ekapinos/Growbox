@@ -27,20 +27,8 @@ boolean WebServerClass::handleSerialEvent(){
   c_isWifiForceUpdateGrowboxState = false;
 
   switch(commandType){
-    case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:
-    if (StringUtils::flashStringEquals(url, FS(S_url_root)) || 
-      StringUtils::flashStringEquals(url, FS(S_url_log)) ||
-      StringUtils::flashStringStartsWith(url, FS(S_url_watering)) ||
-      StringUtils::flashStringEquals(url,FS(S_url_configuration)) ||
-      StringUtils::flashStringEquals(url, FS(S_url_storage))){
-
-      sendHttpPageHeader();
-      sendHttpPageBody(url, getParams);
-      sendHttpPageComplete();
-    } 
-    else { // Unknown resource
-      sendHttpNotFound();    
-    }
+    case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET:    
+    processHttpGet(url, getParams);
     break;  
 
     case RAK410_XBeeWifiClass::RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST: 
@@ -342,6 +330,28 @@ word WebServerClass::getTimeFromInput(const String& value){
   return valueHour*60+valueMinute;
 }
 
+
+void WebServerClass::sendTagOption(const String& value, const String& text, boolean isSelected,  boolean isDisabled) {
+  sendRawData(F("<option"));
+  if (value.length() != 0){
+    sendRawData(F(" value='"));   
+    sendRawData(value);
+    sendRawData('\'');
+  }
+  if (isDisabled){
+    sendRawData(F(" disabled='disabled'"));   
+  }
+  if (isSelected){
+    sendRawData(F(" selected='selected'"));   
+  }
+  sendRawData('>'); 
+  sendRawData(text); 
+  sendRawData(F("</option>"));
+}
+void WebServerClass::sendTagOption(const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected,  boolean isDisabled) {
+  sendTagOption(StringUtils::flashStringLoad(value), StringUtils::flashStringLoad(text), isSelected, isDisabled);
+}
+
 void WebServerClass::sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected){
   sendRawData(F("<script type='text/javascript'>"));
   sendRawData(F("var opt = document.createElement('option');"));
@@ -467,16 +477,33 @@ void WebServerClass::sendTextRedIfTrue(const __FlashStringHelper* text, boolean 
 }
 
 /////////////////////////////////////////////////////////////////////
-//                        COMMON FOR PAGES                         //
+//                        COMMON FOR ALL PAGES                     //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendHttpPageBody(const String& url, const String& getParams){
+void WebServerClass::processHttpGet(const String& url, const String& getParams){
+
+  byte wsIndex = getWateringIndexFromUrl(url); // FF ig not watering system
 
   boolean isRootPage    = StringUtils::flashStringEquals(url, FS(S_url_root));
   boolean isLogPage     = StringUtils::flashStringEquals(url, FS(S_url_log));
-  boolean isWateringPage= StringUtils::flashStringStartsWith(url, FS(S_url_watering));
-  boolean isConfPage    = StringUtils::flashStringEquals(url, FS(S_url_configuration));
-  boolean isStoragePage = StringUtils::flashStringEquals(url, FS(S_url_storage));
+
+  boolean isGeneralPage    = StringUtils::flashStringEquals(url, FS(S_url_general));
+  boolean isWateringPage = (wsIndex != 0xFF);
+  boolean isHardwarePage = StringUtils::flashStringEquals(url, FS(S_url_hardware));
+  boolean isWifiPage = StringUtils::flashStringEquals(url, FS(S_url_wifi));
+  boolean isDumpInternal = StringUtils::flashStringEquals(url, FS(S_url_dump_internal));
+  boolean isDumpAT24C32  = StringUtils::flashStringEquals(url, FS(S_url_dump_AT24C32));
+  boolean isOtherPage  = StringUtils::flashStringEquals(url, FS(S_url_other));
+
+  boolean isConfigurationPage = (isGeneralPage || isWateringPage || isHardwarePage || isWifiPage || isDumpInternal || isDumpAT24C32 || isOtherPage);
+
+  boolean isValidPage = (isRootPage || isLogPage || isConfigurationPage);
+  if (!isValidPage){
+    sendHttpNotFound();   
+    return;
+  }
+
+  sendHttpPageHeader();
 
   if (isRootPage || isWateringPage) {
     GB_Watering.turnOnWetSensors();
@@ -504,30 +531,64 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
   sendRawData(F("<form>"));   // HTML Validator warning
   sendTagButton(FS(S_url_root), F("Status"), isRootPage);
   sendTagButton(FS(S_url_log), F("Daily log"), isLogPage);
-  sendTagButton(FS(S_url_watering), F("Watering"), isWateringPage);  
-  sendTagButton(FS(S_url_configuration), F("Configuration"), isConfPage || isStoragePage);
-  sendRawData(F("</form>")); 
+  sendRawData(F("<select onchange='location=this.options[this.selectedIndex].value;'"));
+  if (isConfigurationPage){
+    sendRawData(F(" style='text-decoration: underline;'"));
+  }
+  sendRawData('>');
+  sendTagOption(F(""), F("Select Configuration page"), !isConfigurationPage, true); 
+  sendTagOption(FS(S_url_general), F("General configuration"), isGeneralPage);
+  for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
+    String url = StringUtils::flashStringLoad(FS(S_url_watering));
+    if (i > 0){
+      url += '/';
+      url += (i+1);
+    }
+    String description = StringUtils::flashStringLoad(F("Watering system #"));
+    description += (i+1);
+    sendTagOption(url, description, (wsIndex==i));  
+  }
+
+  sendTagOption(FS(S_url_hardware), F("Hardware: Devices"), isHardwarePage);
+  sendTagOption(FS(S_url_wifi), F("Hardware: Wi-Fi"), isWifiPage);
+  sendTagOption(FS(S_url_dump_internal), F("Hardware: Arduino dump"), isDumpInternal);
+  if (EEPROM_AT24C32.isPresent()){
+    sendTagOption(FS(S_url_dump_AT24C32), F("Hardware: AT24C32 dump"), isDumpAT24C32);
+  }
+  sendTagOption(FS(S_url_other), F("Hardware: Other"), isOtherPage);
+  sendRawData(F("</select>"));
+  sendRawData(F("</form>"));
+
   sendRawData(F("<hr/>"));
 
   if (isRootPage){
     sendStatusPage();
   } 
-  if (isWateringPage){
-    sendWateringPage(url);
-  } 
   else if (isLogPage){
     sendLogPage(getParams);
   }
-  else if (isConfPage){
-    sendConfigurationPage(getParams);
+  else if (isGeneralPage){
+    sendGeneralPage(getParams);
   } 
-  else if (isStoragePage){
-    sendStorageDumpPage(getParams); 
+  else if (isWateringPage){
+    sendWateringPage(url, wsIndex);
+  } 
+  else if (isHardwarePage){ 
+    sendHardwarePage(getParams); 
+  }
+  else if (isWifiPage){ 
+    sendWifiPage(getParams); 
+  }
+  else if (isDumpInternal || isDumpAT24C32){ 
+    sendStorageDumpPage(getParams, isDumpInternal); 
+  }
+  else if (isOtherPage){ 
+    sendOtherPage(getParams); 
   }
 
-  if (c_isWifiResponseError) return;
-
   sendRawData(F("</body></html>"));
+
+  sendHttpPageComplete();
 
 }
 
@@ -536,7 +597,6 @@ void WebServerClass::sendHttpPageBody(const String& url, const String& getParams
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendStatusPage(){
-
 
   sendRawData(F("<dl>"));
 
@@ -694,7 +754,7 @@ void WebServerClass::sendStatusPage(){
     sendRawData(criticalTemperatue);
     sendRawData(F(" &deg;C</dd>"));
   }
-  
+
   sendRawData(F("<dt>Other</dt>"));
   sendRawData(F("<dd>Free memory: "));
   sendRawData(freeMemory()); 
@@ -787,7 +847,15 @@ void WebServerClass::sendLogPage(const String& getParams){
   sendRawData(F("<form action='"));
   sendRawData(FS(S_url_log));
   sendRawData(F("' method='get'>"));
-  sendRawData(F("<select id='typeCombobox' name='type'></select>"));
+
+  sendRawData(F("<select id='typeCombobox' name='type'>"));  
+  sendTagOption(F("all"), F("All records"),                      printEvents &&  printWateringEvents &&  printErrors &&  printTemperature);
+  sendTagOption(F("events"), F("Events only"),                   printEvents && !printWateringEvents && !printErrors && !printTemperature);
+  sendTagOption(F("wateringevents"), F("Watering Events only"), !printEvents &&  printWateringEvents && !printErrors && !printTemperature);
+  sendTagOption(F("errors"), F("Errors only"),                  !printEvents && !printWateringEvents &&  printErrors && !printTemperature);
+  sendTagOption(F("temperature"), F("Temperature only"),        !printEvents && !printWateringEvents && !printErrors &&  printTemperature);  
+  sendRawData(F("</select>"));
+
   sendRawData(F("<select id='dateCombobox' name='date'></select>"));
   sendRawData(F("<input type='submit' value='Show'/>"));
   sendRawData(F("</form>"));
@@ -808,13 +876,6 @@ void WebServerClass::sendLogPage(const String& getParams){
   sendRawData(F("<input type='submit' value='Reset log'/>"));
   sendRawData(F("</form>"));
   sendRawData(F("</td></table>"));
-
-  // out of form and table
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("all"), F("All records"),                      printEvents &&  printWateringEvents &&  printErrors &&  printTemperature);
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("events"), F("Events only"),                   printEvents && !printWateringEvents && !printErrors && !printTemperature);
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("wateringevents"), F("Watering Events only"), !printEvents &&  printWateringEvents && !printErrors && !printTemperature);
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("errors"), F("Errors only"),                  !printEvents && !printWateringEvents &&  printErrors && !printTemperature);
-  sendAppendOptionToSelectDynamic(F("typeCombobox"), F("temperature"), F("Temperature only"),        !printEvents && !printWateringEvents && !printErrors &&  printTemperature);
 
   boolean isTableTagPrinted = false;   
   word index;
@@ -883,9 +944,47 @@ void WebServerClass::sendLogPage(const String& getParams){
     sendRawData(F("</table>"));
   } 
   else {  
+    sendAppendOptionToSelectDynamic(F("dateCombobox"), F(""), targetDateAsString, true); // TODO Maybe will append not in correct position
     sendRawData(F("No stored Log Records found during "));
     sendRawData(targetDateAsString);
   }
+}
+
+/////////////////////////////////////////////////////////////////////
+//                         GENERRAL PAGE                           //
+/////////////////////////////////////////////////////////////////////
+void WebServerClass::sendGeneralPage(const String& getParams){
+
+  word upTime, downTime;
+  GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
+  sendRawData(F("<fieldset><legend>Scheduler</legend>"));  
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_general));
+  sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value { alert(\"Turn times should be different\"); return false;}'>"));
+  sendRawData(F("<table>"));
+  sendRawData(F("<tr><td>Turn to Day mode at</td><td>"));
+  sendTagInputTime(F("turnToDayModeAt"), 0, upTime);
+  sendRawData(F("</td></tr>"));
+  sendRawData(F("<tr><td>Turn to Night mode at</td><td>"));
+  sendTagInputTime(F("turnToNightModeAt"), 0, downTime);
+  sendRawData(F("</td></tr>"));
+  sendRawData(F("</table>"));
+  sendRawData(F("<input type='submit' value='Save'>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+
+  sendRawData(F("<br/>"));
+  if (c_isWifiResponseError) return;
+
+  sendRawData(F("<fieldset><legend>Logger</legend>"));
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_general));
+  sendRawData(F("' method='post'>"));
+  sendTagCheckbox(F("isStoreLogRecordsEnabled"), F("Enable logger"), GB_StorageHelper.isStoreLogRecordsEnabled());
+  sendRawData(F("<br/><input type='submit' value='Save'>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -913,17 +1012,7 @@ byte WebServerClass::getWateringIndexFromUrl(const String& url){
   return wateringSystemIndex;
 }
 
-void WebServerClass::sendWateringPage(const String& url){
-
-  byte wsIndex = getWateringIndexFromUrl(url);
-  if (wsIndex == 0xFF){
-    wsIndex = 0;
-  }
-
-  sendRawData(F("<form>"));
-  sendRawData(F("Configure watering system <select id='wsIndexCombobox'></select>"));
-  sendRawData(F("<input type='button' value='Show' onclick='document.location=document.getElementById(\"wsIndexCombobox\").value'>"));
-  sendRawData(F("</form>"));
+void WebServerClass::sendWateringPage(const String& url, byte wsIndex){
 
   String actionURL;
   actionURL += StringUtils::flashStringLoad(FS(S_url_watering));
@@ -932,24 +1021,7 @@ void WebServerClass::sendWateringPage(const String& url){
     actionURL += (wsIndex+1);
   }
 
-  // out of form 
-  for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
-    String url = StringUtils::flashStringLoad(FS(S_url_watering));
-    if (i > 0){
-      url += '/';
-      url += (i+1);
-    }
-    String description = StringUtils::flashStringLoad(F("# "));
-    description += (i+1);
-    sendAppendOptionToSelectDynamic(F("wsIndexCombobox"), url, description, (wsIndex==i));
-  }
-
-
   BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
-
-  sendRawData(F("<br/><big><b>Watering system # ")); 
-  sendRawData(wsIndex+1);  
-  sendRawData(F(" preferences</b></big><br/><br/>"));
 
   // run Dry watering form
   sendRawData(F("<form action='"));
@@ -1107,12 +1179,11 @@ void WebServerClass::sendWateringPage(const String& url){
 }
 
 /////////////////////////////////////////////////////////////////////
-//                      CONFIGURATION PAGE                         //
+//                        HARDWARE PAGES                           //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendConfigurationPage(const String& getParams){
-
-  sendRawData(F("<fieldset><legend>Date & time</legend>"));
+void WebServerClass::sendHardwarePage(const String& getParams) {
+  sendRawData(F("<fieldset><legend>Clock</legend>"));
 
   sendRawData(F("<table class='grab'>"));
   sendRawData(F("<tr><th>Device</th><th>Date & Time</th></tr>"));
@@ -1133,7 +1204,7 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("</script>"));
 
   sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
+  sendRawData(FS(S_url_hardware));
   sendRawData(F("' method='post' onSubmit='return g_checkGrowboxTimeStamp()'>"));
   sendRawData(F("<input type='hidden' name='setClockTime' id='setClockTimeInput'>"));
   sendRawData(F("<input type='submit' value='Sync'>"));
@@ -1144,44 +1215,21 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<br/>"));
   if (c_isWifiResponseError) return;
 
-  word upTime, downTime;
-  GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
-
   byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
   GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
-
-  sendRawData(F("<fieldset><legend>Scheduler</legend>"));
-  sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value { alert(\"Turn times should be different\"); return false;}'>"));
-  sendRawData(F("<table>"));
-  sendRawData(F("<tr><td>Turn to Day mode at</td><td>"));
-  sendTagInputTime(F("turnToDayModeAt"), 0, upTime);
-  sendRawData(F("</td></tr>"));
-  sendRawData(F("<tr><td>Turn to Night mode at</td><td>"));
-  sendTagInputTime(F("turnToNightModeAt"), 0, downTime);
-  sendRawData(F("</td></tr>"));
-  sendRawData(F("</table>"));
-  sendRawData(F("<input type='submit' value='Save'>"));
-  sendRawData(F("</form>"));
-  sendRawData(F("</fieldset>"));
-
-  sendRawData(F("<br/>"));
-  if (c_isWifiResponseError) return;
-
   sendRawData(F("<fieldset><legend>Thermometer</legend>"));
   sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
+  sendRawData(FS(S_url_hardware));
   sendRawData(F("' method='post' onSubmit='if (document.getElementById(\"normalTemperatueDayMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
   sendRawData(F("|| document.getElementById(\"normalTemperatueNightMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
   sendRawData(F("<table>"));
   sendRawData(F("<tr><td colspan='2'>"));
   sendTagCheckbox(F("useThermometer"), F("Use thermometer DS18B20, DS18S20 or DS1822"), GB_StorageHelper.isUseThermometer());
-  
+
   sendRawData(F("<div class='description'>Current state [<b>"));
   sendTextRedIfTrue(GB_Thermometer.isPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseThermometer() && !GB_Thermometer.isPresent());
   sendRawData(F("</b>]</div>"));
-  
+
   sendRawData(F("</td><tr>"));
   sendRawData(F("<tr><td>Normal Day temperature</td><td>"));
   sendTagInputNumber(F("normalTemperatueDayMin"), 0, 1, 50, normalTemperatueDayMin);
@@ -1200,24 +1248,42 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(F("<input type='submit' value='Save'>"));
   sendRawData(F("</form>"));
   sendRawData(F("</fieldset>"));
-  sendRawData(F("<br/>"));
-
-  sendRawData(F("<fieldset><legend>Logger</legend>"));
-  sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post'>"));
-  sendTagCheckbox(F("isStoreLogRecordsEnabled"), F("Enable logger"), GB_StorageHelper.isStoreLogRecordsEnabled());
-  sendRawData(F("<br/><input type='submit' value='Save'>"));
-  sendRawData(F("</form>"));
-  sendRawData(F("</fieldset>"));
 
   sendRawData(F("<br/>"));
   if (c_isWifiResponseError) return;
 
+  sendRawData(F("<fieldset><legend>EEPROM</legend>"));  
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_hardware));
+  sendRawData(F("' method='post' onSubmit='return confirm(\"Logged records maybe will be reset?\")'>")); 
+  sendTagCheckbox(F("isEEPROM_AT24C32_Connected"), F("Use external AT24C32 EEPROM"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32());
+  sendRawData(F("<div class='description'>Current state [<b>"));
+  sendTextRedIfTrue(EEPROM_AT24C32.isPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent());
+  sendRawData(F("</b>]</div>"));
+
+  //  sendRawData(F("<table class='grab'>"));
+  //  sendRawData(F("<tr><td>"));
+  sendRawData(F("<input type='submit' value='Save'>"));
+  //  sendRawData(F("</td><td class='align_right'>"));
+  //  sendRawData(F("<a href='"));
+  //  sendRawData(FS(S_url_dump_internal));
+  //  sendRawData(F("'>Internal Arduino dump</a>"));
+  //  if (EEPROM_AT24C32.isPresent()){
+  //    sendRawData(F("<br/><a href='")); 
+  //    sendRawData(FS(S_url_dump_AT24C32));
+  //    sendRawData(F("'>External AT24C32 dump</a>")); 
+  //  }
+  //  sendRawData(F("</td></tr>"));
+  //  sendRawData(F("</table>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</fieldset>"));
+}
+
+void WebServerClass::sendWifiPage(const String& getParams){
   boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
   sendRawData(F("<fieldset><legend>Wi-Fi</legend>"));
   sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
+  sendRawData(FS(S_url_hardware));
   sendRawData(F("' method='post'>"));
   sendTagRadioButton(F("isWifiStationMode"), F("Create new Network"), F("0"),!isWifiStationMode);
   sendRawData(F("<div class='description'>Hidden, security WPA2, ip 192.168.0.1</div>"));
@@ -1234,71 +1300,15 @@ void WebServerClass::sendConfigurationPage(const String& getParams){
   sendRawData(WIFI_PASS_LENGTH);
   sendRawData(F("'/></td></tr>"));
   sendRawData(F("</table>")); 
-  sendRawData(F("<input type='submit' value='Save'><small>and reboot Wi-Fi manually</small>"));
+  sendRawData(F("<input type='submit' value='Save'> <small>and reboot Wi-Fi manually</small>"));
   sendRawData(F("</form>"));
   sendRawData(F("</fieldset>"));
 
-  sendRawData(F("<br/>"));
-  if (c_isWifiResponseError) return;
-
-  sendRawData(F("<fieldset><legend>EEPROM</legend>"));  
-  sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_configuration));
-  sendRawData(F("' method='post' onSubmit='return confirm(\"Logged records maybe will be reset?\")'>")); 
-  sendRawData(F("<table class='grab'>"));
-  sendRawData(F("<tr><td colspan='2'>"));
-  sendTagCheckbox(F("isEEPROM_AT24C32_Connected"), F("Use external AT24C32 EEPROM"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32());
-  sendRawData(F("<div class='description'>Current state [<b>"));
-  sendTextRedIfTrue(EEPROM_AT24C32.isPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent());
-  sendRawData(F("</b>]</div>"));
-  sendRawData(F("</td></tr>"));
-  sendRawData(F("<tr><td>"));
-  sendRawData(F("<input type='submit' value='Save'>"));
-  sendRawData(F("</td><td class='align_right'>"));
-  sendRawData(F("<a href='"));
-  sendRawData(FS(S_url_storage));
-  sendRawData(F("'>View EEPROM dumps</a>")); 
-  sendRawData(F("</td></tr>"));
-  sendRawData(F("</table>")); 
-  sendRawData(F("</form>"));
-  sendRawData(F("</fieldset>"));
-
-  sendRawData(F("<br/>"));
-  if (c_isWifiResponseError) return;
-
-  sendRawData(F("<fieldset><legend>Other</legend>"));  
-  sendRawData(F("<table style='vertical-align:top; border-spacing:0px;'>"));
-  sendRawData(F("<tr><td>"));
-  sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_root));
-  sendRawData(F("' method='post' onSubmit='return confirm(\"Reboot Growbox?\")'>"));
-  sendRawData(F("<input type='hidden' name='rebootController'/><input type='submit' value='Reboot Growbox'>"));
-  sendRawData(F("</form>")); 
-  sendRawData(F("</td><td>"));
-  sendRawData(F("<small> and update page manually</small>"));
-  sendRawData(F("</td></tr><tr><td>"));
-  sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_root));
-  sendRawData(F("' method='post' onSubmit='return confirm(\"Reset Firmware?\")'>"));
-  sendRawData(F("<input type='hidden' name='resetFirmware'/><input type='submit' value='Reset Firmware'>"));
-  sendRawData(F("</form>"));
-  sendRawData(F("</td><td>"));
-  sendRawData(F("<small>and update page manually. Default Wi-Fi SSID and pass will be used  </small>"));
-  sendRawData(F("</td></tr></table>"));
-  sendRawData(F("</fieldset>"));
 }
 
-void WebServerClass::sendStorageDumpPage(const String& getParams){
+void WebServerClass::sendStorageDumpPage(const String& getParams, boolean isInternal){
 
   String paramValue;
-  boolean isArduino = true;
-  if (searchHttpParamByName(getParams, F("type"), paramValue)){
-    if (paramValue.length()==1){
-      if (paramValue[0]=='r'){
-        isArduino = false;
-      }
-    } 
-  }
   byte rangeStart=0x0; //0x[0]00
   byte rangeEnd=0x0;   //0x[0]FF
   byte temp;
@@ -1323,37 +1333,38 @@ void WebServerClass::sendStorageDumpPage(const String& getParams){
   }
 
   sendRawData(F("<form action='"));
-  sendRawData(FS(S_url_storage));
+  if (isInternal){
+    sendRawData(FS(S_url_dump_internal));
+  } 
+  else {
+    sendRawData(FS(S_url_dump_AT24C32));
+  }
   sendRawData(F("' method='get' onSubmit='if (document.getElementById(\"rangeStartCombobox\").value > document.getElementById(\"rangeEndCombobox\").value){ alert(\"Address range is incorrect\"); return false;}'>"));
-  sendRawData(F("EEPROM Dump for "));
-  sendRawData(F("<select id='typeOfStorageCombobox' name='type'></select>"));
-  sendRawData(F("<br/>Address from "));
-  sendRawData(F("<select id='rangeStartCombobox' name='rangeStart'></select>"));
-  sendRawData(F(" to "));
-  sendRawData(F("<select id='rangeEndCombobox' name='rangeEnd'></select>"));
-  sendRawData(F("<input type='submit' value='Show'/>"));
-  sendRawData(F("</form>"));
-
-  // out of form
-  sendAppendOptionToSelectDynamic(F("typeOfStorageCombobox"), F("a"), F("Arduino (internal)"), isArduino);
-  sendAppendOptionToSelectDynamic(F("typeOfStorageCombobox"), F("r"), F("AT24C32 (external)"), !isArduino);
+  sendRawData(F("Address from "));
+  sendRawData(F("<select id='rangeStartCombobox' name='rangeStart'>"));
 
   String stringValue;
   for (byte counter = 0; counter< 0x10; counter++){
     stringValue = StringUtils::byteToHexString(counter, true);
     stringValue += '0';
     stringValue += '0';
-    sendAppendOptionToSelectDynamic(F("rangeStartCombobox"), String(counter, HEX), stringValue, rangeStart==counter);
+    sendTagOption(String(counter, HEX), stringValue, rangeStart==counter);
   }
+  sendRawData(F("</select>"));
+  sendRawData(F(" to "));
+  sendRawData(F("<select id='rangeEndCombobox' name='rangeEnd'>"));
 
   for (byte counter = 0; counter< 0x10; counter++){
     stringValue = StringUtils::byteToHexString(counter, true);
     stringValue += 'F';
     stringValue += 'F';
-    sendAppendOptionToSelectDynamic(F("rangeEndCombobox"), String(counter, HEX), stringValue, rangeEnd==counter);
+    sendTagOption(String(counter, HEX), stringValue, rangeEnd==counter);
   }
+  sendRawData(F("</select>"));
+  sendRawData(F("<input type='submit' value='Show'/>"));
+  sendRawData(F("</form>"));
 
-  if (!isArduino && !EEPROM_AT24C32.isPresent()){
+  if (!isInternal && !EEPROM_AT24C32.isPresent()){
     sendRawData(F("<br/>External AT24C32 EEPROM not connected"));
     return;
   }
@@ -1375,7 +1386,7 @@ void WebServerClass::sendStorageDumpPage(const String& getParams){
 
     if (c_isWifiResponseError) return;
 
-    if (isArduino){
+    if (isInternal){
       value = EEPROM.read(i);
     } 
     else {
@@ -1398,11 +1409,28 @@ void WebServerClass::sendStorageDumpPage(const String& getParams){
   sendRawData(F("</tr></table>"));
 }
 
-
-/////////////////////////////////////////////////////////////////////
-//                          OTHER PAGES                            //
-/////////////////////////////////////////////////////////////////////
-
+void WebServerClass::sendOtherPage(const String& getParams){
+  sendRawData(F("<fieldset><legend>Other</legend>"));  
+  sendRawData(F("<table style='vertical-align:top; border-spacing:0px;'>"));
+  sendRawData(F("<tr><td>"));
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_root));
+  sendRawData(F("' method='post' onSubmit='return confirm(\"Reboot Growbox?\")'>"));
+  sendRawData(F("<input type='hidden' name='rebootController'/><input type='submit' value='Reboot Growbox'>"));
+  sendRawData(F("</form>")); 
+  sendRawData(F("</td><td>"));
+  sendRawData(F(" <small>and update page manually</small>"));
+  sendRawData(F("</td></tr><tr><td>"));
+  sendRawData(F("<form action='"));
+  sendRawData(FS(S_url_root));
+  sendRawData(F("' method='post' onSubmit='return confirm(\"Reset Firmware?\")'>"));
+  sendRawData(F("<input type='hidden' name='resetFirmware'/><input type='submit' value='Reset Firmware'>"));
+  sendRawData(F("</form>"));
+  sendRawData(F("</td><td>"));
+  sendRawData(F("<small>and update page manually. Default Wi-Fi SSID and pass will be used  </small>"));
+  sendRawData(F("</td></tr></table>"));
+  sendRawData(F("</fieldset>"));
+}
 
 /////////////////////////////////////////////////////////////////////
 //                          POST HANDLING                          //
@@ -1676,6 +1704,11 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
+
+
+
+
 
 
 
