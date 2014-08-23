@@ -382,8 +382,8 @@ void WebServerClass::appendOptionToSelectDynamic(const __FlashStringHelper* sele
 void WebServerClass::growboxClockJavaScript(const __FlashStringHelper* growboxTimeStampId, const __FlashStringHelper* browserTimeStampId, const __FlashStringHelper* diffTimeStampId){
 
   rawData(F("<script type='text/javascript'>"));
-  rawData(F("var g_timeFormat = {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'};"));
-  rawData(F("var g_growboxTimeStamp = new Date(("));
+  rawData(F("var g_timeFormat = {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'};"));
+  rawData(F("var g_GBTS = new Date((")); //growbox timestamp
   rawData(now() + UPDATE_WEB_SERVER_AVERAGE_PAGE_LOAD_DELAY, true);
   rawData(F(" + new Date().getTimezoneOffset()*60) * 1000"));
   //  tmElements_t nowTmElements; 
@@ -400,59 +400,73 @@ void WebServerClass::growboxClockJavaScript(const __FlashStringHelper* growboxTi
   //  rawData(',');
   //  rawData(nowTmElements.Second);
   rawData(F(");"));
-  rawData(F("var g_timeStampDiff = new Date().getTime() - g_growboxTimeStamp;"));
-  if (diffTimeStampId != 0){
-    rawData(F("var absDiffInSeconds = Math.abs(Math.floor(g_timeStampDiff/1000));"));    
-    rawData(F("var diffSeconds = absDiffInSeconds % 60;"));    
-    rawData(F("var diffMinutes = Math.floor(absDiffInSeconds/60) % 60;"));    
-    rawData(F("var diffHours = Math.floor(absDiffInSeconds/60/60);"));    
-    rawData(F("var resultDiffString;"));    
-    rawData(F("if (diffHours > 365*24) {"));    
-    rawData(F("  resultDiffString = 'over year';"));    
-    rawData(F("} else if (diffHours > 30*24) {"));    
-    rawData(F("  resultDiffString = 'over month';"));    
-    rawData(F("} else if (diffHours > 7*24) {"));    
-    rawData(F("  resultDiffString = 'over week';"));    
-    rawData(F("} else if (diffHours > 24) {"));    
-    rawData(F("  resultDiffString = 'over day';"));    
-    rawData(F("} else if (diffHours > 0) {"));    
-    rawData(F("  resultDiffString = diffHours + ' h ' + diffMinutes + ' m ' + diffSeconds + ' s';"));    
-    rawData(F("} else if (diffMinutes > 0) {"));    
-    rawData(F("  resultDiffString = diffMinutes + ' min ' + diffSeconds + ' sec';"));    
-    rawData(F("} else if (diffSeconds > 0) {"));    
-    rawData(F("  resultDiffString = diffSeconds + ' sec';"));    
-    rawData(F("} else {"));    
-    rawData(F("  resultDiffString = '';"));    
-    rawData(F("}"));  
-
-    rawData(F("var diffSpan = document.getElementById('"));    
+  rawData(F("var g_TSDiff=new Date().getTime()-g_GBTS;"));
+  if (diffTimeStampId != NULL){
+    rawData(F("var resultDiffString = '';"));
+    rawData(F("var absTSDiffSec = Math.abs(Math.floor(g_TSDiff/1000));"));    
+    rawData(F("if (absTSDiffSec>0){"));   
+    { 
+      rawData(F("var diffSeconds = absTSDiffSec % 60;"));    
+      rawData(F("var diffMinutes = Math.floor(absTSDiffSec/60) % 60;"));    
+      rawData(F("var diffHours = Math.floor(absTSDiffSec/60/60);"));    
+      rawData(F("if (diffHours>365*24) {")); 
+      {   
+        rawData(F("resultDiffString='over year';")); 
+      }   
+      rawData(F("} else if (diffHours>30*24) {")); 
+      {   
+        rawData(F("resultDiffString='over month';"));  
+      }  
+      rawData(F("} else if (diffHours>7*24) {"));  
+      {  
+        rawData(F("resultDiffString='over week';"));
+      }    
+      rawData(F("} else if (diffHours>24) {"));   
+      { 
+        rawData(F("resultDiffString='over day';")); 
+      }   
+      rawData(F("} else if (diffHours>0) {"));  
+      {  
+        rawData(F("resultDiffString=diffHours+' h '+diffMinutes+' m '+diffSeconds+' s';"));   
+      } 
+      rawData(F("} else if (diffMinutes > 0) {"));    
+      {
+        rawData(F("resultDiffString=diffMinutes+' min '+diffSeconds+' sec';")); 
+      }   
+      rawData(F("} else if (diffSeconds > 0) {"));    
+      {
+        rawData(F("resultDiffString=diffSeconds+' sec';"));    
+      }
+      rawData(F("}")); 
+      rawData(F("resultDiffString='Out of sync '+resultDiffString+' with browser time';")); 
+    }
+    rawData(F("} else {"));
+    {
+      rawData(F("resultDiffString='Synced with browser time';"));
+    } 
+    rawData(F("}"));
+    rawData(F("var g_diffSpanDesc=document.getElementById('"));    
     rawData(diffTimeStampId);    
     rawData(F("');"));   
-
-    rawData(F("diffSpan.innerHTML = \""));   
     if (GB_StorageHelper.isClockTimeStampAutoCalculated()) {
-      spanTag_RedIfTrue(F("Auto calculated. "), true);
+      rawData(F("resultDiffString='Auto calculated. '+resultDiffString;"));  
+      rawData(F("g_diffSpanDesc.style.color='red';"));  
+    } 
+    else {
+      rawData(F("if (absTSDiffSec>60) { g_diffSpanDesc.style.color='red'; }")); 
     }
-    rawData(F("\";"));   
-    rawData(F("if (absDiffInSeconds == 0) {")); 
-    rawData(F("  diffSpan.innerHTML += 'Synced with browser time'"));
-    rawData(F("} else {")); 
-    rawData(F("  diffSpan.innerHTML += 'Out of sync ' + resultDiffString + ' with browser time';"));   
-    rawData(F("}")); 
-
-    rawData(F("if (diffHours > 0 || diffMinutes > 0) {"));  
-    rawData(F("  diffSpan.style.color='red';"));  
-    rawData(F("}"));  
+    rawData(F("g_diffSpanDesc.innerHTML=resultDiffString;")); 
   }  
+
   rawData(F("function updateTimeStamps() {"));
   rawData(F("    var browserTimeStamp = new Date();"));
-  rawData(F("    g_growboxTimeStamp.setTime(browserTimeStamp.getTime() - g_timeStampDiff);"));
-  if (growboxTimeStampId != 0){
+  rawData(F("    g_GBTS.setTime(browserTimeStamp.getTime() - g_TSDiff);"));
+  if (growboxTimeStampId != NULL){
     rawData(F("document.getElementById('"));
     rawData(growboxTimeStampId);
-    rawData(F("').innerHTML = g_growboxTimeStamp.toLocaleString('uk', g_timeFormat);"));
+    rawData(F("').innerHTML = g_GBTS.toLocaleString('uk', g_timeFormat);"));
   }
-  if (browserTimeStampId != 0){
+  if (browserTimeStampId != NULL){
     rawData(F("document.getElementById('"));
     rawData(browserTimeStampId);
     rawData(F("').innerHTML = browserTimeStamp.toLocaleString('uk', g_timeFormat);"));
@@ -620,12 +634,6 @@ void WebServerClass::sendStatusPage(){
   rawData(F("<dl>"));
 
   rawData(F("<dt>General</dt>"));
-  if (GB_StorageHelper.isUseRTC() && !GB_Controller.isRTCPresent()) {
-    rawData(F("<dd>Real-time clock: "));
-    spanTag_RedIfTrue(F("Not connected"), true);
-    rawData(F("</dd>")); 
-  }
-
   rawData(F("<dd>")); 
   rawData(g_isDayInGrowbox ? F("Day") : F("Night"));
   rawData(F(" mode</dd>"));
@@ -639,14 +647,34 @@ void WebServerClass::sendStatusPage(){
     rawData((digitalRead(FAN_SPEED_PIN) == FAN_SPEED_MIN) ? F("min speed") : F("max speed"));
   }
   rawData(F("</dd>"));
-  rawData(F("<dd>Last startup: ")); 
-  rawData(GB_StorageHelper.getLastStartupTimeStamp(), false, true);
+
+  if (GB_StorageHelper.isUseRTC()) {    
+    if (!GB_Controller.isRTCPresent()) {
+      rawData(F("<dd>Real-time clock: "));
+      spanTag_RedIfTrue(F("Not connected"), true);
+      rawData(F("</dd>")); 
+    }
+
+    if (GB_Controller.isClockNeedsSync() || GB_Controller.isClockNotSet()) {
+      rawData(F("<dd>Clock: "));
+      if (GB_Controller.isClockNotSet()) {
+        spanTag_RedIfTrue(F("Not set"), true);
+      }
+      if (GB_Controller.isClockNeedsSync()) {
+        spanTag_RedIfTrue(F("Needs sync"), true);
+      }
+      rawData(F("</dd>")); 
+    }
+  }
+  
+  rawData(F("<dd>Startup: ")); 
+  rawData(GB_StorageHelper.getStartupTimeStamp(), false, true);
   rawData(F("</dd>")); 
 
   rawData(F("<dd>Date &amp; time: ")); 
   rawData(F("<span id='growboxTimeStampId'></span>"));
   rawData(F("<br/><small><span id='diffTimeStampId'></span></small>"));
-  growboxClockJavaScript(F("growboxTimeStampId"), 0, F("diffTimeStampId"));
+  growboxClockJavaScript(F("growboxTimeStampId"), NULL, F("diffTimeStampId"));
   rawData(F("<form action='"));
   rawData(FS(S_url_root));
   rawData(F("' method='post' onSubmit='return g_checkBeforeSetClockTime()'>"));
@@ -658,6 +686,11 @@ void WebServerClass::sendStatusPage(){
   if (c_isWifiResponseError) return;
 
   rawData(F("<dt>Logger</dt>"));
+  if (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) {
+    rawData(F("<dd>External AT24C32 EEPROM: "));
+    spanTag_RedIfTrue(F("Not connected"), true);
+    rawData(F("</dd>")); 
+  } 
   if (!GB_StorageHelper.isStoreLogRecordsEnabled()){
     rawData(F("<dd>")); 
     spanTag_RedIfTrue(F("Disabled"), true);
@@ -674,12 +707,6 @@ void WebServerClass::sendStatusPage(){
     rawData(F("</span>"));
   }
   rawData(F("</dd>"));
-
-  if (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) {
-    rawData(F("<dd>External AT24C32 EEPROM: "));
-    spanTag_RedIfTrue(F("Not connected"), true);
-    rawData(F("</dd>")); 
-  } 
 
   if (c_isWifiResponseError) return;
 
@@ -870,7 +897,6 @@ void WebServerClass::sendLogPage(const String& getParams){
   // fill previousTm
   previousTm.Day = previousTm.Month = previousTm.Year = 0; //remove compiller warning
 
-  rawData(F("<table class='grab'><colgroup><col width='60%'/><col width='40%'/></colgroup><tr><td>"));
   rawData(F("<form action='"));
   rawData(FS(S_url_log));
   rawData(F("' method='get'>"));
@@ -886,16 +912,6 @@ void WebServerClass::sendLogPage(const String& getParams){
   rawData(F("<select id='dateCombobox' name='date'></select>"));
   rawData(F("<input type='submit' value='Show'/>"));
   rawData(F("</form>"));
-
-  rawData(F("</td><td class='align_right'>"));
-  rawData(F("Stored records: "));
-  rawData(GB_StorageHelper.getLogRecordsCount());
-  rawData('/');
-  rawData(GB_StorageHelper.getLogRecordsCapacity());
-  if (GB_StorageHelper.isLogOverflow()){
-    rawData(F(", <span class='red'>overflow</span>"));
-  }
-  rawData(F("</td></table>"));
 
   boolean isTableTagPrinted = false;   
   word index;
@@ -1771,6 +1787,14 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
+
+
+
+
+
+
+
 
 
 

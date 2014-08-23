@@ -13,7 +13,7 @@ const byte WIFI_PASS_LENGTH = 0x40; // 64
 struct BootRecord {
   word first_magic;                 //  2
   time_t firstStartupTimeStamp;     //  4
-  time_t lastStartupTimeStamp;      //  4
+  time_t startupTimeStamp;      //  4
   word nextLogRecordIndex;          //  2
   struct BoolPreferencies {
 boolean isLogOverflow :

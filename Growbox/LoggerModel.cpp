@@ -125,7 +125,8 @@ ERROR_TERMOMETER_DISCONNECTED,
 ERROR_TERMOMETER_ZERO_VALUE,
 ERROR_TERMOMETER_CRITICAL_VALUE,
 ERROR_MEMORY_LOW,
-ERROR_AT24C32_EEPROM_DISCONNECTED;
+ERROR_AT24C32_EEPROM_DISCONNECTED,
+ERROR_RTC_DISCONNECTED;
 
 Event 
 EVENT_FIRST_START_UP, 
@@ -161,13 +162,14 @@ WATERING_EVENT_WATER_PUMP_OFF;
 void initLoggerModel(){
 
   // Use F macro to reduce requirements to memory. We can't use F macro in constructors.
-  ERROR_TIMER_NOT_SET.init(B00, 2, F("Error: Timer not set"));
-  ERROR_TIMER_NEEDS_SYNC.init(B01, 2, F("Error: Timer needs sync"));
+  ERROR_TIMER_NOT_SET.init(B00, 2, F("Error: Clock not set"));
+  ERROR_TIMER_NEEDS_SYNC.init(B01, 2, F("Error: Clock needs sync"));
   ERROR_TERMOMETER_DISCONNECTED.init(B000, 3, F("Error: Termometer disconnected"));
   ERROR_TERMOMETER_ZERO_VALUE.init(B001, 3, F("Error: Termometer returned ZERO value"));
   ERROR_TERMOMETER_CRITICAL_VALUE.init(B010, 3, F("Error: Termometer returned CRITICAL value"));
   ERROR_MEMORY_LOW.init(B011, 3, F("Error: Free memory less than 200 bytes"));
   ERROR_AT24C32_EEPROM_DISCONNECTED.init(B100, 3, F("Error: External AT24C32 EEPROM disconnected"));
+  ERROR_RTC_DISCONNECTED.init(B101, 3, F("Error: Real-time clock disconnected"));
 
   // Zero index used for Empty Log Records, do not use it for Events
   EVENT_FIRST_START_UP.init(1, F("First startup"));

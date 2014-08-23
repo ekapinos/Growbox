@@ -95,45 +95,48 @@ void ControllerClass::update(){
 
 void ControllerClass::initClock(time_t defaultTimeStamp){
 
+  // TODO use only if GB_StorageHelper.isUseRTC() 
   setSyncProvider(RTC.get);   // the function to get the time from the RTC
 
   if (timeStatus() == timeNotSet){    
-    setHarwareAndSoftwareClockTimeStamp(defaultTimeStamp); 
+    setRTCandClockTimeStamp(defaultTimeStamp); 
     c_isAutoCalculatedTimeStampUsed = true;
   }
 }
 
 void ControllerClass::initClock_afterLoadConfiguration(){
-//  if (c_isAutoCalculatedTimeStampUsed){
-    // After init_loadConfiguration, do not clear flag
-    GB_StorageHelper.setClockTimeStampAutoCalculated(c_isAutoCalculatedTimeStampUsed);
-//  }
+  //  if (c_isAutoCalculatedTimeStampUsed){
+  // After init_loadConfiguration, do not clear flag
+  GB_StorageHelper.setClockTimeStampAutoCalculated(c_isAutoCalculatedTimeStampUsed);
+  
+  updateClockState();
+  //  }
 }
 
 void ControllerClass::setClockTime(time_t newTimeStamp){
-  
+
   time_t oldTimeStamp = now();
   long delta = (newTimeStamp > oldTimeStamp) ? (newTimeStamp - oldTimeStamp) : -((long)(oldTimeStamp - newTimeStamp));
-  
-  setHarwareAndSoftwareClockTimeStamp(newTimeStamp);
-  
+
+  setRTCandClockTimeStamp(newTimeStamp);
+
   if (GB_StorageHelper.isClockTimeStampAutoCalculated()){
-    
+
     GB_StorageHelper.setClockTimeStampAutoCalculated(false);
-    
-//    GB_StorageHelper.adjustLastStartupTimeStamp(delta);  
-//    if (GB_StorageHelper.getFirstStartupTimeStamp() == 0){
-//      GB_StorageHelper.adjustFirstStartupTimeStamp(delta);
-//    }  
+
+    //    GB_StorageHelper.adjustLastStartupTimeStamp(delta);  
+    //    if (GB_StorageHelper.getFirstStartupTimeStamp() == 0){
+    //      GB_StorageHelper.adjustFirstStartupTimeStamp(delta);
+    //    }  
   }
-  
+
   // Update watering time
   GB_Watering.adjustWatringTimeOnClockSet(delta); 
 }
 
 // private:
 
-void ControllerClass::setHarwareAndSoftwareClockTimeStamp(time_t newTimeStamp){
+void ControllerClass::setRTCandClockTimeStamp(time_t newTimeStamp){
 
   RTC.set(newTimeStamp);
   setTime(newTimeStamp);
@@ -148,12 +151,21 @@ void ControllerClass::setHarwareAndSoftwareClockTimeStamp(time_t newTimeStamp){
 // public:
 
 void ControllerClass::updateClockState(){
-  
+
   if (!GB_StorageHelper.isUseRTC()){
+    GB_Logger.stopLogError(ERROR_RTC_DISCONNECTED);
+    GB_Logger.stopLogError(ERROR_TIMER_NOT_SET);
+    GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
     return;
   }
-  
-  now(); // try to resync clock with hardware
+
+  // Check hardware
+  if(!isRTCPresent()){
+    GB_Logger.logError(ERROR_RTC_DISCONNECTED);  
+  } 
+  else {
+    GB_Logger.stopLogError(ERROR_RTC_DISCONNECTED);
+  }
   
   if (timeStatus() == timeNotSet) { 
     GB_Logger.logError(ERROR_TIMER_NOT_SET);  
@@ -167,6 +179,14 @@ void ControllerClass::updateClockState(){
   } 
 }
 
+boolean ControllerClass::isClockNotSet(){
+  return (timeStatus() == timeNotSet);
+}
+
+boolean ControllerClass::isClockNeedsSync(){
+  return (timeStatus() == timeNeedsSync);
+}
+
 boolean ControllerClass::isRTCPresent(){
   RTC.get(); // update status
   return RTC.chipPresent();
@@ -178,6 +198,8 @@ boolean ControllerClass::isRTCPresent(){
 
 
 ControllerClass GB_Controller;
+
+
 
 
 

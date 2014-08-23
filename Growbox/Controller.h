@@ -21,12 +21,17 @@ public:
   void initClock_afterLoadConfiguration();
 
   void setClockTime(time_t newTimeStamp);
+  
 private:
-  void setHarwareAndSoftwareClockTimeStamp(time_t newTimeStamp);
+  void setRTCandClockTimeStamp(time_t newTimeStamp);
+  
 public:
   void updateClockState();
+  boolean isClockNotSet();
+  boolean isClockNeedsSync();
+  
   boolean isRTCPresent();
-  //boolean isAutoCalculatedTimeUsed();
+
   /////////////////////////////////////////////////////////////////////
   //                              OTHER                              //
   /////////////////////////////////////////////////////////////////////
@@ -45,6 +50,7 @@ public:
 extern ControllerClass GB_Controller;
 
 #endif
+
 
 
 

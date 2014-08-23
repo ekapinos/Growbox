@@ -47,7 +47,7 @@ time_t StorageHelperClass::init_getLastStoredTime(){
   }
 
   // check last boot
-  time_t lastStoredTime = getLastStartupTimeStamp();
+  time_t lastStoredTime = getStartupTimeStamp();
 
   // check last watering event
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++) {
@@ -77,13 +77,13 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
 
   boolean itWasRestart;   
   if ((bootRecord.first_magic == MAGIC_NUMBER) && (bootRecord.last_magic == MAGIC_NUMBER)){ 
-    EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp), currentTime);      
+    EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, startupTimeStamp), currentTime);      
     itWasRestart = true;   
   } 
   else {
     bootRecord.first_magic = MAGIC_NUMBER;
     bootRecord.firstStartupTimeStamp = currentTime;
-    bootRecord.lastStartupTimeStamp = currentTime;
+    bootRecord.startupTimeStamp = currentTime;
     bootRecord.nextLogRecordIndex = 0;
     bootRecord.boolPreferencies.isLogOverflow = false;
     bootRecord.boolPreferencies.isLoggerEnabled = true;
@@ -166,8 +166,8 @@ time_t StorageHelperClass::getFirstStartupTimeStamp(){
   return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, firstStartupTimeStamp)); 
 }
 
-time_t StorageHelperClass::getLastStartupTimeStamp(){
-  return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp));
+time_t StorageHelperClass::getStartupTimeStamp(){
+  return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, startupTimeStamp));
 }
 
 void StorageHelperClass::adjustFirstStartupTimeStamp(long delta){
@@ -176,10 +176,10 @@ void StorageHelperClass::adjustFirstStartupTimeStamp(long delta){
   EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, firstStartupTimeStamp), time); 
 }
 
-void StorageHelperClass::adjustLastStartupTimeStamp(long delta){
-  time_t time = EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp)); 
+void StorageHelperClass::adjustStartupTimeStamp(long delta){
+  time_t time = EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, startupTimeStamp)); 
   time += delta;
-  EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, lastStartupTimeStamp), time); 
+  EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, startupTimeStamp), time); 
 }
 
 void StorageHelperClass::resetFirmware(){
