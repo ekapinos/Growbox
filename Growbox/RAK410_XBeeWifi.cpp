@@ -12,6 +12,7 @@ const char S_WIFI_RESPONSE_OK[] PROGMEM  = "OK";
 const char S_WIFI_GET_[] PROGMEM  = "GET /";
 const char S_WIFI_POST_[] PROGMEM  = "POST /"; 
 
+//const boolean S_WIFI_HOW_HTTP_RESPONSE_DATA = false;
 
 RAK410_XBeeWifiClass::RAK410_XBeeWifiClass(): 
 c_isWifiPresent(false), c_restartWifi(true), c_isWifiPrintCommandStarted(false) {
@@ -520,7 +521,7 @@ String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* co
 
   Serial_skipAll();
 
-  if (command == 0){   
+  if (command == NULL){   
     Serial1.println();
   } 
   else {
@@ -565,10 +566,4 @@ String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* co
 }
 
 RAK410_XBeeWifiClass RAK410_XBeeWifi;
-
-
-
-
-
-
 

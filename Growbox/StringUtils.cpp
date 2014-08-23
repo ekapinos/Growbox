@@ -79,6 +79,9 @@ boolean StringUtils::flashStringEndsWith(const String &str, const __FlashStringH
 }
 
 String StringUtils::flashStringLoad(const __FlashStringHelper* fstr){
+  if (fstr == NULL){
+    return String();
+  }
   size_t fLength = flashStringLength(fstr);
   if (fLength==0){
     return String();

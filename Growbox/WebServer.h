@@ -35,11 +35,11 @@ public:
   //                               HTTP                              //
   /////////////////////////////////////////////////////////////////////
 private:
-  void sendHttpNotFound();
-  void sendHttpRedirect(const String &url);
+  void httpNotFound();
+  void httpRedirect(const String &url);
 
-  void sendHttpPageHeader();
-  void sendHttpPageComplete();
+  void httpPageHeader();
+  void httpPageComplete();
 
   /////////////////////////////////////////////////////////////////////
   //                         HTTP PARAMETERS                         //
@@ -53,37 +53,37 @@ private:
   //                               HTML                              //
   /////////////////////////////////////////////////////////////////////
 
-  void sendRawData(const __FlashStringHelper* data);
-  void sendRawData(const String &data);
-  void sendRawData(float data);
-  void sendRawData(time_t data, boolean interpretateAsULong = false, boolean forceShowZeroTimeStamp = false);
-  template <class T> void sendRawData(T data){
+  void rawData(const __FlashStringHelper* data);
+  void rawData(const String &data);
+  void rawData(float data);
+  void rawData(time_t data, boolean interpretateAsULong = false, boolean forceShowZeroTimeStamp = false);
+  template <class T> void rawData(T data){
     String str(data);
-    sendRawData(str);
+    rawData(str);
   }
 
-  void sendTagButton(const __FlashStringHelper* url, const __FlashStringHelper* text, boolean isSelected);
-  void sendTagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected);
-  void sendTagRadioButton(const __FlashStringHelper* name, const __FlashStringHelper* text, const __FlashStringHelper* value, boolean isSelected);
-  void sendTagInputNumber(const __FlashStringHelper* name, const __FlashStringHelper* text, word minValue, word maxValue, word value);
-  void sendTagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value);
+  void tagButton(const __FlashStringHelper* url, const __FlashStringHelper* text, boolean isSelected);
+  void tagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected);
+  void tagRadioButton(const __FlashStringHelper* name, const __FlashStringHelper* text, const __FlashStringHelper* value, boolean isSelected);
+  void tagInputNumber(const __FlashStringHelper* name, const __FlashStringHelper* text, word minValue, word maxValue, word value);
+  void tagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value);
   word getTimeFromInput(const String& value);
 
-  void sendTagOption(const String& value, const String& text, boolean isSelected,  boolean isDisabled = false);
-  void sendTagOption(const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected,  boolean isDisabled = false);
+  void tagOption(const String& value, const String& text, boolean isSelected,  boolean isDisabled = false);
+  void tagOption(const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected,  boolean isDisabled = false);
 
-  void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected);
-  void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected);
-  void sendAppendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected);
+  void appendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected);
+  void appendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected);
+  void appendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected);
 
-  void sendTimeStampJavaScript(const __FlashStringHelper* growboxTimeStampId = 0, const __FlashStringHelper* browserTimeStampId = 0, const __FlashStringHelper* diffTimeStampId = 0);
-  void sendTextRedIfTrue(const __FlashStringHelper* text, boolean isRed);
+  void growboxClockJavaScript(const __FlashStringHelper* growboxTimeStampId = 0, const __FlashStringHelper* browserTimeStampId = 0, const __FlashStringHelper* diffTimeStampId = 0);
+  void spanTag_RedIfTrue(const __FlashStringHelper* text, boolean isRed);
   
   /////////////////////////////////////////////////////////////////////
   //                     COMMON FOR ALL PAGES                        //
   /////////////////////////////////////////////////////////////////////
 
-  void processHttpGet(const String &input, const String &getParams);
+  void httpProcessGet(const String &input, const String &getParams);
 
   /////////////////////////////////////////////////////////////////////
   //                          STATUS PAGE                            //
