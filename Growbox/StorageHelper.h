@@ -41,7 +41,9 @@ public:
   /////////////////////////////////////////////////////////////////////
   //                             GROWBOX                             //
   /////////////////////////////////////////////////////////////////////
-
+  void setUseRTC(boolean flag);
+  boolean isUseRTC();
+  
   void setClockTimeStampAutoCalculated(boolean flag);
   boolean isClockTimeStampAutoCalculated();
 
@@ -51,6 +53,7 @@ public:
 
   void setUseThermometer(boolean flag);
   boolean isUseThermometer();
+  
   void getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatue);
   void setNormalTemperatueDayMin(const byte normalTemperatueDayMin);
   void setNormalTemperatueDayMax(const byte normalTemperatueDayMax);

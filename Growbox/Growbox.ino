@@ -30,12 +30,6 @@
 /////////////////////////////////////////////////////////////////////
 
 boolean isDayInGrowbox(){
-  if(timeStatus() == timeNeedsSync){
-    GB_Logger.logError(ERROR_TIMER_NEEDS_SYNC);
-  } 
-  else {
-    GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
-  }
 
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
@@ -150,9 +144,9 @@ void setup() {
     stopOnFatalError(F("wrong WATERING_PUMP_PINS size"));
   }
   GB_Controller.checkFreeMemory();
-  
+
   // Booted up
-  
+
   printStatusOnBoot(F("clock")); 
   time_t autoCalculatedTimeStamp = GB_StorageHelper.init_getLastStoredTime(); // returns zero, if first startup
   if (autoCalculatedTimeStamp != 0){
@@ -163,7 +157,7 @@ void setup() {
 
 
   time_t startupTimeStamp = now() - (millis() - startupMillis)/1000;
-  
+
 
   printStatusOnBoot(F("stored configuration"));
   GB_StorageHelper.init_loadConfiguration(startupTimeStamp);  // Logger will enabled after that   // after set clock and load configuration we are ready for logging
@@ -174,10 +168,10 @@ void setup() {
 
   GB_Watering.init(startupTimeStamp); // call before updateGrowboxState();
   GB_Controller.checkFreeMemory();
-  
-//  No need to call  
-//  GB_Thermometer.updateStatistics(); 
-//  GB_Controller.checkFreeMemory();
+
+  //  No need to call  
+  //  GB_Thermometer.updateStatistics(); 
+  //  GB_Controller.checkFreeMemory();
 
   // Max 6 timer for Alarm instance
   Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
@@ -222,7 +216,7 @@ void serialEvent(){
 
   boolean forceUpdateGrowboxState = GB_WebServer.handleSerialMonitorEvent();
   if (forceUpdateGrowboxState){
-    updateGrowboxState();
+    updateGrowboxState(false);
   }
 }
 
@@ -239,7 +233,7 @@ void serialEvent1(){
   //  Serial.println(input);
   boolean forceUpdateGrowboxState = GB_WebServer.handleSerialEvent();
   if (forceUpdateGrowboxState){
-    updateGrowboxState();
+    updateGrowboxState(false);
   }
 }
 
@@ -249,8 +243,14 @@ void serialEvent1(){
 /////////////////////////////////////////////////////////////////////
 
 void updateGrowboxState() {
+  updateGrowboxState(true);
+}
+void updateGrowboxState(boolean checkWetSensors) {
 
-  GB_Watering.turnOnWetSensors();
+  if (checkWetSensors) {
+    // Allows impruve stability on WEB call
+    GB_Watering.turnOnWetSensors();
+  }
 
   // Init/Restore growbox state
   if (isDayInGrowbox()){
@@ -309,8 +309,10 @@ void updateGrowboxState() {
     }
   }
 
-  GB_Watering.turnOffWetSensorsAndUpdateWetStatus();
-
+  if (checkWetSensors) {
+    GB_Watering.turnOffWetSensorsAndUpdateWetStatus(); // log new sensors values
+  }
+  GB_Watering.updateWateringSchedule(); // recalculate
 }
 
 
@@ -382,6 +384,7 @@ void turnOffFan(){
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
   GB_Logger.logEvent(EVENT_FAN_OFF);
 }
+
 
 
 

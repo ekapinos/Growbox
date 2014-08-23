@@ -6,8 +6,9 @@
 #include "Thermometer.h"
 #include "EEPROM_ARDUINO.h"
 #include "EEPROM_AT24C32.h"
+#include "Controller.h"
 
-#define OFFSETOF(type, field)    ((unsigned long) &(((type *) 0)->field))
+#define OFFSETOF(type, field)  ((unsigned long) &(((type *) 0)->field))
 
 // private:
 
@@ -60,7 +61,7 @@ time_t StorageHelperClass::init_getLastStoredTime(){
   word logRecordIndex = getLogRecordsCount()-1;
   if (logRecordIndex > 0){
     LogRecord logRecord = getLogRecordByIndex(logRecordIndex);
-    
+
     // If No External EEPROM zero value doesn't break this code
     if (logRecord.timeStamp > lastStoredTime){
       lastStoredTime = logRecord.timeStamp;
@@ -86,10 +87,12 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
     bootRecord.nextLogRecordIndex = 0;
     bootRecord.boolPreferencies.isLogOverflow = false;
     bootRecord.boolPreferencies.isLoggerEnabled = true;
-    bootRecord.boolPreferencies.isWifiStationMode = false; // AP by default
+    bootRecord.boolPreferencies.isWifiStationMode = false; // Access point used by default
+    
     bootRecord.boolPreferencies.isClockTimeStampAutoCalculated = false;
     bootRecord.boolPreferencies.useExternal_EEPROM_AT24C32 = EEPROM_AT24C32.isPresent();
     bootRecord.boolPreferencies.useThermometer = GB_Thermometer.isPresent();
+    bootRecord.boolPreferencies.useRTC = GB_Controller.isRTCPresent();
 
     bootRecord.turnToDayModeAt = 9*60;
     bootRecord.turnToNightModeAt = 21*60;
@@ -134,7 +137,7 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
     setBootRecord(bootRecord);
     itWasRestart =  false; 
   }
-  
+
   c_isConfigurationLoaded = true;
   if (itWasRestart){
     GB_Logger.logEvent(EVENT_RESTART);
@@ -143,7 +146,7 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
     GB_Logger.logEvent(EVENT_FIRST_START_UP);
   }
   check_AT24C32_EEPROM();
-  
+
   return itWasRestart;
 }
 
@@ -151,7 +154,8 @@ boolean StorageHelperClass::check_AT24C32_EEPROM(){
   if (isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()){
     GB_Logger.logError(ERROR_AT24C32_EEPROM_DISCONNECTED);
     return false;
-  } else {
+  } 
+  else {
     GB_Logger.stopLogError(ERROR_AT24C32_EEPROM_DISCONNECTED);
     return true;
   }
@@ -194,7 +198,7 @@ void StorageHelperClass::setUseExternal_EEPROM_AT24C32(boolean useExternal){
   }
   boolPreferencies.useExternal_EEPROM_AT24C32 = useExternal; 
   setBoolPreferencies(boolPreferencies);  
- 
+
   // Prepare log
   if (isLogOverflow()){
     setLogOverflow(false); // records 0..next => saved, next..arduinoCapacity => lost
@@ -215,6 +219,16 @@ boolean StorageHelperClass::isUseExternal_EEPROM_AT24C32(){
 /////////////////////////////////////////////////////////////////////
 //                             GROWBOX                             //
 /////////////////////////////////////////////////////////////////////
+
+void StorageHelperClass::setUseRTC(boolean flag){
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.useRTC = flag; 
+  setBoolPreferencies(boolPreferencies);  
+}
+
+boolean StorageHelperClass::isUseRTC(){
+  return getBoolPreferencies().useRTC;
+}
 
 void StorageHelperClass::setClockTimeStampAutoCalculated(boolean flag){
   BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
@@ -385,7 +399,7 @@ void StorageHelperClass::increaseNextLogRecordIndex(){
   nextLogRecordIndex++;
   if (nextLogRecordIndex >= getLogRecordsCapacity()){
     nextLogRecordIndex = 0;
-     
+
     setLogOverflow(true);
   }
   EEPROM.updateBlock(OFFSETOF(BootRecord, nextLogRecordIndex), nextLogRecordIndex); 
@@ -460,6 +474,7 @@ void StorageHelperClass::setWateringSystemPreferenciesById(byte id, BootRecord::
 }
 
 StorageHelperClass GB_StorageHelper;
+
 
 
 

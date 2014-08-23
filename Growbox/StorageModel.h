@@ -28,6 +28,8 @@ boolean useExternal_EEPROM_AT24C32 :
     1;    
 boolean useThermometer :
     1;  
+boolean useRTC :
+    1;  
   } 
   boolPreferencies;                 // 1
 

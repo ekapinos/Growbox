@@ -108,7 +108,7 @@ void WateringClass::turnOffWetSensorsAndUpdateWetStatus(){
   long remanedDelay = c_turnOnWetSensorsTimeStamp - now() + WATERING_SYSTEM_TURN_ON_DELAY;
   if (remanedDelay > 0){
     if(g_useSerialMonitor){
-      showWateringMessage(F("Wait Wet sensors for "), false);
+      showWateringMessage(F("Waiting Wet sensors for "), false);
       Serial.print(remanedDelay);
       Serial.println(F(" sec"));
     }

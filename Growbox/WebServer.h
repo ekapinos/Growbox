@@ -9,13 +9,12 @@
 
 const char S_url_root[] PROGMEM  = "/";
 const char S_url_log[] PROGMEM  = "/log";
-const char S_url_watering[] PROGMEM  = "/ws";
+const char S_url_watering[] PROGMEM  = "/watering";
 const char S_url_general [] PROGMEM  = "/general";
 const char S_url_hardware [] PROGMEM  = "/hardware";
-const char S_url_wifi [] PROGMEM  = "/hardware/wifi";
-const char S_url_dump_internal[] PROGMEM  = "/hardware/dump/internal";
-const char S_url_dump_AT24C32[] PROGMEM  = "/hardware/dump/AT24C32";
-const char S_url_other [] PROGMEM  = "/hardware/other";
+const char S_url_other [] PROGMEM  = "/other";
+const char S_url_dump_internal[] PROGMEM  = "/other/dump_internal";
+const char S_url_dump_AT24C32[] PROGMEM  = "/other/dump_AT24C32";
 
 
 class WebServerClass{
@@ -116,7 +115,6 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   void sendHardwarePage(const String& getParams);
-  void sendWifiPage(const String& getParams);
   void sendStorageDumpPage(const String& getParams, boolean isInternal);
   void sendOtherPage(const String& getParams);
 

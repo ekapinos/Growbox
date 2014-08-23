@@ -148,7 +148,11 @@ void ControllerClass::setHarwareAndSoftwareClockTimeStamp(time_t newTimeStamp){
 // public:
 
 void ControllerClass::updateClockState(){
-
+  
+  if (!GB_StorageHelper.isUseRTC()){
+    return;
+  }
+  
   now(); // try to resync clock with hardware
   
   if (timeStatus() == timeNotSet) { 
@@ -163,7 +167,7 @@ void ControllerClass::updateClockState(){
   } 
 }
 
-boolean ControllerClass::isHardwareClockPresent(){
+boolean ControllerClass::isRTCPresent(){
   RTC.get(); // update status
   return RTC.chipPresent();
 }

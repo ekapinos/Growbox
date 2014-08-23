@@ -25,7 +25,7 @@ private:
   void setHarwareAndSoftwareClockTimeStamp(time_t newTimeStamp);
 public:
   void updateClockState();
-  boolean isHardwareClockPresent();
+  boolean isRTCPresent();
   //boolean isAutoCalculatedTimeUsed();
   /////////////////////////////////////////////////////////////////////
   //                              OTHER                              //

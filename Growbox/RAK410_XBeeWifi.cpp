@@ -170,10 +170,10 @@ boolean RAK410_XBeeWifiClass::checkStartedWifi(){
   c_isWifiPresent = StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_OK));
   
   if(c_isWifiPresent){ 
-    showWifiMessage(F("Wi-Fi connected"));
+      showWifiMessage(F("Wi-Fi connection OK"));
   } 
   else {
-    showWifiMessage(F("Wi-Fi not connected"));
+      showWifiMessage(F("W-Fi connection LOST"));
   }
   
   return c_isWifiPresent;
