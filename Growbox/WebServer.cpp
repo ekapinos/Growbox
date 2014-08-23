@@ -113,7 +113,7 @@ void WebServerClass::httpPageHeader(){
 }
 
 void WebServerClass::httpPageComplete(){  
-  RAK410_XBeeWifi.sendAutoSizeFrameStop();
+  RAK410_XBeeWifi.sendAutoSizeFrameStop(c_wifiPortDescriptor);
   RAK410_XBeeWifi.sendCloseConnection(c_wifiPortDescriptor);
 }
 
@@ -512,9 +512,11 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams){
   httpPageHeader();
 
   if (isRootPage || isWateringPage) {
+#ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
     if (g_useSerialMonitor){
       Serial.println(); // We cut log stream to show wet status in new line
     }
+#endif
     GB_Watering.preUpdateWetSatus();
   }
 
@@ -717,9 +719,11 @@ void WebServerClass::sendStatusPage(){
   }
   if (c_isWifiResponseError) return;
 
+#ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
   if (g_useSerialMonitor){
     Serial.println(); // We cut log stream to show wet status in new line
   }
+#endif
   GB_Watering.updateWetSatus();
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
 
@@ -978,7 +982,7 @@ void WebServerClass::sendGeneralPage(const String& getParams){
   rawData(F("<fieldset><legend>Day &amp; Night mode</legend>"));  
   rawData(F("<form action='"));
   rawData(FS(S_url_general));
-  rawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value { alert(\"Turn times should be different\"); return false;}'>"));
+  rawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value) { alert(\"Turn times should be different\"); return false;}'>"));
   rawData(F("<table class='grab'>"));
   rawData(F("<tr><td>Turn to Day mode at</td><td>"));
   tagInputTime(F("turnToDayModeAt"), 0, upTime);
@@ -1133,9 +1137,11 @@ void WebServerClass::sendWateringPage(const String& url, byte wsIndex){
   rawData(F("<input type='hidden' name='clearLastWateringTime'>"));
   rawData(F("</form>"));
 
+#ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
   if (g_useSerialMonitor){
     Serial.println(); // We cut log stream to show wet status in new line
   }
+#endif
   GB_Watering.updateWetSatus();
   byte currentValue = GB_Watering.getCurrentWetSensorValue(wsIndex);
   WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);

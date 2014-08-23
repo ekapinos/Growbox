@@ -12,8 +12,6 @@ const char S_WIFI_RESPONSE_OK[] PROGMEM  = "OK";
 const char S_WIFI_GET_[] PROGMEM  = "GET /";
 const char S_WIFI_POST_[] PROGMEM  = "POST /"; 
 
-//const boolean S_WIFI_HOW_HTTP_RESPONSE_DATA = false;
-
 RAK410_XBeeWifiClass::RAK410_XBeeWifiClass(): 
 c_isWifiPresent(false), c_restartWifi(true), c_isWifiPrintCommandStarted(false) {
 }
@@ -33,7 +31,7 @@ void RAK410_XBeeWifiClass::init(){
 }
 
 void RAK410_XBeeWifiClass::update(){
-  
+
   // Check is Wi-Fi present
   if (isPresent()){
     if (!checkStartedWifi()){
@@ -41,12 +39,13 @@ void RAK410_XBeeWifiClass::update(){
         return;
       }
     }
-  } else {
+  } 
+  else {
     if (!restartWifi()){
       return;
     }
   } 
-  
+
   // Restart, if need
   if (c_restartWifi){
     restartWifi();
@@ -56,9 +55,9 @@ void RAK410_XBeeWifiClass::update(){
 // private:
 
 boolean RAK410_XBeeWifiClass::restartWifi(){
-  
+
   showWifiMessage(F("Checking Wi-Fi status (restart)...")); 
-  
+
   c_isWifiPresent = false;
 
   for (byte i = 0; i < 3; i++){ // Sometimes first command returns ERROR, two attempts    
@@ -163,20 +162,20 @@ boolean RAK410_XBeeWifiClass::restartWifi(){
 }
 
 boolean RAK410_XBeeWifiClass::checkStartedWifi(){
-  
+
   showWifiMessage(F("Checking Wi-Fi status (stand by)...")); 
-  
+
   String input = wifiExecuteRawCommand(F("at+con_status"), 500); // Is Wi-Fi OK?
 
   c_isWifiPresent = StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_OK));
-  
+
   if(c_isWifiPresent){ 
-      showWifiMessage(F("Wi-Fi connection OK"));
+    showWifiMessage(F("Wi-Fi connection OK"));
   } 
   else {
-      showWifiMessage(F("W-Fi connection LOST"));
+    showWifiMessage(F("W-Fi connection LOST"));
   }
-  
+
   return c_isWifiPresent;
 }
 // public:
@@ -404,67 +403,122 @@ boolean RAK410_XBeeWifiClass::sendFixedSizeFrameStop(){
 }
 
 void RAK410_XBeeWifiClass::sendAutoSizeFrameStart(const byte &wifiPortDescriptor){
+
+#ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
+
   sendFixedSizeFrameStart(wifiPortDescriptor, WIFI_MAX_SEND_FRAME_SIZE);
   if (!WIFI_SHOW_AUTO_SIZE_FRAME_DATA) {
     Serial.print(F("[...]"));
   }
+  
+#endif
+
   c_autoSizeFrameSize = 0;
 }
 
 boolean RAK410_XBeeWifiClass::sendAutoSizeFrameData(const byte &wifiPortDescriptor, const __FlashStringHelper* data){
-  boolean isSendOK = true;
-  if (c_autoSizeFrameSize + StringUtils::flashStringLength(data) < WIFI_MAX_SEND_FRAME_SIZE){
-    c_autoSizeFrameSize += wifiExecuteCommandPrint(data, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
-  } 
-  else {
-    size_t index = 0;
-    while (c_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
-      char c = StringUtils::flashStringCharAt(data, index++);
-      c_autoSizeFrameSize += wifiExecuteCommandPrint(c, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
-    }
-    isSendOK = sendAutoSizeFrameStop();
-    sendAutoSizeFrameStart(wifiPortDescriptor);   
-    while (index < StringUtils::flashStringLength(data)){
-      char c = StringUtils::flashStringCharAt(data, index++);
-      c_autoSizeFrameSize += wifiExecuteCommandPrint(c, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
-    } 
-
-  }
-  return isSendOK;
+  return RAK410_XBeeWifiClass::sendAutoSizeFrameData(wifiPortDescriptor, StringUtils::flashStringLoad(data));
+//  if (StringUtils::flashStringLength(data) == 0){
+//    return true;
+//  }
+//
+//#ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
+//
+//  if (c_autoSizeFrameSize + StringUtils::flashStringLength(data) < WIFI_MAX_SEND_FRAME_SIZE){
+//    c_autoSizeFrameSize += wifiExecuteCommandPrint(data, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
+//    return true;
+//  } 
+//
+//  size_t index = 0;
+//  while (c_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
+//    char c = StringUtils::flashStringCharAt(data, index++);
+//    c_autoSizeFrameSize += wifiExecuteCommandPrint(c, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
+//  }
+//  if (!sendAutoSizeFrameStop()){
+//    return false;
+//  }
+//
+//  sendAutoSizeFrameStart(wifiPortDescriptor);   
+//  while (index < StringUtils::flashStringLength(data)){
+//    char c = StringUtils::flashStringCharAt(data, index++);
+//    c_autoSizeFrameSize += wifiExecuteCommandPrint(c, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
+//  } 
+//
+//#else  
+//
+//#endif
+//
+//  return true;
 }  
 
 boolean RAK410_XBeeWifiClass::sendAutoSizeFrameData(const byte &wifiPortDescriptor, const String &data){
-  boolean isSendOK = true;
   if (data.length() == 0){
-    return isSendOK;
+    return true;
   }
-  if (c_autoSizeFrameSize + data.length() < WIFI_MAX_SEND_FRAME_SIZE){
-    c_autoSizeFrameSize += wifiExecuteCommandPrint(data, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
-  } 
-  else {
-    size_t index = 0;
-    while (c_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
-      char c = data[index++];
-      c_autoSizeFrameSize += wifiExecuteCommandPrint(c, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
-    }
-    isSendOK = sendAutoSizeFrameStop();
-    sendAutoSizeFrameStart(wifiPortDescriptor); 
 
-    while (index < data.length()){
-      char c = data[index++];
-      c_autoSizeFrameSize += wifiExecuteCommandPrint(c, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
-    }      
+  if (c_autoSizeFrameSize + data.length() < WIFI_MAX_SEND_FRAME_SIZE){
+#ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
+    c_autoSizeFrameSize += wifiExecuteCommandPrint(data, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
+#else  
+    for (unsigned int i = 0; i < data.length(); i++){
+      c_autoSizeFrameBuffer[c_autoSizeFrameSize++] = data[i];
+    }
+#endif
+    return true;
+  } 
+
+  size_t index = 0;
+  while (c_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
+    char c = data[index++];
+#ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
+    c_autoSizeFrameSize += wifiExecuteCommandPrint(c, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
+#else  
+    c_autoSizeFrameBuffer[c_autoSizeFrameSize++] = c;
+#endif
   }
-  return isSendOK;
+  if(!sendAutoSizeFrameStop(wifiPortDescriptor)){
+    return false;
+  }
+  sendAutoSizeFrameStart(wifiPortDescriptor); 
+
+  while (index < data.length()){
+    char c = data[index++];
+#ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
+    c_autoSizeFrameSize += wifiExecuteCommandPrint(c, WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
+#else  
+    c_autoSizeFrameBuffer[c_autoSizeFrameSize++] = c;
+#endif  
+  }
+
+  return true;
 }
 
-boolean RAK410_XBeeWifiClass::sendAutoSizeFrameStop(){
+boolean RAK410_XBeeWifiClass::sendAutoSizeFrameStop(const byte &wifiPortDescriptor){
+
+#ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
+
   if (c_autoSizeFrameSize > 0){
     while (c_autoSizeFrameSize < WIFI_MAX_SEND_FRAME_SIZE){
       c_autoSizeFrameSize += Serial1.write(0x00); // Filler 0x00
     }
   }
   return sendFixedSizeFrameStop();
+
+#else
+  if (c_autoSizeFrameSize == 0){
+    return true;
+  }
+  sendFixedSizeFrameStart(wifiPortDescriptor, c_autoSizeFrameSize);
+  if (!WIFI_SHOW_AUTO_SIZE_FRAME_DATA) {
+    Serial.print(F("[...]"));
+  }
+  for (word i = 0; i < c_autoSizeFrameSize; i++){
+    wifiExecuteCommandPrint(c_autoSizeFrameBuffer[i], WIFI_SHOW_AUTO_SIZE_FRAME_DATA);
+  }
+  c_autoSizeFrameSize = 0;
+  return sendFixedSizeFrameStop();  
+#endif
+
 } 
 
 boolean RAK410_XBeeWifiClass::sendCloseConnection(const byte wifiPortDescriptor){
@@ -569,4 +623,6 @@ String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* co
 }
 
 RAK410_XBeeWifiClass RAK410_XBeeWifi;
+
+
 

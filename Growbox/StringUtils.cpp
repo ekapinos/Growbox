@@ -6,6 +6,9 @@
 /////////////////////////////////////////////////////////////////////
 
 size_t StringUtils::flashStringLength(const __FlashStringHelper* fstr){
+  if (fstr == NULL){
+    return 0;
+  }
   return strlen_P(((const char /*PROGMEM*/*)fstr));
 }
 
@@ -79,9 +82,6 @@ boolean StringUtils::flashStringEndsWith(const String &str, const __FlashStringH
 }
 
 String StringUtils::flashStringLoad(const __FlashStringHelper* fstr){
-  if (fstr == NULL){
-    return String();
-  }
   size_t fLength = flashStringLength(fstr);
   if (fLength==0){
     return String();

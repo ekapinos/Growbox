@@ -4,18 +4,23 @@
 #include "Global.h"
 #include "PrintUtils.h"
 
+//#define WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
+
 class RAK410_XBeeWifiClass{
 
 private:
 
   static const boolean WIFI_SHOW_AUTO_SIZE_FRAME_DATA = false;
-
-  static const unsigned int WIFI_MAX_SEND_FRAME_SIZE = 1400; // 1400 max from spec
-  static const unsigned int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
+  
+  static const word WIFI_MAX_SEND_FRAME_SIZE = 1400; // 1400 max from spec
+  static const word WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
 
   boolean c_isWifiPresent;
   boolean c_restartWifi;
   unsigned int c_autoSizeFrameSize;
+#ifndef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
+  char c_autoSizeFrameBuffer[WIFI_MAX_SEND_FRAME_SIZE];
+#endif
   boolean c_isWifiPrintCommandStarted;
 
 public:
@@ -26,7 +31,6 @@ public:
     RAK410_XBEEWIFI_REQUEST_TYPE_CLIENT_DISCONNECTED,
     RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_GET,
     RAK410_XBEEWIFI_REQUEST_TYPE_DATA_HTTP_POST
-
   };
 
   RAK410_XBeeWifiClass();
@@ -57,7 +61,7 @@ public:
   void    sendAutoSizeFrameStart(const byte &wifiPortDescriptor);
   boolean sendAutoSizeFrameData(const byte &wifiPortDescriptor, const __FlashStringHelper* data); 
   boolean sendAutoSizeFrameData(const byte &wifiPortDescriptor, const String &data);
-  boolean sendAutoSizeFrameStop();
+  boolean sendAutoSizeFrameStop(const byte &wifiPortDescriptor);
 
   boolean sendCloseConnection(const byte portDescriptor);
 
