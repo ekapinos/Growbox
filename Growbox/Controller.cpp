@@ -12,13 +12,65 @@
 
 
 ControllerClass::ControllerClass(): 
-c_freeMemoryLastCheck(0), c_isAutoCalculatedTimeStampUsed(false){
+c_freeMemoryLastCheck(0), c_isAutoCalculatedClockTimeUsed(false){
 }
 
 void ControllerClass::rebootController() {
   showControllerMessage(F("Reboot"));
   void(* resetFunc) (void) = 0; // Reset MC function
   resetFunc(); // call
+}
+
+void ControllerClass::update(){
+
+  digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
+  c_lastBreezeTimeStamp = now();
+
+  checkInputPinsStatus();
+  checkFreeMemory();
+
+}
+
+void ControllerClass::updateClockState(){
+  // Check hardware
+  if (!GB_StorageHelper.isUseRTC()){
+    GB_Logger.stopLogError(ERROR_CLOCK_RTC_DISCONNECTED);
+    GB_Logger.stopLogError(ERROR_CLOCK_NOT_SET);
+    GB_Logger.stopLogError(ERROR_CLOCK_NEEDS_SYNC);
+    return;
+  }
+
+  // Check software
+  if(!isRTCPresent()){
+    GB_Logger.logError(ERROR_CLOCK_RTC_DISCONNECTED); 
+
+    GB_Logger.stopLogError(ERROR_CLOCK_NOT_SET);
+    GB_Logger.stopLogError(ERROR_CLOCK_NEEDS_SYNC);
+  } 
+  else {
+    GB_Logger.stopLogError(ERROR_CLOCK_RTC_DISCONNECTED);
+
+    if (isClockNotSet()) { 
+      GB_Logger.logError(ERROR_CLOCK_NOT_SET);  
+    } 
+    else if (isClockNeedsSync()) { 
+      GB_Logger.logError(ERROR_CLOCK_NEEDS_SYNC);
+    } 
+    else {
+      GB_Logger.stopLogError(ERROR_CLOCK_NOT_SET);
+      GB_Logger.stopLogError(ERROR_CLOCK_NEEDS_SYNC);
+    } 
+  }
+
+}
+
+void ControllerClass::updateAutoAdjustClockTime(){
+  int16_t delta = getAutoAdjustClockTimeDelta();
+  if (delta == 0){
+    return;
+  }  
+  setClockTime(now() + delta, false);
+  GB_Logger.logEvent(EVENT_CLOCK_AUTO_ADJUST);
 }
 
 void ControllerClass::checkInputPinsStatus(boolean checkFirmwareReset){
@@ -88,50 +140,106 @@ void ControllerClass::checkFreeMemory(){
   }
 }
 
-void ControllerClass::update(){
-  checkInputPinsStatus();
-  checkFreeMemory();
+time_t  ControllerClass::getLastBreezeTimeStamp(){
+  return c_lastBreezeTimeStamp;
 }
 
-void ControllerClass::initClock(time_t defaultTimeStamp){
+/////////////////////////////////////////////////////////////////////
+//                              CLOCK                              //
+/////////////////////////////////////////////////////////////////////
+
+boolean ControllerClass::initClock(time_t defaultTimeStamp){
 
   // TODO use only if GB_StorageHelper.isUseRTC() 
   setSyncProvider(RTC.get);   // the function to get the time from the RTC
 
   if (timeStatus() == timeNotSet){    
     setRTCandClockTimeStamp(defaultTimeStamp); 
-    c_isAutoCalculatedTimeStampUsed = true;
+    c_isAutoCalculatedClockTimeUsed = true;
+  } 
+  else {
+    c_isAutoCalculatedClockTimeUsed = false;
   }
+
+  return c_isAutoCalculatedClockTimeUsed;
 }
 
 void ControllerClass::initClock_afterLoadConfiguration(){
-  //  if (c_isAutoCalculatedTimeStampUsed){
-  // After init_loadConfiguration, do not clear flag
-  GB_StorageHelper.setClockTimeStampAutoCalculated(c_isAutoCalculatedTimeStampUsed);
-  
+
+  if (c_isAutoCalculatedClockTimeUsed){
+    GB_StorageHelper.setAutoCalculatedClockTimeUsed(true);
+  }
+
   updateClockState();
-  //  }
 }
 
-void ControllerClass::setClockTime(time_t newTimeStamp){
+boolean ControllerClass::isClockNotSet(){
+  return (timeStatus() == timeNotSet);
+}
 
+boolean ControllerClass::isClockNeedsSync(){
+  return (timeStatus() == timeNeedsSync);
+}
+
+// WEB command
+void ControllerClass::setClockTime(time_t newTimeStamp){
+  setClockTime(newTimeStamp, true);
+}
+
+//private:
+
+void ControllerClass::setClockTime(time_t newTimeStamp, boolean checkStartupTime){
   time_t oldTimeStamp = now();
   long delta = (newTimeStamp > oldTimeStamp) ? (newTimeStamp - oldTimeStamp) : -((long)(oldTimeStamp - newTimeStamp));
 
   setRTCandClockTimeStamp(newTimeStamp);
 
-  if (GB_StorageHelper.isClockTimeStampAutoCalculated()){
+  if (GB_StorageHelper.isAutoCalculatedClockTimeUsed()){
 
-    GB_StorageHelper.setClockTimeStampAutoCalculated(false);
+    GB_StorageHelper.setAutoCalculatedClockTimeUsed(false);
 
-    //    GB_StorageHelper.adjustLastStartupTimeStamp(delta);  
-    //    if (GB_StorageHelper.getFirstStartupTimeStamp() == 0){
-    //      GB_StorageHelper.adjustFirstStartupTimeStamp(delta);
-    //    }  
   }
+  
+  c_lastBreezeTimeStamp += delta;
+  GB_Watering.adjustLastWatringTimeOnClockSet(delta); 
+  
+  // If we started with clean RTC we should update time stamps
+  if (!checkStartupTime){
+    return;
+  } 
+  if (GB_StorageHelper.getStartupTimeStamp() == 0){
+    GB_StorageHelper.adjustStartupTimeStamp(delta);  
+  }
+  if (GB_StorageHelper.getFirstStartupTimeStamp() == 0){
+    GB_StorageHelper.adjustFirstStartupTimeStamp(delta);
+  }  
+}
+//public: 
 
-  // Update watering time
-  GB_Watering.adjustWatringTimeOnClockSet(delta); 
+// WEB command
+void ControllerClass::setAutoAdjustClockTimeDelta(int16_t delta){
+  GB_StorageHelper.setAutoAdjustClockTimeDelta(delta);
+}
+
+int16_t ControllerClass::getAutoAdjustClockTimeDelta(){
+  return GB_StorageHelper.getAutoAdjustClockTimeDelta();
+}
+
+// WEB command
+void ControllerClass::setUseRTC(boolean flag){
+  GB_StorageHelper.setUseRTC(flag); 
+
+  setSyncProvider(RTC.get);   // Force resync Clock with RTC 
+  updateClockState();
+}
+
+boolean ControllerClass::isUseRTC(){
+  return GB_StorageHelper.isUseRTC();
+}
+
+boolean ControllerClass::isRTCPresent(){
+  RTC.get(); // update status
+  return RTC.chipPresent();
 }
 
 // private:
@@ -148,56 +256,17 @@ void ControllerClass::setRTCandClockTimeStamp(time_t newTimeStamp){
   }
 }
 
-// public:
-
-void ControllerClass::updateClockState(){
-
-  if (!GB_StorageHelper.isUseRTC()){
-    GB_Logger.stopLogError(ERROR_RTC_DISCONNECTED);
-    GB_Logger.stopLogError(ERROR_TIMER_NOT_SET);
-    GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
-    return;
-  }
-
-  // Check hardware
-  if(!isRTCPresent()){
-    GB_Logger.logError(ERROR_RTC_DISCONNECTED);  
-  } 
-  else {
-    GB_Logger.stopLogError(ERROR_RTC_DISCONNECTED);
-  }
-  
-  if (timeStatus() == timeNotSet) { 
-    GB_Logger.logError(ERROR_TIMER_NOT_SET);  
-  } 
-  else if (timeStatus() == timeNeedsSync) { 
-    GB_Logger.logError(ERROR_TIMER_NEEDS_SYNC);
-  } 
-  else {
-    GB_Logger.stopLogError(ERROR_TIMER_NOT_SET);
-    GB_Logger.stopLogError(ERROR_TIMER_NEEDS_SYNC);
-  } 
-}
-
-boolean ControllerClass::isClockNotSet(){
-  return (timeStatus() == timeNotSet);
-}
-
-boolean ControllerClass::isClockNeedsSync(){
-  return (timeStatus() == timeNeedsSync);
-}
-
-boolean ControllerClass::isRTCPresent(){
-  RTC.get(); // update status
-  return RTC.chipPresent();
-}
-
-//boolean ControllerClass::isAutoCalculatedTimeUsed(){
-//  return c_clockIsAutoCalculatedTimeUsed;
-//}
-
-
 ControllerClass GB_Controller;
+
+
+
+
+
+
+
+
+
+
 
 
 

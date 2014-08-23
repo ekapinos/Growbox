@@ -14,6 +14,8 @@ void WebServerClass::init(){
 
 void WebServerClass::update(){
   RAK410_XBeeWifi.update();
+
+
 }
 
 boolean WebServerClass::handleSerialEvent(){
@@ -276,7 +278,7 @@ void WebServerClass::tagCheckbox(const __FlashStringHelper* name, const __FlashS
 
 }
 
-void WebServerClass::tagInputNumber(const __FlashStringHelper* name, const __FlashStringHelper* text, word minValue, word maxValue, word value){
+void WebServerClass::tagInputNumber(const __FlashStringHelper* name, const __FlashStringHelper* text, long minValue, long maxValue, long value){
   if (text != 0){
     rawData(F("<label>"));
     rawData(text);
@@ -448,7 +450,7 @@ void WebServerClass::growboxClockJavaScript(const __FlashStringHelper* growboxTi
     rawData(F("var g_diffSpanDesc=document.getElementById('"));    
     rawData(diffTimeStampId);    
     rawData(F("');"));   
-    if (GB_StorageHelper.isClockTimeStampAutoCalculated()) {
+    if (GB_StorageHelper.isAutoCalculatedClockTimeUsed()) {
       rawData(F("resultDiffString='Auto calculated. '+resultDiffString;"));  
       rawData(F("g_diffSpanDesc.style.color='red';"));  
     } 
@@ -634,6 +636,13 @@ void WebServerClass::sendStatusPage(){
   rawData(F("<dl>"));
 
   rawData(F("<dt>General</dt>"));
+
+  if ((now() - GB_Controller.getLastBreezeTimeStamp()) > 1 * SECS_PER_MIN){
+    rawData(F("<dd>"));
+    spanTag_RedIfTrue(F("No breeze"), true);
+    rawData(F("</dd>")); 
+  }
+
   rawData(F("<dd>")); 
   rawData(g_isDayInGrowbox ? F("Day") : F("Night"));
   rawData(F(" mode</dd>"));
@@ -648,14 +657,15 @@ void WebServerClass::sendStatusPage(){
   }
   rawData(F("</dd>"));
 
-  if (GB_StorageHelper.isUseRTC()) {    
+  if (GB_Controller.isUseRTC()) {  
+
     if (!GB_Controller.isRTCPresent()) {
       rawData(F("<dd>Real-time clock: "));
       spanTag_RedIfTrue(F("Not connected"), true);
       rawData(F("</dd>")); 
-    }
 
-    if (GB_Controller.isClockNeedsSync() || GB_Controller.isClockNotSet()) {
+    } 
+    else if (GB_Controller.isClockNeedsSync() || GB_Controller.isClockNotSet()) {
       rawData(F("<dd>Clock: "));
       if (GB_Controller.isClockNotSet()) {
         spanTag_RedIfTrue(F("Not set"), true);
@@ -665,8 +675,9 @@ void WebServerClass::sendStatusPage(){
       }
       rawData(F("</dd>")); 
     }
+
   }
-  
+
   rawData(F("<dd>Startup: ")); 
   rawData(GB_StorageHelper.getStartupTimeStamp(), false, true);
   rawData(F("</dd>")); 
@@ -786,9 +797,9 @@ void WebServerClass::sendStatusPage(){
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
 
   rawData(F("<dt>Configuration</dt>"));  
-  rawData(F("<dd>Turn to Day mode at: ")); 
+  rawData(F("<dd>Day mode at: ")); 
   rawData(StringUtils::wordTimeToString(upTime));
-  rawData(F("</dd><dd>Turn to Night mode at: "));
+  rawData(F("</dd><dd>Night mode at: "));
   rawData(StringUtils::wordTimeToString(downTime));
   rawData(F("</dd>"));
 
@@ -988,24 +999,31 @@ void WebServerClass::sendLogPage(const String& getParams){
 
 
 /////////////////////////////////////////////////////////////////////
-//                         GENERRAL PAGE                           //
+//                         GENERAL PAGE                           //
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendGeneralPage(const String& getParams){
 
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
-  rawData(F("<fieldset><legend>Day &amp; Night mode</legend>"));  
+  
+  rawData(F("<fieldset><legend>Clock</legend>"));  
   rawData(F("<form action='"));
   rawData(FS(S_url_general));
   rawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value) { alert(\"Turn times should be different\"); return false;}'>"));
   rawData(F("<table class='grab'>"));
-  rawData(F("<tr><td>Turn to Day mode at</td><td>"));
+  rawData(F("<tr><td>Day mode at</td><td>"));
   tagInputTime(F("turnToDayModeAt"), 0, upTime);
   rawData(F("</td></tr>"));
-  rawData(F("<tr><td>Turn to Night mode at</td><td>"));
+  rawData(F("<tr><td>Night mode at</td><td>"));
   tagInputTime(F("turnToNightModeAt"), 0, downTime);
   rawData(F("</td></tr>"));
+   
+  rawData(F("<tr><td>Auto adjust time</td><td>"));
+  tagInputNumber(F("adjustTimeStampDelta"), 0, -32768, 32767, GB_Controller.getAutoAdjustClockTimeDelta());
+  rawData(F(" sec/day"));
+  rawData(F("</td></tr>"));
+  
   rawData(F("</table>"));
   rawData(F("<input type='submit' value='Save'>"));
   rawData(F("</form>"));
@@ -1054,11 +1072,6 @@ void WebServerClass::sendGeneralPage(const String& getParams){
     rawData(F("<br/>"));
     if (c_isWifiResponseError) return;
 
-    //     
-    //    float lastTemperature, statisticsTemperature;
-    //    int statisticsCount;
-    //    GB_Thermometer.getStatistics(lastTemperature, statisticsTemperature, statisticsCount);
-
     byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
     GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
 
@@ -1068,18 +1081,6 @@ void WebServerClass::sendGeneralPage(const String& getParams){
     rawData(F("' method='post' onSubmit='if (document.getElementById(\"normalTemperatueDayMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
     rawData(F("|| document.getElementById(\"normalTemperatueNightMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
     rawData(F("<table>"));
-    //    rawData(F("<tr><td colspan='2'>Current state [<b>"));
-    //    spanTag_RedIfTrue(GB_Thermometer.isPresent() ? F("Connected") : F("Not connected"), !GB_Thermometer.isPresent());
-    //    rawData(F("</b>]<br/>Current temperature [<b>")); 
-    //    if (isnan(lastTemperature)){
-    //      rawData(F("N/A"));
-    //    } 
-    //    else {
-    //      rawData(lastTemperature);
-    //      rawData(F(" &deg;C")); 
-    //    }
-    //    rawData(F("</b>]"));
-    //    rawData(F("</td></tr>"));
 
     rawData(F("<tr><td>Normal Day temperature</td><td>"));
     tagInputNumber(F("normalTemperatueDayMin"), 0, 1, 50, normalTemperatueDayMin);
@@ -1304,9 +1305,9 @@ void WebServerClass::sendHardwarePage(const String& getParams) {
   rawData(FS(S_url_hardware));
   rawData(F("' method='post'>"));
 
-  tagCheckbox(F("isUseRTC"), F("Use Real-time clock DS1307"), GB_StorageHelper.isUseRTC());
+  tagCheckbox(F("isUseRTC"), F("Use Real-time clock DS1307"), GB_Controller.isUseRTC());
   rawData(F("<div class='description'>Current state [<b>"));
-  spanTag_RedIfTrue(GB_Controller.isRTCPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseRTC() && !GB_Controller.isRTCPresent());
+  spanTag_RedIfTrue(GB_Controller.isRTCPresent() ? F("Connected") : F("Not connected"), GB_Controller.isUseRTC() && !GB_Controller.isRTCPresent());
   rawData(F("</b>]</div>"));
 
   tagCheckbox(F("isEEPROM_AT24C32_Connected"), F("Use external AT24C32 EEPROM"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32());
@@ -1640,6 +1641,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     } 
     else if (StringUtils::flashStringEquals(name, F("isWaterPumpConnected"))) {
       wsp.boolPreferencies.isWaterPumpConnected = boolValue;
+      wsp.lastWateringTimeStamp = 0;
     } 
     else if (StringUtils::flashStringEquals(name, F("useWetSensorForWatering"))) {
       wsp.boolPreferencies.useWetSensorForWatering = boolValue;
@@ -1746,7 +1748,6 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 
     GB_Watering.updateWateringSchedule();
   } 
-
   else if (StringUtils::flashStringEquals(name, F("setClockTime"))){
     time_t newTimeStamp = strtoul(value.c_str(), NULL, 0);
     if (newTimeStamp == 0){
@@ -1755,6 +1756,31 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     GB_Controller.setClockTime(newTimeStamp + UPDATE_WEB_SERVER_AVERAGE_PAGE_LOAD_DELAY);
 
     c_isWifiForceUpdateGrowboxState = true; // Switch to Day/Night mode
+  } 
+  else if (StringUtils::flashStringEquals(name, F("isUseRTC"))){
+    if (value.length() != 1){
+      return false;
+    }
+    boolean boolValue = (value[0]=='1');   
+    GB_Controller.setUseRTC(boolValue);
+
+    c_isWifiForceUpdateGrowboxState = true; // Switch to Day/Night mode
+  } 
+  else if (StringUtils::flashStringEquals(name, F("adjustTimeStampDelta"))){
+    if (value.length() == 0){
+      return false;
+    }
+    boolean isZero = false;
+    if (value.length() == 1){
+      if (value[0] == '0'){
+        isZero = true;
+      }
+    }
+    int16_t intValue = value.toInt();
+    if (intValue == 0 && !isZero){
+      return false;
+    }     
+    GB_Controller.setAutoAdjustClockTimeDelta(intValue);
   } 
   else if (StringUtils::flashStringEquals(name, F("isEEPROM_AT24C32_Connected"))){
     if (value.length() != 1){
@@ -1770,15 +1796,6 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     boolean boolValue = (value[0]=='1');   
     GB_StorageHelper.setUseThermometer(boolValue);
   } 
-  else if (StringUtils::flashStringEquals(name, F("isUseRTC"))){
-    if (value.length() != 1){
-      return false;
-    }
-    boolean boolValue = (value[0]=='1');   
-    GB_StorageHelper.setUseRTC(boolValue);
-
-    c_isWifiForceUpdateGrowboxState = true; // Switch to Day/Night mode
-  } 
   else {
     return false;
   }
@@ -1787,25 +1804,6 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

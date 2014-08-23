@@ -13,7 +13,7 @@ const byte WIFI_PASS_LENGTH = 0x40; // 64
 struct BootRecord {
   word first_magic;                 //  2
   time_t firstStartupTimeStamp;     //  4
-  time_t startupTimeStamp;      //  4
+  time_t startupTimeStamp;          //  4
   word nextLogRecordIndex;          //  2
   struct BoolPreferencies {
 boolean isLogOverflow :
@@ -22,7 +22,7 @@ boolean isLoggerEnabled :
     1;      
 boolean isWifiStationMode :
     1;    // false - Access point, true - Station mode
-boolean isClockTimeStampAutoCalculated :
+boolean isAutoCalculatedClockTimeUsed :
     1;    
 boolean useExternal_EEPROM_AT24C32 :
     1;    
@@ -72,7 +72,9 @@ boolean skipNextWatering :
   } 
   wateringSystemPreferencies[MAX_WATERING_SYSTEMS_COUNT]; // 16*MAX_WATERING_SYSTEMS_COUNT(4) = 64
 
-  byte reserved[76];                //  <----reserved
+  int16_t autoAdjustClockTimeDelta; // 2
+  
+  byte reserved[74];                //  <----reserved
   char wifiSSID[WIFI_SSID_LENGTH];  // 32  
   char wifiPass[WIFI_PASS_LENGTH];  // 64
   word last_magic;                  //  2  

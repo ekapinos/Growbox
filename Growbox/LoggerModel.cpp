@@ -119,14 +119,14 @@ boolean WateringEvent::isInitialized(){
 
 
 Error 
-ERROR_TIMER_NOT_SET,
-ERROR_TIMER_NEEDS_SYNC,
+ERROR_CLOCK_NOT_SET,
+ERROR_CLOCK_NEEDS_SYNC,
 ERROR_TERMOMETER_DISCONNECTED,
 ERROR_TERMOMETER_ZERO_VALUE,
 ERROR_TERMOMETER_CRITICAL_VALUE,
 ERROR_MEMORY_LOW,
 ERROR_AT24C32_EEPROM_DISCONNECTED,
-ERROR_RTC_DISCONNECTED;
+ERROR_CLOCK_RTC_DISCONNECTED;
 
 Event 
 EVENT_FIRST_START_UP, 
@@ -139,7 +139,8 @@ EVENT_FAN_OFF,
 EVENT_FAN_ON_MIN, 
 EVENT_FAN_ON_MAX,
 EVENT_LOGGER_ENABLED,
-EVENT_LOGGER_DISABLED;
+EVENT_LOGGER_DISABLED,
+EVENT_CLOCK_AUTO_ADJUST;
 
 WateringEvent //16 elements -  max
 WATERING_EVENT_WET_SENSOR_IN_AIR,
@@ -162,14 +163,14 @@ WATERING_EVENT_WATER_PUMP_OFF;
 void initLoggerModel(){
 
   // Use F macro to reduce requirements to memory. We can't use F macro in constructors.
-  ERROR_TIMER_NOT_SET.init(B00, 2, F("Error: Clock not set"));
-  ERROR_TIMER_NEEDS_SYNC.init(B01, 2, F("Error: Clock needs sync"));
+  ERROR_CLOCK_NOT_SET.init(B00, 2, F("Error: Clock not set"));
+  ERROR_CLOCK_NEEDS_SYNC.init(B01, 2, F("Error: Clock needs sync"));
   ERROR_TERMOMETER_DISCONNECTED.init(B000, 3, F("Error: Termometer disconnected"));
   ERROR_TERMOMETER_ZERO_VALUE.init(B001, 3, F("Error: Termometer returned ZERO value"));
   ERROR_TERMOMETER_CRITICAL_VALUE.init(B010, 3, F("Error: Termometer returned CRITICAL value"));
   ERROR_MEMORY_LOW.init(B011, 3, F("Error: Free memory less than 200 bytes"));
   ERROR_AT24C32_EEPROM_DISCONNECTED.init(B100, 3, F("Error: External AT24C32 EEPROM disconnected"));
-  ERROR_RTC_DISCONNECTED.init(B101, 3, F("Error: Real-time clock disconnected"));
+  ERROR_CLOCK_RTC_DISCONNECTED.init(B101, 3, F("Error: Real-time clock disconnected"));
 
   // Zero index used for Empty Log Records, do not use it for Events
   EVENT_FIRST_START_UP.init(1, F("First startup"));
@@ -183,6 +184,7 @@ void initLoggerModel(){
   EVENT_FAN_ON_MAX.init(9, F("Fan max speed"));
   EVENT_LOGGER_ENABLED.init(10, F("Logger enabled"));
   EVENT_LOGGER_DISABLED.init(11, F("Logger disabled"));
+  EVENT_CLOCK_AUTO_ADJUST.init(12, F("Clock auto adjust"));
   
   // 0..15 (max)
   WATERING_EVENT_WET_SENSOR_IN_AIR.init(1, F("Wet sensor [In Air]"), F("In Air"), true, false);

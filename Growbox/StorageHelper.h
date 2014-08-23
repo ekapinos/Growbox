@@ -39,21 +39,29 @@ public:
   boolean isUseExternal_EEPROM_AT24C32();
 
   /////////////////////////////////////////////////////////////////////
-  //                             GROWBOX                             //
+  //                              CLOCK                             //
   /////////////////////////////////////////////////////////////////////
+
   void setUseRTC(boolean flag);
   boolean isUseRTC();
-  
-  void setClockTimeStampAutoCalculated(boolean flag);
-  boolean isClockTimeStampAutoCalculated();
+
+  void setAutoCalculatedClockTimeUsed(boolean flag);
+  boolean isAutoCalculatedClockTimeUsed();
+
+  void setAutoAdjustClockTimeDelta(int16_t delta);
+  int16_t getAutoAdjustClockTimeDelta();
 
   void getTurnToDayAndNightTime(word& upTime, word& downTime);
   void setTurnToDayModeTime(const byte upHour, const byte upMinute);
   void setTurnToNightModeTime(const byte downHour, const byte downMinute);
 
+  /////////////////////////////////////////////////////////////////////
+  //                            THERMOMETER                          //
+  /////////////////////////////////////////////////////////////////////
+
   void setUseThermometer(boolean flag);
   boolean isUseThermometer();
-  
+
   void getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatue);
   void setNormalTemperatueDayMin(const byte normalTemperatueDayMin);
   void setNormalTemperatueDayMax(const byte normalTemperatueDayMax);
@@ -111,6 +119,7 @@ public :
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
+
 
 
 

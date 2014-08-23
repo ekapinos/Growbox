@@ -65,7 +65,7 @@ private:
   void tagButton(const __FlashStringHelper* url, const __FlashStringHelper* text, boolean isSelected);
   void tagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected);
   void tagRadioButton(const __FlashStringHelper* name, const __FlashStringHelper* text, const __FlashStringHelper* value, boolean isSelected);
-  void tagInputNumber(const __FlashStringHelper* name, const __FlashStringHelper* text, word minValue, word maxValue, word value);
+  void tagInputNumber(const __FlashStringHelper* name, const __FlashStringHelper* text, long minValue, long maxValue, long value);
   void tagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value);
   word getTimeFromInput(const String& value);
 
@@ -80,7 +80,7 @@ private:
   void spanTag_RedIfTrue(const __FlashStringHelper* text, boolean isRed);
   
   /////////////////////////////////////////////////////////////////////
-  //                     COMMON FOR ALL PAGES                        //
+  //                      COMMON FOR ALL PAGES                       //
   /////////////////////////////////////////////////////////////////////
 
   void httpProcessGet(const String &input, const String &getParams);
@@ -92,7 +92,7 @@ private:
   void sendStatusPage();
 
   /////////////////////////////////////////////////////////////////////
-  //                             LOG PAGE                            //
+  //                            LOG PAGE                             //
   /////////////////////////////////////////////////////////////////////
 
   void sendLogPage(const String& getParams);

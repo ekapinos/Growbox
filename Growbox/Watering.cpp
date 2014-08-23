@@ -47,7 +47,7 @@ void WateringClass::updateAlarms(){
   c_PumpOffAlarm.delay(0);
 }
 
-void WateringClass::adjustWatringTimeOnClockSet(long delta) {
+void WateringClass::adjustLastWatringTimeOnClockSet(long delta) {
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
     if (wsp.lastWateringTimeStamp == 0){

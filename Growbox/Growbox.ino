@@ -162,7 +162,7 @@ void setup() {
   printStatusOnBoot(F("stored configuration"));
   GB_StorageHelper.init_loadConfiguration(startupTimeStamp);  // Logger will enabled after that   // after set clock and load configuration we are ready for logging
   GB_Controller.checkFreeMemory();
-
+  
   GB_Controller.initClock_afterLoadConfiguration(); // Save Auticalculated flag
   GB_Controller.checkFreeMemory();
 
@@ -174,10 +174,10 @@ void setup() {
   //  GB_Controller.checkFreeMemory();
 
   // Max 6 timer for Alarm instance
-  Alarm.timerRepeat(UPDATE_BREEZE_DELAY, updateBreezeStatus); 
-  Alarm.timerRepeat(UPDATE_CONTROLLER_STATE_DELAY, updateControllerStatus);
-  Alarm.timerRepeat(UPDATE_GROWBOX_CORE_HARDWARE_STATE_DELAY, updateGrowboxCoreHardwareState);
   Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);
+  Alarm.timerRepeat(UPDATE_CONTROLLER_STATE_DELAY, updateControllerStatus);
+  Alarm.timerRepeat(UPDATE_CONTROLLER_CORE_HARDWARE_STATE_DELAY, updateGrowboxCoreHardwareState);
+  Alarm.timerRepeat(UPDATE_CONTROLLER_AUTO_ADJUST_CLOCK_TIME_DELAY, updateGrowboxAutoAdjustClockTime); 
   Alarm.timerRepeat(UPDATE_TERMOMETER_STATISTICS_DELAY, updateThermometerStatistics);
   Alarm.timerRepeat(UPDATE_WEB_SERVER_STATUS_DELAY, updateWebServerStatus); 
   GB_Controller.checkFreeMemory();
@@ -336,8 +336,9 @@ void updateGrowboxCoreHardwareState(){
   GB_Controller.updateClockState();
   GB_StorageHelper.check_AT24C32_EEPROM();
 }
-void updateBreezeStatus() {
-  digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
+
+void updateGrowboxAutoAdjustClockTime(){
+  GB_Controller.updateAutoAdjustClockTime();
 }
 
 /////////////////////////////////////////////////////////////////////

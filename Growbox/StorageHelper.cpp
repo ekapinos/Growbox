@@ -88,8 +88,8 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
     bootRecord.boolPreferencies.isLogOverflow = false;
     bootRecord.boolPreferencies.isLoggerEnabled = true;
     bootRecord.boolPreferencies.isWifiStationMode = false; // Access point used by default
-    
-    bootRecord.boolPreferencies.isClockTimeStampAutoCalculated = false;
+
+    bootRecord.boolPreferencies.isAutoCalculatedClockTimeUsed = false;
     bootRecord.boolPreferencies.useExternal_EEPROM_AT24C32 = EEPROM_AT24C32.isPresent();
     bootRecord.boolPreferencies.useThermometer = GB_Thermometer.isPresent();
     bootRecord.boolPreferencies.useRTC = GB_Controller.isRTCPresent();
@@ -125,7 +125,9 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
 
       wsp.lastWateringTimeStamp = 0; // Unknown
     }
-
+    
+    bootRecord.autoAdjustClockTimeDelta = 0;
+    
     StringUtils::flashStringLoad(bootRecord.wifiSSID, WIFI_SSID_LENGTH, FS(S_WIFI_DEFAULT_SSID));
     StringUtils::flashStringLoad(bootRecord.wifiPass, WIFI_PASS_LENGTH, FS(S_WIFI_DEFAULT_PASS)); 
 
@@ -217,7 +219,7 @@ boolean StorageHelperClass::isUseExternal_EEPROM_AT24C32(){
 }
 
 /////////////////////////////////////////////////////////////////////
-//                             GROWBOX                             //
+//                              CLOCK                             //
 /////////////////////////////////////////////////////////////////////
 
 void StorageHelperClass::setUseRTC(boolean flag){
@@ -230,14 +232,21 @@ boolean StorageHelperClass::isUseRTC(){
   return getBoolPreferencies().useRTC;
 }
 
-void StorageHelperClass::setClockTimeStampAutoCalculated(boolean flag){
+void StorageHelperClass::setAutoCalculatedClockTimeUsed(boolean flag){
   BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
-  boolPreferencies.isClockTimeStampAutoCalculated = flag;
+  boolPreferencies.isAutoCalculatedClockTimeUsed = flag;
   setBoolPreferencies(boolPreferencies);
 }
 
-boolean StorageHelperClass::isClockTimeStampAutoCalculated(){
-  return getBoolPreferencies().isClockTimeStampAutoCalculated;
+boolean StorageHelperClass::isAutoCalculatedClockTimeUsed(){
+  return getBoolPreferencies().isAutoCalculatedClockTimeUsed;
+}
+
+void StorageHelperClass::setAutoAdjustClockTimeDelta(int16_t delta){
+  EEPROM.writeBlock<int16_t>(OFFSETOF(BootRecord, autoAdjustClockTimeDelta), delta); 
+}
+int16_t StorageHelperClass::getAutoAdjustClockTimeDelta(){
+  return EEPROM.readBlock<int16_t>(OFFSETOF(BootRecord, autoAdjustClockTimeDelta));
 }
 
 void StorageHelperClass::getTurnToDayAndNightTime(word& upTime, word& downTime){
@@ -251,6 +260,9 @@ void StorageHelperClass::setTurnToNightModeTime(const byte downHour, const byte 
   EEPROM.writeBlock<word>(OFFSETOF(BootRecord, turnToNightModeAt), downHour*60+downMinute);
 }
 
+/////////////////////////////////////////////////////////////////////
+//                            THERMOMETER                          //
+/////////////////////////////////////////////////////////////////////
 
 void StorageHelperClass::setUseThermometer(boolean flag){  
   BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
@@ -474,6 +486,7 @@ void StorageHelperClass::setWateringSystemPreferenciesById(byte id, BootRecord::
 }
 
 StorageHelperClass GB_StorageHelper;
+
 
 
 
