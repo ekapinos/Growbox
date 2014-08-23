@@ -8,6 +8,8 @@ class RAK410_XBeeWifiClass{
 
 private:
 
+  static const boolean WIFI_SHOW_AUTO_SIZE_FRAME_DATA = false;
+
   static const unsigned int WIFI_MAX_SEND_FRAME_SIZE = 1400; // 1400 max from spec
   static const unsigned int WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
 
@@ -32,7 +34,7 @@ public:
   boolean isPresent(); // check if the device is present
   void init();
   void update();
-  
+
 private:
 
   boolean restartWifi();
@@ -69,10 +71,10 @@ private:
   boolean wifiExecuteCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY, boolean rebootIfNoResponse=true);
   String wifiExecuteRawCommand(const __FlashStringHelper* command = 0, size_t maxResponseDeleay = WIFI_RESPONSE_DEFAULT_DELAY);
 
-  template <class T> unsigned int wifiExecuteCommandPrint(T command){
+  template <class T> unsigned int wifiExecuteCommandPrint(T command, boolean l_useSerialMonitor = true){
     unsigned int rez = Serial1.print(command);  
 
-    if (g_useSerialMonitor){
+    if (g_useSerialMonitor && l_useSerialMonitor){
       if (c_isWifiPrintCommandStarted){  
         Serial.print(command); 
       } 
@@ -104,4 +106,5 @@ private:
 extern RAK410_XBeeWifiClass RAK410_XBeeWifi;
 
 #endif
+
 

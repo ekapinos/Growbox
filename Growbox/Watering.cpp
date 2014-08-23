@@ -137,7 +137,7 @@ void WateringClass::updateWetSatus(){
     WateringEvent* oldState = valueToState(wsp, c_lastWetSensorValue[wsIndex]);
     WateringEvent* newState = valueToState(wsp, wetValue);
 
-    showWateringMessage(wsIndex, newState->shortDescription);
+    //showWateringMessage(wsIndex, newState->shortDescription);
     showWateringMessage(wsIndex, F("Wet sensor OFF"));
 
     if (oldState != newState){

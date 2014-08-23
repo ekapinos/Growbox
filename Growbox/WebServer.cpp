@@ -95,14 +95,12 @@ void WebServerClass::httpNotFound(){
 // request.
 void WebServerClass::httpRedirect(const String &url){ 
   //const __FlashStringHelper* header = F("HTTP/1.1 303 See Other\r\nLocation: "); // DO not use it with RAK 410
-  const __FlashStringHelper* header = F("HTTP/1.1 200 OK (303 doesn't work on RAK 410)\r\nrefresh: 1; url="); 
+  const __FlashStringHelper* header = F("HTTP/1.1 200 OK\r\nConnection: close\r\nrefresh: 1; url="); 
 
   RAK410_XBeeWifi.sendFixedSizeFrameStart(c_wifiPortDescriptor, StringUtils::flashStringLength(header) + url.length() + StringUtils::flashStringLength(FS(S_CRLFCRLF)));
-
   RAK410_XBeeWifi.sendFixedSizeFrameData(header);
   RAK410_XBeeWifi.sendFixedSizeFrameData(url);
   RAK410_XBeeWifi.sendFixedSizeFrameData(FS(S_CRLFCRLF));
-
   RAK410_XBeeWifi.sendFixedSizeFrameStop();
 
   RAK410_XBeeWifi.sendCloseConnection(c_wifiPortDescriptor);
@@ -514,6 +512,9 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams){
   httpPageHeader();
 
   if (isRootPage || isWateringPage) {
+    if (g_useSerialMonitor){
+      Serial.println(); // We cut log stream to show wet status in new line
+    }
     GB_Watering.preUpdateWetSatus();
   }
 
@@ -545,7 +546,7 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams){
   }
   rawData('>');
   tagOption(F(""), F("Select Configuration page"), !isConfigurationPage, true); 
-  tagOption(FS(S_url_general), F("Growbox general"), isGeneralPage);
+  tagOption(FS(S_url_general), F("General"), isGeneralPage);
   for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
     String url = StringUtils::flashStringLoad(FS(S_url_watering));
     if (i > 0){
@@ -567,7 +568,7 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams){
   }
   rawData(F("</select>"));
   rawData(F("</form>"));
-  
+
   rawData(F("<script type='text/javascript'>"));
   rawData(F("var g_configPageSelect = document.getElementById('configPageSelect');"));
   rawData(F("var g_configPageSelectedDefault = g_configPageSelect.value;"));
@@ -622,7 +623,7 @@ void WebServerClass::sendStatusPage(){
     spanTag_RedIfTrue(F("Not connected"), true);
     rawData(F("</dd>")); 
   }
-  
+
   rawData(F("<dd>")); 
   rawData(g_isDayInGrowbox ? F("Day") : F("Night"));
   rawData(F(" mode</dd>"));
@@ -639,7 +640,7 @@ void WebServerClass::sendStatusPage(){
   rawData(F("<dd>Last startup: ")); 
   rawData(GB_StorageHelper.getLastStartupTimeStamp(), false, true);
   rawData(F("</dd>")); 
-  
+
   rawData(F("<dd>Date &amp; time: ")); 
   rawData(F("<span id='growboxTimeStampId'></span>"));
   rawData(F("<br/><small><span id='diffTimeStampId'></span></small>"));
@@ -651,6 +652,32 @@ void WebServerClass::sendStatusPage(){
   rawData(F("<input type='submit' value='Sync'>"));
   rawData(F("</form>"));
   rawData(F("</dd>")); 
+
+  if (c_isWifiResponseError) return;
+
+  rawData(F("<dt>Logger</dt>"));
+  if (!GB_StorageHelper.isStoreLogRecordsEnabled()){
+    rawData(F("<dd>")); 
+    spanTag_RedIfTrue(F("Disabled"), true);
+    rawData(F("</dd>")); 
+  }
+  rawData(F("<dd>Stored records: "));
+  if (GB_StorageHelper.isLogOverflow()) {
+    rawData(F("<span class='red'>"));
+  }
+  rawData(GB_StorageHelper.getLogRecordsCount());
+  rawData('/');
+  rawData(GB_StorageHelper.getLogRecordsCapacity());
+  if (GB_StorageHelper.isLogOverflow()) {
+    rawData(F("</span>"));
+  }
+  rawData(F("</dd>"));
+
+  if (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) {
+    rawData(F("<dd>External AT24C32 EEPROM: "));
+    spanTag_RedIfTrue(F("Not connected"), true);
+    rawData(F("</dd>")); 
+  } 
 
   if (c_isWifiResponseError) return;
 
@@ -690,8 +717,8 @@ void WebServerClass::sendStatusPage(){
   }
   if (c_isWifiResponseError) return;
 
-  if(g_useSerialMonitor){ 
-    Serial.println();
+  if (g_useSerialMonitor){
+    Serial.println(); // We cut log stream to show wet status in new line
   }
   GB_Watering.updateWetSatus();
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
@@ -723,32 +750,6 @@ void WebServerClass::sendStatusPage(){
       rawData(F("</dd>")); 
     }
   }
-
-  rawData(F("<dt>Logger</dt>"));
-  if (!GB_StorageHelper.isStoreLogRecordsEnabled()){
-    rawData(F("<dd>")); 
-    spanTag_RedIfTrue(F("Disabled"), true);
-    rawData(F("</dd>")); 
-  }
-  rawData(F("<dd>Stored records: "));
-  if (GB_StorageHelper.isLogOverflow()) {
-    rawData(F("<span class='red'>"));
-  }
-  rawData(GB_StorageHelper.getLogRecordsCount());
-  rawData('/');
-  rawData(GB_StorageHelper.getLogRecordsCapacity());
-  if (GB_StorageHelper.isLogOverflow()) {
-    rawData(F("</span>"));
-  }
-  rawData(F("</dd>"));
-  
-  if (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) {
-    rawData(F("<dd>External AT24C32 EEPROM: "));
-    spanTag_RedIfTrue(F("Not connected"), true);
-    rawData(F("</dd>")); 
-  } 
-
-  if (c_isWifiResponseError) return;
 
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
@@ -994,17 +995,17 @@ void WebServerClass::sendGeneralPage(const String& getParams){
   if (c_isWifiResponseError) return;
 
   rawData(F("<fieldset><legend>Logger</legend>"));
-  
+
   rawData(F("<form action='"));
   rawData(FS(S_url_general));
   rawData(F("' method='post' id='resetLogForm' onSubmit='return confirm(\"Delete all stored records?\")'>"));
   rawData(F("<input type='hidden' name='resetStoredLog'/>"));
   rawData(F("</form>"));
-  
+
   rawData(F("<form action='"));
   rawData(FS(S_url_general));
   rawData(F("' method='post'>"));
-  
+
   rawData(F("<table class='grab'>"));
   rawData(F("<tr><td colspan='2'>"));
   tagCheckbox(F("isStoreLogRecordsEnabled"), F("Enable logger"), GB_StorageHelper.isStoreLogRecordsEnabled());
@@ -1017,49 +1018,49 @@ void WebServerClass::sendGeneralPage(const String& getParams){
   }
   rawData(F("]</div>"));
   rawData(F("</td></tr>"));
-  
+
   rawData(F("<tr><td>"));
   rawData(F("<input type='submit' value='Save'>"));
   rawData(F("</td><td class='align_right'>"));  
   rawData(F("<input form='resetLogForm' type='submit' value='Clear all stored records'/>")); 
   rawData(F("</td></tr>"));
   rawData(F("</table>"));
-  
+
   rawData(F("</form>"));
   rawData(F("</fieldset>"));
 
   if (GB_StorageHelper.isUseThermometer()) {
-    
+
     rawData(F("<br/>"));
     if (c_isWifiResponseError) return;
-    
-//     
-//    float lastTemperature, statisticsTemperature;
-//    int statisticsCount;
-//    GB_Thermometer.getStatistics(lastTemperature, statisticsTemperature, statisticsCount);
+
+    //     
+    //    float lastTemperature, statisticsTemperature;
+    //    int statisticsCount;
+    //    GB_Thermometer.getStatistics(lastTemperature, statisticsTemperature, statisticsCount);
 
     byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
     GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
-    
+
     rawData(F("<fieldset><legend>Thermometer</legend>"));
     rawData(F("<form action='"));
     rawData(FS(S_url_general));
     rawData(F("' method='post' onSubmit='if (document.getElementById(\"normalTemperatueDayMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
     rawData(F("|| document.getElementById(\"normalTemperatueNightMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
     rawData(F("<table>"));
-//    rawData(F("<tr><td colspan='2'>Current state [<b>"));
-//    spanTag_RedIfTrue(GB_Thermometer.isPresent() ? F("Connected") : F("Not connected"), !GB_Thermometer.isPresent());
-//    rawData(F("</b>]<br/>Current temperature [<b>")); 
-//    if (isnan(lastTemperature)){
-//      rawData(F("N/A"));
-//    } 
-//    else {
-//      rawData(lastTemperature);
-//      rawData(F(" &deg;C")); 
-//    }
-//    rawData(F("</b>]"));
-//    rawData(F("</td></tr>"));
-    
+    //    rawData(F("<tr><td colspan='2'>Current state [<b>"));
+    //    spanTag_RedIfTrue(GB_Thermometer.isPresent() ? F("Connected") : F("Not connected"), !GB_Thermometer.isPresent());
+    //    rawData(F("</b>]<br/>Current temperature [<b>")); 
+    //    if (isnan(lastTemperature)){
+    //      rawData(F("N/A"));
+    //    } 
+    //    else {
+    //      rawData(lastTemperature);
+    //      rawData(F(" &deg;C")); 
+    //    }
+    //    rawData(F("</b>]"));
+    //    rawData(F("</td></tr>"));
+
     rawData(F("<tr><td>Normal Day temperature</td><td>"));
     tagInputNumber(F("normalTemperatueDayMin"), 0, 1, 50, normalTemperatueDayMin);
     rawData(F(" .. "));
@@ -1132,9 +1133,9 @@ void WebServerClass::sendWateringPage(const String& url, byte wsIndex){
   rawData(F("<input type='hidden' name='clearLastWateringTime'>"));
   rawData(F("</form>"));
 
-  //  if(g_useSerialMonitor){ 
-  //    Serial.println();
-  //  }
+  if (g_useSerialMonitor){
+    Serial.println(); // We cut log stream to show wet status in new line
+  }
   GB_Watering.updateWetSatus();
   byte currentValue = GB_Watering.getCurrentWetSensorValue(wsIndex);
   WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
@@ -1274,14 +1275,14 @@ void WebServerClass::sendWateringPage(const String& url, byte wsIndex){
 /////////////////////////////////////////////////////////////////////
 
 void WebServerClass::sendHardwarePage(const String& getParams) {
-  
+
   rawData(F("<fieldset><legend>General</legend>"));
-  
+
   rawData(F("<form action='"));
   rawData(FS(S_url_hardware));
   rawData(F("' method='post'>"));
-  
-  tagCheckbox(F("useRTC"), F("Use Real-time clock DS1307"), GB_StorageHelper.isUseRTC());
+
+  tagCheckbox(F("isUseRTC"), F("Use Real-time clock DS1307"), GB_StorageHelper.isUseRTC());
   rawData(F("<div class='description'>Current state [<b>"));
   spanTag_RedIfTrue(GB_Controller.isRTCPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseRTC() && !GB_Controller.isRTCPresent());
   rawData(F("</b>]</div>"));
@@ -1303,7 +1304,7 @@ void WebServerClass::sendHardwarePage(const String& getParams) {
 
   rawData(F("<br/>"));
   if (c_isWifiResponseError) return;
-  
+
   boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
   rawData(F("<fieldset><legend>Wi-Fi</legend>"));
   rawData(F("<form action='"));
@@ -1753,7 +1754,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     }
     boolean boolValue = (value[0]=='1');   
     GB_StorageHelper.setUseRTC(boolValue);
-    
+
     c_isWifiForceUpdateGrowboxState = true; // Switch to Day/Night mode
   } 
   else {
@@ -1764,6 +1765,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
 
 
 
