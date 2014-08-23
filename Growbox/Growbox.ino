@@ -249,7 +249,7 @@ void updateGrowboxState(boolean checkWetSensors) {
 
   if (checkWetSensors) {
     // Allows impruve stability on WEB call
-    GB_Watering.turnOnWetSensors();
+    GB_Watering.preUpdateWetSatus();
   }
 
   // Init/Restore growbox state
@@ -310,7 +310,7 @@ void updateGrowboxState(boolean checkWetSensors) {
   }
 
   if (checkWetSensors) {
-    GB_Watering.turnOffWetSensorsAndUpdateWetStatus(); // log new sensors values
+    GB_Watering.updateWetSatus(); // log new sensors values
   }
   GB_Watering.updateWateringSchedule(); // recalculate
 }

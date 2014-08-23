@@ -514,7 +514,7 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams){
   httpPageHeader();
 
   if (isRootPage || isWateringPage) {
-    GB_Watering.turnOnWetSensors();
+    GB_Watering.preUpdateWetSatus();
   }
 
   rawData(F("<!DOCTYPE html>")); // HTML 5
@@ -693,7 +693,7 @@ void WebServerClass::sendStatusPage(){
   if(g_useSerialMonitor){ 
     Serial.println();
   }
-  GB_Watering.turnOffWetSensorsAndUpdateWetStatus();
+  GB_Watering.updateWetSatus();
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
 
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
@@ -1135,7 +1135,7 @@ void WebServerClass::sendWateringPage(const String& url, byte wsIndex){
   //  if(g_useSerialMonitor){ 
   //    Serial.println();
   //  }
-  GB_Watering.turnOffWetSensorsAndUpdateWetStatus();
+  GB_Watering.updateWetSatus();
   byte currentValue = GB_Watering.getCurrentWetSensorValue(wsIndex);
   WateringEvent*  currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
 

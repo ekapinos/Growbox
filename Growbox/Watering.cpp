@@ -12,9 +12,9 @@ TimeAlarmsClass WateringClass::c_PumpOffAlarm;
 AlarmID_t WateringClass::c_PumpOnAlarmIDArray[MAX_WATERING_SYSTEMS_COUNT];
 AlarmID_t WateringClass::c_PumpOffAlarmIDArray[MAX_WATERING_SYSTEMS_COUNT];
 
-void WateringClass::init(time_t turnOnWetSensorsTimeStamp){
+void WateringClass::init(time_t preUpdateWetSatusTimeStamp){
 
-  c_turnOnWetSensorsTimeStamp = turnOnWetSensorsTimeStamp;
+  c_turnOnWetSensorsTimeStamp = preUpdateWetSatusTimeStamp;
   boolean isSensorsTurnedOn = false;
   
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
@@ -63,7 +63,7 @@ void WateringClass::adjustWatringTimeOnClockSet(long delta) {
 //                           WET SENSORS                           //
 /////////////////////////////////////////////////////////////////////
 
-boolean WateringClass::turnOnWetSensors(){
+boolean WateringClass::preUpdateWetSatus(){
 
   if (c_turnOnWetSensorsTimeStamp != 0){
     return true; // already turned on// TODO check it when preferences changing
@@ -80,7 +80,12 @@ boolean WateringClass::turnOnWetSensors(){
       isSensorsTurnedOn = true;
     }
     else {
-      digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
+      // Used on startup
+      if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) != LOW){
+          digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
+          showWateringMessage(wsIndex, F("Wet sensor OFF"));
+      }
+     
       if (c_lastWetSensorValue[wsIndex] != WATERING_DISABLE_VALUE){
         c_lastWetSensorValue[wsIndex] = WATERING_DISABLE_VALUE;
 
@@ -97,10 +102,10 @@ boolean WateringClass::turnOnWetSensors(){
   return isSensorsTurnedOn;
 }
 
-void WateringClass::turnOffWetSensorsAndUpdateWetStatus(){
+void WateringClass::updateWetSatus(){
 
   if (c_turnOnWetSensorsTimeStamp == 0){
-    if (!turnOnWetSensors()){
+    if (!preUpdateWetSatus()){
       return; // No one sensor were turned on
     }
   }  
@@ -119,7 +124,7 @@ void WateringClass::turnOffWetSensorsAndUpdateWetStatus(){
 
   for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
 
-    // Maybe Wet sensor was already updated (between scheduled call turnOnWetSensors and updateWetStatus was WEB call with force update) 
+    // Maybe Wet sensor was already updated (between scheduled call preUpdateWetSatus and updateWetStatus was WEB call with force update) 
     if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) == LOW){
       continue;
     }
@@ -368,8 +373,8 @@ void WateringClass::turnOnWaterPumpByIndex(byte wsIndex, boolean isSchedulecCall
 
     if (wsp.boolPreferencies.useWetSensorForWatering){
 
-      turnOnWetSensors();
-      turnOffWetSensorsAndUpdateWetStatus();
+      preUpdateWetSatus();
+      updateWetSatus();
 
       WateringEvent* state = getCurrentWetSensorStatus(wsIndex);
 

@@ -35,8 +35,8 @@ public:
   //                           WET SENSORS                           //
   /////////////////////////////////////////////////////////////////////
 
-  static boolean turnOnWetSensors();
-  static void turnOffWetSensorsAndUpdateWetStatus();
+  static boolean preUpdateWetSatus();
+  static void updateWetSatus();
 
   /////////////////////////////////////////////////////////////////////
   //                           WATER PUMPS                           //
