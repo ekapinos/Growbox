@@ -200,10 +200,10 @@ void ControllerClass::setClockTime(time_t newTimeStamp, boolean checkStartupTime
     GB_StorageHelper.setAutoCalculatedClockTimeUsed(false);
 
   }
-  
+
   c_lastBreezeTimeStamp += delta;
   GB_Watering.adjustLastWatringTimeOnClockSet(delta); 
-  
+
   // If we started with clean RTC we should update time stamps
   if (!checkStartupTime){
     return;
@@ -257,25 +257,101 @@ void ControllerClass::setRTCandClockTimeStamp(time_t newTimeStamp){
   }
 }
 
+
+/////////////////////////////////////////////////////////////////////
+//                              DEVICES                            //
+/////////////////////////////////////////////////////////////////////
+
+// public:
+
+void ControllerClass::setUseLight(boolean flag){
+  if (isUseLight() == flag){
+    return;
+  }
+  turnOffLight();
+  GB_StorageHelper.setUseLight(flag);
+  GB_Logger.logEvent(flag ? EVENT_LIGHT_ENABLED : EVENT_LIGHT_DISABLED);
+}
+boolean ControllerClass::isUseLight(){
+  return GB_StorageHelper.isUseLight();
+}
+void ControllerClass::setUseFan(boolean flag){
+  if (isUseFan() == flag){
+    return;
+  }
+  turnOffFan();
+  GB_StorageHelper.setUseFan(flag);
+  GB_Logger.logEvent(flag ? EVENT_FAN_ENABLED : EVENT_FAN_DISABLED);
+} 
+boolean ControllerClass::isUseFan(){
+  return GB_StorageHelper.isUseFan();
+}
+
+
+void ControllerClass::turnOnLight(){
+  if (!isUseLight()){
+    return;
+  }
+  if (digitalRead(LIGHT_PIN) == RELAY_ON){
+    return;
+  }
+  digitalWrite(LIGHT_PIN, RELAY_ON);
+  GB_Logger.logEvent(EVENT_LIGHT_ON);
+}
+
+void ControllerClass::turnOffLight(){
+  if (!isUseLight()){
+    return;
+  }
+  if (digitalRead(LIGHT_PIN) == RELAY_OFF){
+    return;
+  }
+  digitalWrite(LIGHT_PIN, RELAY_OFF);  
+  GB_Logger.logEvent(EVENT_LIGHT_OFF);
+}
+
+boolean ControllerClass::isLightTurnedOn(){
+  return (digitalRead(LIGHT_PIN) == RELAY_ON);
+}
+
+void ControllerClass::turnOnFan(int speed){
+  if (!isUseFan()){
+    return;
+  }
+  if (digitalRead(FAN_PIN) == RELAY_ON && digitalRead(FAN_SPEED_PIN) == speed){
+    return;
+  }
+  digitalWrite(FAN_SPEED_PIN, speed);
+  digitalWrite(FAN_PIN, RELAY_ON);
+
+  if (speed == FAN_SPEED_MIN){
+    GB_Logger.logEvent(EVENT_FAN_ON_MIN);
+  } 
+  else {
+    GB_Logger.logEvent(EVENT_FAN_ON_MAX);
+  }
+}
+
+void ControllerClass::turnOffFan(){
+  if (!isUseFan()){
+    return;
+  }
+  if (digitalRead(FAN_PIN) == RELAY_OFF){
+    return;
+  }
+  digitalWrite(FAN_PIN, RELAY_OFF);
+  digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
+  GB_Logger.logEvent(EVENT_FAN_OFF);
+}
+
+boolean ControllerClass::isFanTurnedOn(){
+  return (digitalRead(FAN_PIN) == RELAY_ON);
+}
+byte ControllerClass::getFanSpeed(){
+  return digitalRead(FAN_SPEED_PIN);
+}
+
 ControllerClass GB_Controller;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

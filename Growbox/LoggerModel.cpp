@@ -134,10 +134,14 @@ EVENT_RESTART,
 EVENT_MODE_DAY, 
 EVENT_MODE_NIGHT, 
 EVENT_LIGHT_OFF, 
-EVENT_LIGHT_ON, 
+EVENT_LIGHT_ON,
+EVENT_LIGHT_ENABLED,
+EVENT_LIGHT_DISABLED,
 EVENT_FAN_OFF, 
 EVENT_FAN_ON_MIN, 
 EVENT_FAN_ON_MAX,
+EVENT_FAN_ENABLED,
+EVENT_FAN_DISABLED,
 EVENT_LOGGER_ENABLED,
 EVENT_LOGGER_DISABLED,
 EVENT_CLOCK_AUTO_ADJUST;
@@ -179,12 +183,16 @@ void initLoggerModel(){
   EVENT_MODE_NIGHT.init(4, F("Night mode"));
   EVENT_LIGHT_OFF.init(5, F("Light off"));
   EVENT_LIGHT_ON.init(6, F("Light on"));
-  EVENT_FAN_OFF.init(7, F("Fan off"));
-  EVENT_FAN_ON_MIN.init(8, F("Fan min speed")); 
-  EVENT_FAN_ON_MAX.init(9, F("Fan max speed"));
-  EVENT_LOGGER_ENABLED.init(10, F("Logger enabled"));
-  EVENT_LOGGER_DISABLED.init(11, F("Logger disabled"));
-  EVENT_CLOCK_AUTO_ADJUST.init(12, F("Clock auto adjust"));
+  EVENT_LIGHT_ENABLED.init(7, F("Light enabled"));
+  EVENT_LIGHT_DISABLED.init(8, F("Light disabled"));
+  EVENT_FAN_OFF.init(9, F("Fan off"));
+  EVENT_FAN_ON_MIN.init(10, F("Fan min speed")); 
+  EVENT_FAN_ON_MAX.init(11, F("Fan max speed"));
+  EVENT_FAN_ENABLED.init(12, F("Fan enabled"));
+  EVENT_FAN_DISABLED.init(13, F("Fan disabled"));
+  EVENT_LOGGER_ENABLED.init(14, F("Logger enabled"));
+  EVENT_LOGGER_DISABLED.init(15, F("Logger disabled"));
+  EVENT_CLOCK_AUTO_ADJUST.init(16, F("Clock auto adjust"));
   
   // 0..15 (max)
   WATERING_EVENT_WET_SENSOR_IN_AIR.init(1, F("Wet sensor [In Air]"), F("In Air"), true, false);

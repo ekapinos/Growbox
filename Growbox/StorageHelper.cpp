@@ -93,6 +93,8 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
     bootRecord.boolPreferencies.useExternal_EEPROM_AT24C32 = EEPROM_AT24C32.isPresent();
     bootRecord.boolPreferencies.useThermometer = GB_Thermometer.isPresent();
     bootRecord.boolPreferencies.useRTC = GB_Controller.isRTCPresent();
+    bootRecord.boolPreferencies.useFan = false;
+    bootRecord.boolPreferencies.useLight = false;
 
     bootRecord.turnToDayModeAt = 9*60;
     bootRecord.turnToNightModeAt = 21*60;
@@ -125,9 +127,9 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime){
 
       wsp.lastWateringTimeStamp = 0; // Unknown
     }
-    
+
     bootRecord.autoAdjustClockTimeDelta = 0;
-    
+
     StringUtils::flashStringLoad(bootRecord.wifiSSID, WIFI_SSID_LENGTH, FS(S_WIFI_DEFAULT_SSID));
     StringUtils::flashStringLoad(bootRecord.wifiPass, WIFI_PASS_LENGTH, FS(S_WIFI_DEFAULT_PASS)); 
 
@@ -295,6 +297,28 @@ void StorageHelperClass::setNormalTemperatueNightMax(const byte normalTemperatue
 }
 void StorageHelperClass::setCriticalTemperatue(const byte criticalTemperatue){
   EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, criticalTemperatue), criticalTemperatue);
+}
+
+/////////////////////////////////////////////////////////////////////
+//                           OTHER DEVICES                         //
+/////////////////////////////////////////////////////////////////////
+
+void StorageHelperClass::setUseFan(boolean flag){
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.useFan = flag; 
+  setBoolPreferencies(boolPreferencies);  
+}
+boolean StorageHelperClass::isUseFan(){
+  return getBoolPreferencies().useFan;
+}
+
+void StorageHelperClass::setUseLight(boolean flag){
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.useLight = flag; 
+  setBoolPreferencies(boolPreferencies);  
+}
+boolean StorageHelperClass::isUseLight(){
+  return getBoolPreferencies().useLight;
 }
 
 
@@ -486,6 +510,8 @@ void StorageHelperClass::setWateringSystemPreferenciesById(byte id, BootRecord::
 }
 
 StorageHelperClass GB_StorageHelper;
+
+
 
 
 

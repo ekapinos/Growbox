@@ -30,8 +30,12 @@ boolean useThermometer :
     1;  
 boolean useRTC :
     1;  
+boolean useFan :
+    1;  
+boolean useLight :
+    1;  
   } 
-  boolPreferencies;                 // 1
+  boolPreferencies;                 // 2
 
   word turnToDayModeAt;             // 2
   word turnToNightModeAt;           // 2
@@ -74,7 +78,7 @@ boolean skipNextWatering :
 
   int16_t autoAdjustClockTimeDelta; // 2
   
-  byte reserved[74];                //  <----reserved
+  byte reserved[73];                //  <----reserved
   char wifiSSID[WIFI_SSID_LENGTH];  // 32  
   char wifiPass[WIFI_PASS_LENGTH];  // 64
   word last_magic;                  //  2  

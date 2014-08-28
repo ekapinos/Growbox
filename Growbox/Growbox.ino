@@ -272,40 +272,40 @@ void updateGrowboxState(boolean checkWetSensors) {
   float temperature = GB_Thermometer.getTemperature();
 
   if (/*!isnan(temperature) &&*/ temperature >= criticalTemperatue){
-    turnOffLight();
-    turnOnFan(FAN_SPEED_MAX);
+    GB_Controller.turnOffLight();
+    GB_Controller.turnOnFan(FAN_SPEED_MAX);
     GB_Logger.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
   } 
   else if (g_isDayInGrowbox) {
     // Day mode
-    turnOnLight();
+    GB_Controller.turnOnLight();
     if (/*!isnan(temperature) && */temperature < normalTemperatueDayMin) {
       // Too cold, no heater
-      turnOnFan(FAN_SPEED_MIN); // no wind, no grow
+      GB_Controller.turnOnFan(FAN_SPEED_MIN); // no wind, no grow
     } 
     else if (/*!isnan(temperature) &&*/ temperature > normalTemperatueDayMax){
       // Too hot
-      turnOnFan(FAN_SPEED_MAX);    
+      GB_Controller.turnOnFan(FAN_SPEED_MAX);    
     } 
     else {
       // Normal, day wind
-      turnOnFan(FAN_SPEED_MIN); 
+      GB_Controller.turnOnFan(FAN_SPEED_MIN); 
     }
   } 
   else { 
     // Night mode
-    turnOffLight(); 
+    GB_Controller.turnOffLight(); 
     if (/*!isnan(temperature) &&*/ temperature < normalTemperatueNightMin) {
       // Too cold, Nothig to do, no heater
-      turnOffFan(); 
+      GB_Controller.turnOffFan(); 
     } 
     else if (/*!isnan(temperature) &&*/ temperature > normalTemperatueNightMax){
       // Too hot
-      turnOnFan(FAN_SPEED_MIN);    
+      GB_Controller.turnOnFan(FAN_SPEED_MIN);    
     } 
     else {
       // Normal, all devices are turned off
-      turnOffFan(); 
+      GB_Controller.turnOffFan(); 
     }
   }
 
@@ -340,52 +340,6 @@ void updateGrowboxCoreHardwareState(){
 void updateGrowboxAutoAdjustClockTime(){
   GB_Controller.updateAutoAdjustClockTime();
 }
-
-/////////////////////////////////////////////////////////////////////
-//                              DEVICES                            //
-/////////////////////////////////////////////////////////////////////
-
-
-void turnOnLight(){
-  if (digitalRead(LIGHT_PIN) == RELAY_ON){
-    return;
-  }
-  digitalWrite(LIGHT_PIN, RELAY_ON);
-  GB_Logger.logEvent(EVENT_LIGHT_ON);
-}
-
-void turnOffLight(){
-  if (digitalRead(LIGHT_PIN) == RELAY_OFF){
-    return;
-  }
-  digitalWrite(LIGHT_PIN, RELAY_OFF);  
-  GB_Logger.logEvent(EVENT_LIGHT_OFF);
-}
-
-void turnOnFan(int speed){
-  if (digitalRead(FAN_PIN) == RELAY_ON && digitalRead(FAN_SPEED_PIN) == speed){
-    return;
-  }
-  digitalWrite(FAN_SPEED_PIN, speed);
-  digitalWrite(FAN_PIN, RELAY_ON);
-
-  if (speed == FAN_SPEED_MIN){
-    GB_Logger.logEvent(EVENT_FAN_ON_MIN);
-  } 
-  else {
-    GB_Logger.logEvent(EVENT_FAN_ON_MAX);
-  }
-}
-
-void turnOffFan(){
-  if (digitalRead(FAN_PIN) == RELAY_OFF){
-    return;
-  }
-  digitalWrite(FAN_PIN, RELAY_OFF);
-  digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
-  GB_Logger.logEvent(EVENT_FAN_OFF);
-}
-
 
 
 

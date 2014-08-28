@@ -646,24 +646,28 @@ void WebServerClass::sendStatusPage(){
   rawData(F("<dd>")); 
   rawData(g_isDayInGrowbox ? F("Day") : F("Night"));
   rawData(F(" mode</dd>"));
-  rawData(F("<dd>Light: ")); 
-  rawData((digitalRead(LIGHT_PIN) == RELAY_ON) ? F("Enabled") : F("Disabled"));
-  rawData(F("</dd>"));
-  rawData(F("<dd>Fan: ")); 
-  boolean isFanEnabled = (digitalRead(FAN_PIN) == RELAY_ON);
-  rawData(isFanEnabled ? F("Enabled, ") : F("Disabled"));
-  if (isFanEnabled){
-    rawData((digitalRead(FAN_SPEED_PIN) == FAN_SPEED_MIN) ? F("min speed") : F("max speed"));
+
+  if (GB_Controller.isUseLight()){
+    rawData(F("<dd>Light: ")); 
+    rawData(GB_Controller.isLightTurnedOn() ? F("Enabled") : F("Disabled"));
+    rawData(F("</dd>"));
   }
-  rawData(F("</dd>"));
+
+  if (GB_Controller.isUseFan()) {
+    rawData(F("<dd>Fan: ")); 
+    boolean isFanEnabled = GB_Controller.isFanTurnedOn();
+    rawData(isFanEnabled ? F("Enabled, ") : F("Disabled"));
+    if (isFanEnabled){
+      rawData((GB_Controller.getFanSpeed() == FAN_SPEED_MIN) ? F("min speed") : F("max speed"));
+    }
+    rawData(F("</dd>"));
+  }
 
   if (GB_Controller.isUseRTC()) {  
-
     if (!GB_Controller.isRTCPresent()) {
       rawData(F("<dd>Real-time clock: "));
       spanTag_RedIfTrue(F("Not connected"), true);
       rawData(F("</dd>")); 
-
     } 
     else if (GB_Controller.isClockNeedsSync() || GB_Controller.isClockNotSet()) {
       rawData(F("<dd>Clock: "));
@@ -675,7 +679,6 @@ void WebServerClass::sendStatusPage(){
       }
       rawData(F("</dd>")); 
     }
-
   }
 
   rawData(F("<dd>Startup: ")); 
@@ -1006,7 +1009,7 @@ void WebServerClass::sendGeneralPage(const String& getParams){
 
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
-  
+
   rawData(F("<fieldset><legend>Clock</legend>"));  
   rawData(F("<form action='"));
   rawData(FS(S_url_general));
@@ -1018,12 +1021,12 @@ void WebServerClass::sendGeneralPage(const String& getParams){
   rawData(F("<tr><td>Night mode at</td><td>"));
   tagInputTime(F("turnToNightModeAt"), 0, downTime);
   rawData(F("</td></tr>"));
-   
+
   rawData(F("<tr><td>Auto adjust time</td><td>"));
   tagInputNumber(F("autoAdjustTimeStampDelta"), 0, -32768, 32767, GB_Controller.getAutoAdjustClockTimeDelta());
   rawData(F(" sec/day"));
   rawData(F("</td></tr>"));
-  
+
   rawData(F("</table>"));
   rawData(F("<input type='submit' value='Save'>"));
   rawData(F("</form>"));
@@ -1305,7 +1308,13 @@ void WebServerClass::sendHardwarePage(const String& getParams) {
   rawData(FS(S_url_hardware));
   rawData(F("' method='post'>"));
 
-  tagCheckbox(F("isUseRTC"), F("Use Real-time clock DS1307"), GB_Controller.isUseRTC());
+  tagCheckbox(F("useLight"), F("Use Light"), GB_Controller.isUseLight());
+  rawData(F("<div class='description'> </div>"));
+
+  tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
+  rawData(F("<div class='description'> </div>"));
+
+  tagCheckbox(F("useRTC"), F("Use Real-time clock DS1307"), GB_Controller.isUseRTC());
   rawData(F("<div class='description'>Current state [<b>"));
   spanTag_RedIfTrue(GB_Controller.isRTCPresent() ? F("Connected") : F("Not connected"), GB_Controller.isUseRTC() && !GB_Controller.isRTCPresent());
   rawData(F("</b>]</div>"));
@@ -1757,7 +1766,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 
     c_isWifiForceUpdateGrowboxState = true; // Switch to Day/Night mode
   } 
-  else if (StringUtils::flashStringEquals(name, F("isUseRTC"))){
+  else if (StringUtils::flashStringEquals(name, F("useRTC"))){
     if (value.length() != 1){
       return false;
     }
@@ -1766,7 +1775,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 
     c_isWifiForceUpdateGrowboxState = true; // Switch to Day/Night mode
   } 
-  else if (StringUtils::flashStringEquals(name, F(""autoAdjustTimeStampDelta""))){
+  else if (StringUtils::flashStringEquals(name, F("autoAdjustTimeStampDelta"))){
     if (value.length() == 0){
       return false;
     }
@@ -1795,6 +1804,26 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     }
     boolean boolValue = (value[0]=='1');   
     GB_StorageHelper.setUseThermometer(boolValue);
+        
+    c_isWifiForceUpdateGrowboxState = true; 
+  } 
+  else if (StringUtils::flashStringEquals(name, F("useLight"))){
+    if (value.length() != 1){
+      return false;
+    }
+    boolean boolValue = (value[0]=='1');   
+    GB_Controller.setUseLight(boolValue);
+    
+    c_isWifiForceUpdateGrowboxState = true; 
+  } 
+  else if (StringUtils::flashStringEquals(name, F("useFan"))){
+    if (value.length() != 1){
+      return false;
+    }
+    boolean boolValue = (value[0]=='1');   
+    GB_Controller.setUseFan(boolValue);
+    
+    c_isWifiForceUpdateGrowboxState = true; 
   } 
   else {
     return false;
@@ -1804,6 +1833,8 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 }
 
 WebServerClass GB_WebServer;
+
+
 
 
 
