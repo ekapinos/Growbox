@@ -231,12 +231,21 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
   //  Serial.print("nextNormalScheduleTimeStamp: ");
   //  Serial.println(StringUtils::timeStampToString(nextNormalScheduleTimeStamp));
 
-  if (wsp.lastWateringTimeStamp == 0){
+  if (wsp.lastWateringTimeStamp == 0 || wsp.lastWateringTimeStamp > currentTimeStamp){
     // All OK, schedule watering without delta
     c_PumpOnAlarmIDArray[wsIndex] = c_PumpOnAlarm.triggerOnce(nextNormalScheduleTimeStamp, turnOnWaterPumpOnSchedule);
     //    Serial.println("c");
     //     Serial.println(c_PumpOnAlarmIDArray[wsIndex]);
+    if (wsp.lastWateringTimeStamp > currentTimeStamp){
+      // Something with RTC wront, on startup we have check: defaultTimeStamp > now(). But in real life RTC can be configured without Arduino shutdown
+      showWateringMessage(F("scheduleNextWateringTime: wsp.lastWateringTimeStamp > currentTimeStamp"));
+      wsp.lastWateringTimeStamp = 0;
+      GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);
+    }
+    
     return;
+  } else if (wsp.lastWateringTimeStamp > currentTimeStamp) {
+  
   }
 
   // Check for force Watering

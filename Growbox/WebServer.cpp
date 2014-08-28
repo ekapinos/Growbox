@@ -1020,7 +1020,7 @@ void WebServerClass::sendGeneralPage(const String& getParams){
   rawData(F("</td></tr>"));
    
   rawData(F("<tr><td>Auto adjust time</td><td>"));
-  tagInputNumber(F("adjustTimeStampDelta"), 0, -32768, 32767, GB_Controller.getAutoAdjustClockTimeDelta());
+  tagInputNumber(F("autoAdjustTimeStampDelta"), 0, -32768, 32767, GB_Controller.getAutoAdjustClockTimeDelta());
   rawData(F(" sec/day"));
   rawData(F("</td></tr>"));
   
@@ -1766,7 +1766,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
 
     c_isWifiForceUpdateGrowboxState = true; // Switch to Day/Night mode
   } 
-  else if (StringUtils::flashStringEquals(name, F("adjustTimeStampDelta"))){
+  else if (StringUtils::flashStringEquals(name, F(""autoAdjustTimeStampDelta""))){
     if (value.length() == 0){
       return false;
     }

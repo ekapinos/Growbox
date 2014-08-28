@@ -153,7 +153,8 @@ boolean ControllerClass::initClock(time_t defaultTimeStamp){
   // TODO use only if GB_StorageHelper.isUseRTC() 
   setSyncProvider(RTC.get);   // the function to get the time from the RTC
 
-  if (timeStatus() == timeNotSet){    
+  if (isClockNotSet() || defaultTimeStamp > now()){  
+    // second expression can appear, if somthing wrong with RTC
     setRTCandClockTimeStamp(defaultTimeStamp); 
     c_isAutoCalculatedClockTimeUsed = true;
   } 
