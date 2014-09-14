@@ -1,0 +1,11 @@
+# Eclipse Arduino IDE files (http://www.baeyens.it/eclipse/)
+/.settings/**
+/Release/
+/arduino/
+/Libraries/
+/spec.d
+/.cproject
+/.project
+/.ino.cpp
+
+
