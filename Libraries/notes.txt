@@ -1,0 +1,2 @@
+Time library has downloaded from Git hub with fixes for Arduino IDE 1.5.7
+-b79017952fb9c1e6981d14c2b150d41aaf0620c6

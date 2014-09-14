@@ -5,12 +5,7 @@
 //
 //  EEPROMEx.h - Extended EEPROM library
 //  Copyright (c) 2012 Thijs Elenbaas.  All right reserved.
-
-#if ARDUINO >= 100
 #include <Arduino.h> 
-#else
-#include <WProgram.h> 
-#endif
 
 class EEPROM_ARDUINO_Class{
 

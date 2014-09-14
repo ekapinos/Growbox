@@ -1,21 +1,7 @@
 #ifndef ArduinoPatch_h
 #define ArduinoPatch_h
 
-#if ARDUINO >= 100
 #include <Arduino.h> 
-#else
-#include <WProgram.h> 
-#endif
-
-#ifdef PROGMEM
-#undef PROGMEM
-#define PROGMEM __attribute__((section(".progmem.data"))) // Workaround for http://gcc.gnu.org/bugzilla/show_bug.cgi?id=34734#c4
-#endif
-
-#ifdef PSTR
-#undef PSTR
-#define PSTR(s) (__extension__({static const char __c[] PROGMEM = (s); &__c[0];})) // Copied from pgmspace.h in avr-libc source
-#endif
 
 /////////////////////////////////////////////////////////////////////
 //                          SERIAL READ                            //
