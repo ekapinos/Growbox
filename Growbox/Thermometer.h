@@ -18,7 +18,7 @@ public:
   ThermometerClass(OneWire*);
 private:
   float getHardwareTemperature(boolean logOnError);
-  
+
 public:
   boolean isPresent();
   void updateStatistics();
@@ -29,10 +29,4 @@ public:
 
 extern ThermometerClass GB_Thermometer;
 #endif
-
-
-
-
-
-
 

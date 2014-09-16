@@ -35,7 +35,7 @@ public:
   void resetFirmware();
   void resetStoredLog();
 
-  void setUseExternal_EEPROM_AT24C32(boolean flag); 
+  void setUseExternal_EEPROM_AT24C32(boolean flag);
   boolean isUseExternal_EEPROM_AT24C32();
 
   /////////////////////////////////////////////////////////////////////
@@ -98,12 +98,12 @@ public:
   word getLogRecordsCount();
   LogRecord getLogRecordByIndex(word index);
 
-private :
+private:
 
   word getNextLogRecordIndex();
-  void increaseNextLogRecordIndex();  
+  void increaseNextLogRecordIndex();
 
-public :
+public:
   /////////////////////////////////////////////////////////////////////
   //                               WI-FI                             //
   /////////////////////////////////////////////////////////////////////
@@ -123,15 +123,9 @@ public :
   BootRecord::WateringSystemPreferencies getWateringSystemPreferenciesById(byte id);
   void setWateringSystemPreferenciesById(byte id, BootRecord::WateringSystemPreferencies wateringSystemPreferencies);
 
-
 };
 
 extern StorageHelperClass GB_StorageHelper;
 
 #endif
-
-
-
-
-
 

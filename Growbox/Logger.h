@@ -4,7 +4,7 @@
 #include "LoggerModel.h"
 #include "StorageModel.h"
 
-class LoggerClass {
+class LoggerClass{
 
 public:
 
@@ -14,12 +14,11 @@ public:
 
   void logEvent(Event &event);
   void logWateringEvent(byte wsIndex, WateringEvent& wateringEvent, byte value);
-  
+
   void logError(Error &error);
   boolean stopLogError(Error &error);
 
   void logTemperature(byte temperature);
-
 
   /////////////////////////////////////////////////////////////////////
   //                              CHECK                              //
@@ -43,16 +42,4 @@ private:
 extern LoggerClass GB_Logger;
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
 

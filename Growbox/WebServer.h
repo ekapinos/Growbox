@@ -7,27 +7,26 @@
 //                           HTML CONSTS                           //
 /////////////////////////////////////////////////////////////////////
 
-const char S_url_root[] PROGMEM  = "/";
-const char S_url_log[] PROGMEM  = "/log";
-const char S_url_watering[] PROGMEM  = "/watering";
-const char S_url_general [] PROGMEM  = "/general";
-const char S_url_hardware [] PROGMEM  = "/hardware";
-const char S_url_other [] PROGMEM  = "/other";
-const char S_url_dump_internal[] PROGMEM  = "/other/dump_internal";
-const char S_url_dump_AT24C32[] PROGMEM  = "/other/dump_AT24C32";
-
+const char S_url_root[] PROGMEM = "/";
+const char S_url_log[] PROGMEM = "/log";
+const char S_url_watering[] PROGMEM = "/watering";
+const char S_url_general[] PROGMEM = "/general";
+const char S_url_hardware[] PROGMEM = "/hardware";
+const char S_url_other[] PROGMEM = "/other";
+const char S_url_dump_internal[] PROGMEM = "/other/dump_internal";
+const char S_url_dump_AT24C32[] PROGMEM = "/other/dump_AT24C32";
 
 class WebServerClass{
-private:  
+private:
   byte c_wifiPortDescriptor;
   byte c_isWifiResponseError;
   byte c_isWifiForceUpdateGrowboxState;
 
-public:  
+public:
   void init();
   void update();
 
-public:  
+public:
   boolean handleSerialEvent();
   boolean handleSerialMonitorEvent();
 
@@ -57,7 +56,7 @@ private:
   void rawData(const String &data);
   void rawData(float data);
   void rawData(time_t data, boolean interpretateAsULong = false, boolean forceShowZeroTimeStamp = false);
-  template <class T> void rawData(T data){
+  template <class T> void rawData(T data) {
     String str(data);
     rawData(str);
   }
@@ -69,8 +68,8 @@ private:
   void tagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value);
   word getTimeFromInput(const String& value);
 
-  void tagOption(const String& value, const String& text, boolean isSelected,  boolean isDisabled = false);
-  void tagOption(const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected,  boolean isDisabled = false);
+  void tagOption(const String& value, const String& text, boolean isSelected, boolean isDisabled = false);
+  void tagOption(const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected, boolean isDisabled = false);
 
   void appendOptionToSelectDynamic(const __FlashStringHelper* selectId, const String& value, const String& text, boolean isSelected);
   void appendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected);
@@ -78,7 +77,7 @@ private:
 
   void growboxClockJavaScript(const __FlashStringHelper* growboxTimeStampId = 0, const __FlashStringHelper* browserTimeStampId = 0, const __FlashStringHelper* diffTimeStampId = 0);
   void spanTag_RedIfTrue(const __FlashStringHelper* text, boolean isRed);
-  
+
   /////////////////////////////////////////////////////////////////////
   //                      COMMON FOR ALL PAGES                       //
   /////////////////////////////////////////////////////////////////////
@@ -96,20 +95,20 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   void sendLogPage(const String& getParams);
-  
+
   /////////////////////////////////////////////////////////////////////
   //                          GENERAL PAGE                           //
   /////////////////////////////////////////////////////////////////////
-  
+
   void sendGeneralPage(const String& getParams);
- 
+
   /////////////////////////////////////////////////////////////////////
   //                         WATERING PAGE                           //
   /////////////////////////////////////////////////////////////////////
-  
+
   byte getWateringIndexFromUrl(const String& url);
   void sendWateringPage(const String& url, byte wsIndex);
- 
+
   /////////////////////////////////////////////////////////////////////
   //                        HARDWARE PAGES                           //
   /////////////////////////////////////////////////////////////////////
@@ -123,19 +122,19 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   String applyPostParams(const String& url, const String& postParams);
-  boolean applyPostParam(const String& url, const String& name, const String& value);  
+  boolean applyPostParam(const String& url, const String& name, const String& value);
 
   /////////////////////////////////////////////////////////////////////
   //                              OTHER                              //
   /////////////////////////////////////////////////////////////////////
 
-  template <class T> void showWebMessage(T str, boolean newLine = true){
-    if (g_useSerialMonitor){
+  template <class T> void showWebMessage(T str, boolean newLine = true) {
+    if (g_useSerialMonitor) {
       Serial.print(F("WEB> "));
       Serial.print(str);
-      if (newLine){  
+      if (newLine) {
         Serial.println();
-      }      
+      }
     }
   }
 
@@ -144,5 +143,4 @@ private:
 extern WebServerClass GB_WebServer;
 
 #endif
-
 

@@ -28,7 +28,7 @@
 #define ARDUINO_CAPACITY       EEPROMSizeMega
 #endif
 
-word EEPROM_ARDUINO_Class::getCapacity(){
+word EEPROM_ARDUINO_Class::getCapacity() {
   return ARDUINO_CAPACITY;
 }
 
@@ -36,34 +36,34 @@ boolean EEPROM_ARDUINO_Class::isPresent() {
   return eeprom_is_ready();
 }
 
-void EEPROM_ARDUINO_Class::write(const word address, const byte data){
+void EEPROM_ARDUINO_Class::write(const word address, const byte data) {
   if (address >= getCapacity()) {
     return;
   }
   write_byte(address, data);
 }
 
-byte EEPROM_ARDUINO_Class::read(word address){
+byte EEPROM_ARDUINO_Class::read(word address) {
   if (address >= getCapacity()) {
     return 0;
   }
   return read_byte(address);
-} 
+}
 
 /////////////////////////////////////////////////////////////////////
 //                             TESTING                             //
 /////////////////////////////////////////////////////////////////////
 
-void EEPROM_ARDUINO_Class::fillWithValue(byte value){
-  for (word i = 0; i < getCapacity(); i++){
+void EEPROM_ARDUINO_Class::fillWithValue(byte value) {
+  for (word i = 0; i < getCapacity(); i++) {
     write(i, value);
   }
 }
 
-void EEPROM_ARDUINO_Class::fillIncremental(){      
-  for (word i = 0; i < getCapacity(); i++){
+void EEPROM_ARDUINO_Class::fillIncremental() {
+  for (word i = 0; i < getCapacity(); i++) {
     write(i, (byte)i);
-  }  
+  }
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -71,25 +71,20 @@ void EEPROM_ARDUINO_Class::fillIncremental(){
 /////////////////////////////////////////////////////////////////////
 
 void EEPROM_ARDUINO_Class::write_byte(const word address, const byte data) {
-  eeprom_write_byte((uint8_t*) address, data);
+  eeprom_write_byte((uint8_t*)address, data);
 }
 
-byte EEPROM_ARDUINO_Class::read_byte(const word address){
-  return eeprom_read_byte((uint8_t*) address);
+byte EEPROM_ARDUINO_Class::read_byte(const word address) {
+  return eeprom_read_byte((uint8_t*)address);
 }
 
 void EEPROM_ARDUINO_Class::write_block(const word address, const void* data, const word sizeofData) {
-  eeprom_write_block(data, (uint8_t*)address, sizeofData);	
+  eeprom_write_block(data, (uint8_t*)address, sizeofData);
 }
 
-void EEPROM_ARDUINO_Class::read_block(const word address, void *data, const word sizeofData){
+void EEPROM_ARDUINO_Class::read_block(const word address, void *data, const word sizeofData) {
   eeprom_read_block(data, (uint8_t*)address, sizeofData);
 }
 
 EEPROM_ARDUINO_Class EEPROM;
-
-
-
-
-
 

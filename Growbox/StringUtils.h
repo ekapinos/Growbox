@@ -15,7 +15,7 @@ namespace StringUtils {
   /////////////////////////////////////////////////////////////////////
 
   size_t flashStringLength(const __FlashStringHelper* fstr);
-  char flashStringCharAt(const __FlashStringHelper*, size_t index, boolean checkOverflow = true);
+  char flashStringCharAt(const __FlashStringHelper *, size_t index, boolean checkOverflow = true);
 
   boolean flashStringEquals(const String &str, const __FlashStringHelper* fstr);
   boolean flashStringEquals(const char* cstr, size_t length, const __FlashStringHelper* fstr);
@@ -33,14 +33,10 @@ namespace StringUtils {
   String getFixedDigitsString(const int number, const byte numberOfDigits);
   String byteToHexString(byte number, boolean addPrefix = false);
   String floatToString(float number);
-  String timeStampToString(time_t time, boolean getDate=true, boolean getTime=true);
+  String timeStampToString(time_t time, boolean getDate = true, boolean getTime = true);
   String wordTimeToString(const word time);
   byte hexCharToByte(const char hexChar);
 }
 
 #endif
-
-
-
-
 

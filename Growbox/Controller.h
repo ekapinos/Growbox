@@ -17,7 +17,6 @@ public:
   void updateClockState();
   void updateAutoAdjustClockTime();
 
-
   // discover memory overflow errors in the arduino C++ code
   void checkInputPinsStatus(boolean checkFirmwareReset = false);
   void checkFreeMemory();
@@ -36,7 +35,7 @@ public:
   void setClockTime(time_t newTimeStamp);
 private:
   void setClockTime(time_t newTimeStamp, boolean checkStartupTime);
-public: 
+public:
   void setAutoAdjustClockTimeDelta(int16_t delta);
   int16_t getAutoAdjustClockTimeDelta();
 
@@ -53,7 +52,7 @@ private:
 public:
   void setUseLight(boolean flag);
   boolean isUseLight();
-  void setUseFan(boolean flag);  
+  void setUseFan(boolean flag);
   boolean isUseFan();
 
   void turnOnLight();
@@ -68,26 +67,20 @@ public:
   /////////////////////////////////////////////////////////////////////
   //                              OTHER                              //
   /////////////////////////////////////////////////////////////////////
-private:  
-  template <class T> void showControllerMessage(T str, boolean newLine = true){
-    if (g_useSerialMonitor){
-      Serial.print(F("CONTROLLER> "));
-      Serial.print(str);
-      if (newLine){  
-        Serial.println();
-      }      
+private:
+  template<class T>
+    void showControllerMessage(T str, boolean newLine = true) {
+      if (g_useSerialMonitor) {
+        Serial.print(F("CONTROLLER> "));
+        Serial.print(str);
+        if (newLine) {
+          Serial.println();
+        }
+      }
     }
-  }
 };
 
 extern ControllerClass GB_Controller;
 
 #endif
-
-
-
-
-
-
-
 

@@ -12,45 +12,45 @@ TimeAlarmsClass WateringClass::c_PumpOffAlarm;
 AlarmID_t WateringClass::c_PumpOnAlarmIDArray[MAX_WATERING_SYSTEMS_COUNT];
 AlarmID_t WateringClass::c_PumpOffAlarmIDArray[MAX_WATERING_SYSTEMS_COUNT];
 
-void WateringClass::init(time_t preUpdateWetSatusTimeStamp){
+void WateringClass::init(time_t preUpdateWetSatusTimeStamp) {
 
   c_turnOnWetSensorsTimeStamp = preUpdateWetSatusTimeStamp;
   boolean isSensorsTurnedOn = false;
-  
-  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
+
+  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++) {
 
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
 
-    if (wsp.boolPreferencies.isWetSensorConnected){
+    if (wsp.boolPreferencies.isWetSensorConnected) {
       // We will use turned on state after in main file
       c_lastWetSensorValue[wsIndex] = WATERING_UNSTABLE_VALUE; // Not read yet  
       isSensorsTurnedOn = true;
-    } 
+    }
     else {
       // Turn OFF unused Wet sensor pins
-      c_lastWetSensorValue[wsIndex] = WATERING_DISABLE_VALUE; 
+      c_lastWetSensorValue[wsIndex] = WATERING_DISABLE_VALUE;
       digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
     }
 
     c_PumpOnAlarmIDArray[wsIndex] = dtINVALID_ALARM_ID;
     c_PumpOffAlarmIDArray[wsIndex] = dtINVALID_ALARM_ID;
   }
-  
-  if (!isSensorsTurnedOn){
+
+  if (!isSensorsTurnedOn) {
     c_turnOnWetSensorsTimeStamp = 0; // clear to call turnOffWetSensorsAndUpdateWetStatus correctly if no sensors present
   }
-  
+
 }
 
-void WateringClass::updateAlarms(){
+void WateringClass::updateAlarms() {
   c_PumpOnAlarm.delay(0);
   c_PumpOffAlarm.delay(0);
 }
 
 void WateringClass::adjustLastWatringTimeOnClockSet(long delta) {
-  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
+  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++) {
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
-    if (wsp.lastWateringTimeStamp == 0){
+    if (wsp.lastWateringTimeStamp == 0) {
       continue;
     }
     wsp.lastWateringTimeStamp += delta;
@@ -63,69 +63,69 @@ void WateringClass::adjustLastWatringTimeOnClockSet(long delta) {
 //                           WET SENSORS                           //
 /////////////////////////////////////////////////////////////////////
 
-boolean WateringClass::preUpdateWetSatus(){
+boolean WateringClass::preUpdateWetSatus() {
 
-  if (c_turnOnWetSensorsTimeStamp != 0){
+  if (c_turnOnWetSensorsTimeStamp != 0) {
     return true; // already turned on// TODO check it when preferences changing
   }
 
   c_turnOnWetSensorsTimeStamp = now();
   boolean isSensorsTurnedOn = false;
 
-  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
+  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++) {
     BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
-    if (wsp.boolPreferencies.isWetSensorConnected){
+    if (wsp.boolPreferencies.isWetSensorConnected) {
       showWateringMessage(wsIndex, F("Wet sensor ON"));
       digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], HIGH);
       isSensorsTurnedOn = true;
     }
     else {
       // Used on startup
-      if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) != LOW){
-          digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
-          showWateringMessage(wsIndex, F("Wet sensor OFF"));
+      if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) != LOW) {
+        digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
+        showWateringMessage(wsIndex, F("Wet sensor OFF"));
       }
-     
-      if (c_lastWetSensorValue[wsIndex] != WATERING_DISABLE_VALUE){
+
+      if (c_lastWetSensorValue[wsIndex] != WATERING_DISABLE_VALUE) {
         c_lastWetSensorValue[wsIndex] = WATERING_DISABLE_VALUE;
 
-        GB_Logger.logWateringEvent(wsIndex, WATERING_EVENT_WET_SENSOR_DISABLED, WATERING_DISABLE_VALUE);  
+        GB_Logger.logWateringEvent(wsIndex, WATERING_EVENT_WET_SENSOR_DISABLED, WATERING_DISABLE_VALUE);
 
       }
     }
   }
 
-  if (!isSensorsTurnedOn){
+  if (!isSensorsTurnedOn) {
     c_turnOnWetSensorsTimeStamp = 0; // clear to call turnOffWetSensorsAndUpdateWetStatus correctly if no sensors present
   }
-  
+
   return isSensorsTurnedOn;
 }
 
-void WateringClass::updateWetSatus(){
+void WateringClass::updateWetSatus() {
 
-  if (c_turnOnWetSensorsTimeStamp == 0){
-    if (!preUpdateWetSatus()){
+  if (c_turnOnWetSensorsTimeStamp == 0) {
+    if (!preUpdateWetSatus()) {
       return; // No one sensor were turned on
     }
-  }  
+  }
 
   long remanedDelay = c_turnOnWetSensorsTimeStamp - now() + WATERING_SYSTEM_TURN_ON_DELAY;
-  if (remanedDelay > 0){
-    if(g_useSerialMonitor){
+  if (remanedDelay > 0) {
+    if (g_useSerialMonitor) {
       showWateringMessage(F("Waiting Wet sensors for "), false);
       Serial.print(remanedDelay);
       Serial.println(F(" sec"));
     }
-    delay((unsigned long) remanedDelay * 1000);
+    delay((unsigned long)remanedDelay * 1000);
   }
 
   c_turnOnWetSensorsTimeStamp = 0; // clear 
 
-  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
+  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++) {
 
     // Maybe Wet sensor was already updated (between scheduled call preUpdateWetSatus and updateWetStatus was WEB call with force update) 
-    if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) == LOW){
+    if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) == LOW) {
       continue;
     }
 
@@ -140,8 +140,8 @@ void WateringClass::updateWetSatus(){
     //showWateringMessage(wsIndex, newState->shortDescription);
     showWateringMessage(wsIndex, F("Wet sensor OFF"));
 
-    if (oldState != newState){
-      GB_Logger.logWateringEvent(wsIndex, *newState, wetValue);  
+    if (oldState != newState) {
+      GB_Logger.logWateringEvent(wsIndex, *newState, wetValue);
     }
 
     c_lastWetSensorValue[wsIndex] = wetValue;
@@ -149,36 +149,35 @@ void WateringClass::updateWetSatus(){
   }
 }
 
-
 /////////////////////////////////////////////////////////////////////
 //                           WATER PUMPS                           //
 /////////////////////////////////////////////////////////////////////
 
 // public:
 
-void WateringClass::updateWateringSchedule(){  
+void WateringClass::updateWateringSchedule() {
   // If Growbox miss Watering during Power Off, start it immediately
-  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
+  for (byte wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++) {
     scheduleNextWateringTime(wsIndex);
   }
 }
 
-time_t WateringClass::getLastWateringTimeStampByIndex(byte wsIndex){
-  if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT){
+time_t WateringClass::getLastWateringTimeStampByIndex(byte wsIndex) {
+  if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT) {
     return 0;
   }
   BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
   return wsp.lastWateringTimeStamp;
 }
 
-time_t WateringClass::getNextWateringTimeStampByIndex(byte wsIndex){
+time_t WateringClass::getNextWateringTimeStampByIndex(byte wsIndex) {
 
   //  Serial.println();
-  if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT){
+  if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT) {
     showWateringMessage(F("getNextWateringTimeStampByIndex: wsIndex >= MAX_WATERING_SYSTEMS_COUNT"));
     return 0;
   }
-  if (c_PumpOnAlarmIDArray[wsIndex] == dtINVALID_ALARM_ID){
+  if (c_PumpOnAlarmIDArray[wsIndex] == dtINVALID_ALARM_ID) {
     showWateringMessage(F("getNextWateringTimeStampByIndex: c_PumpOnAlarmIDArray[wsIndex] == dtINVALID_ALARM_ID"));
     return 0;
   }
@@ -189,17 +188,16 @@ time_t WateringClass::getNextWateringTimeStampByIndex(byte wsIndex){
   //  Serial.println( c_PumpOnAlarm.read(c_PumpOnAlarmIDArray[wsIndex]));
   //  Serial.println(StringUtils::timeStampToString( c_PumpOnAlarm.read(c_PumpOnAlarmIDArray[wsIndex])));
 
-
   return c_PumpOnAlarm.read(c_PumpOnAlarmIDArray[wsIndex]);
 }
 
-void WateringClass::turnOnWaterPumpManual(byte wsIndex){
+void WateringClass::turnOnWaterPumpManual(byte wsIndex) {
   turnOnWaterPumpByIndex(wsIndex, false);
 }
 
 // private:
 
-void WateringClass::scheduleNextWateringTime(byte wsIndex){
+void WateringClass::scheduleNextWateringTime(byte wsIndex) {
 
   time_t currentTimeStamp = now();
 
@@ -207,12 +205,12 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
 
   BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
 
-  if (c_PumpOnAlarmIDArray[wsIndex] != dtINVALID_ALARM_ID){
+  if (c_PumpOnAlarmIDArray[wsIndex] != dtINVALID_ALARM_ID) {
     c_PumpOnAlarm.free(c_PumpOnAlarmIDArray[wsIndex]);
     c_PumpOnAlarmIDArray[wsIndex] = dtINVALID_ALARM_ID;
   }
 
-  if (!wsp.boolPreferencies.isWaterPumpConnected){
+  if (!wsp.boolPreferencies.isWaterPumpConnected) {
     return;
   }
 
@@ -223,7 +221,7 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
   //  Serial.print("nextNormalScheduleTimeStamp: ");
   // Serial.println(StringUtils::timeStampToString(nextNormalScheduleTimeStamp));
 
-  if (nextNormalScheduleTimeStamp < currentTimeStamp){
+  if (nextNormalScheduleTimeStamp < currentTimeStamp) {
     nextNormalScheduleTimeStamp += SECS_PER_DAY;
     //     Serial.println("b");
   }
@@ -231,37 +229,38 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
   //  Serial.print("nextNormalScheduleTimeStamp: ");
   //  Serial.println(StringUtils::timeStampToString(nextNormalScheduleTimeStamp));
 
-  if (wsp.lastWateringTimeStamp == 0 || wsp.lastWateringTimeStamp > currentTimeStamp){
+  if (wsp.lastWateringTimeStamp == 0 || wsp.lastWateringTimeStamp > currentTimeStamp) {
     // All OK, schedule watering without delta
     c_PumpOnAlarmIDArray[wsIndex] = c_PumpOnAlarm.triggerOnce(nextNormalScheduleTimeStamp, turnOnWaterPumpOnSchedule);
     //    Serial.println("c");
     //     Serial.println(c_PumpOnAlarmIDArray[wsIndex]);
-    if (wsp.lastWateringTimeStamp > currentTimeStamp){
+    if (wsp.lastWateringTimeStamp > currentTimeStamp) {
       // Something with RTC wront, on startup we have check: defaultTimeStamp > now(). But in real life RTC can be configured without Arduino shutdown
       showWateringMessage(F("scheduleNextWateringTime: wsp.lastWateringTimeStamp > currentTimeStamp"));
       wsp.lastWateringTimeStamp = 0;
       GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);
     }
-    
+
     return;
-  } else if (wsp.lastWateringTimeStamp > currentTimeStamp) {
-  
+  }
+  else if (wsp.lastWateringTimeStamp > currentTimeStamp) {
+
   }
 
   // Check for force Watering
-  if (currentTimeStamp - SECS_PER_DAY - WATERING_ERROR_DELTA > wsp.lastWateringTimeStamp){
+  if (currentTimeStamp - SECS_PER_DAY - WATERING_ERROR_DELTA > wsp.lastWateringTimeStamp) {
 
     // Watering wasn't during last 24 hours, we need start watering right now
-    if (g_useSerialMonitor){
+    if (g_useSerialMonitor) {
       time_t missedTime = currentTimeStamp - SECS_PER_DAY - wsp.lastWateringTimeStamp;
       missedTime /= 60; // in minutes
 
       showWateringMessage(wsIndex, F("Force Watering now. Last watering was ["));
       Serial.print(StringUtils::timeStampToString(wsp.lastWateringTimeStamp));
       Serial.print(F("] , missed time ["));
-      Serial.print(missedTime/60);
+      Serial.print(missedTime / 60);
       Serial.print(F("h "));
-      Serial.print(missedTime%60);
+      Serial.print(missedTime % 60);
       Serial.print(F("m]"));
       Serial.println();
     }
@@ -285,9 +284,10 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
   //  Serial.print("nextNextNormalScheduleTimeStamp: ");
   //  Serial.println(StringUtils::timeStampToString(nextNextNormalScheduleTimeStamp));
 
-
-  long nextDeltaAbs = (nextNormalScheduleTimeStamp > calculatedNextTimeStamp) ? (nextNormalScheduleTimeStamp - calculatedNextTimeStamp) : (calculatedNextTimeStamp - nextNormalScheduleTimeStamp);
-  long nextNextDeltaAbs = (nextNextNormalScheduleTimeStamp > calculatedNextTimeStamp) ? (nextNextNormalScheduleTimeStamp - calculatedNextTimeStamp) : (calculatedNextTimeStamp - nextNextNormalScheduleTimeStamp);
+  long nextDeltaAbs =
+      (nextNormalScheduleTimeStamp > calculatedNextTimeStamp) ? (nextNormalScheduleTimeStamp - calculatedNextTimeStamp) : (calculatedNextTimeStamp - nextNormalScheduleTimeStamp);
+  long nextNextDeltaAbs =
+      (nextNextNormalScheduleTimeStamp > calculatedNextTimeStamp) ? (nextNextNormalScheduleTimeStamp - calculatedNextTimeStamp) : (calculatedNextTimeStamp - nextNextNormalScheduleTimeStamp);
 
   //  Serial.print("nextDeltaAbs: ");
   //  Serial.println(nextDeltaAbs);
@@ -295,9 +295,10 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
   //  Serial.print("nextNextDeltaAbs: ");
   //  Serial.println(nextNextDeltaAbs);
 
-
-  time_t nearestNormalScheduleTimeStamp = (nextDeltaAbs < nextNextDeltaAbs) ? nextNormalScheduleTimeStamp : nextNextNormalScheduleTimeStamp;
-  long nearestDeltaAbs = (nextDeltaAbs < nextNextDeltaAbs) ? nextDeltaAbs : nextNextDeltaAbs;
+  time_t nearestNormalScheduleTimeStamp =
+      (nextDeltaAbs < nextNextDeltaAbs) ? nextNormalScheduleTimeStamp : nextNextNormalScheduleTimeStamp;
+  long nearestDeltaAbs =
+      (nextDeltaAbs < nextNextDeltaAbs) ? nextDeltaAbs : nextNextDeltaAbs;
 
   //  Serial.print("nearestNormalScheduleTimeStamp: ");
   //  Serial.println(StringUtils::timeStampToString(nearestNormalScheduleTimeStamp));
@@ -308,7 +309,7 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
   //  Serial.print("nearestDeltaAbs - WATERING_ERROR_DELTA: ");
   //  Serial.println(nearestDeltaAbs - WATERING_ERROR_DELTA);
 
-  if (nearestDeltaAbs - WATERING_ERROR_DELTA < WATERING_MAX_SCHEDULE_CORRECTION_TIME){
+  if (nearestDeltaAbs - WATERING_ERROR_DELTA < WATERING_MAX_SCHEDULE_CORRECTION_TIME) {
     // Not all OK, but schedule without delta
     c_PumpOnAlarmIDArray[wsIndex] = c_PumpOnAlarm.triggerOnce(nearestNormalScheduleTimeStamp, turnOnWaterPumpOnSchedule);
     //         Serial.println("e");
@@ -316,10 +317,10 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
   }
 
   // decrease delta on WATERING_MAX_SCHEDULE_CORRECTION_TIME but not more
-  if (nearestNormalScheduleTimeStamp > calculatedNextTimeStamp){
-    calculatedNextTimeStamp += WATERING_MAX_SCHEDULE_CORRECTION_TIME; 
+  if (nearestNormalScheduleTimeStamp > calculatedNextTimeStamp) {
+    calculatedNextTimeStamp += WATERING_MAX_SCHEDULE_CORRECTION_TIME;
     //        Serial.println("f");
-  } 
+  }
   else {
     calculatedNextTimeStamp -= WATERING_MAX_SCHEDULE_CORRECTION_TIME;
     //     Serial.println("g");
@@ -328,22 +329,22 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex){
 
 }
 
-void WateringClass::turnOnWaterPumpOnSchedule(){
+void WateringClass::turnOnWaterPumpOnSchedule() {
 
-  showWateringMessage( F("turnOnWaterPumpOnSchedule"));
+  showWateringMessage(F("turnOnWaterPumpOnSchedule"));
 
   // Find fired wsIndex
   byte wsIndex = 0xFF;
-  for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
-    if (c_PumpOnAlarmIDArray[i] == dtINVALID_ALARM_ID){
+  for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
+    if (c_PumpOnAlarmIDArray[i] == dtINVALID_ALARM_ID) {
       continue;
     }
-    if (c_PumpOnAlarmIDArray[i] == c_PumpOnAlarm.getTriggeredAlarmId()){
+    if (c_PumpOnAlarmIDArray[i] == c_PumpOnAlarm.getTriggeredAlarmId()) {
       wsIndex = i;
       break;
     }
   }
-  if (wsIndex == 0xFF){
+  if (wsIndex == 0xFF) {
     showWateringMessage(wsIndex, F("turnOnWaterPumpOnSchedule - bad index"));
     return;
   }
@@ -352,16 +353,16 @@ void WateringClass::turnOnWaterPumpOnSchedule(){
 
 }
 
-void WateringClass::turnOnWaterPumpByIndex(byte wsIndex, boolean isSchedulecCall){
+void WateringClass::turnOnWaterPumpByIndex(byte wsIndex, boolean isSchedulecCall) {
 
-  if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT){
+  if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT) {
     return;
   }
 
   //showWateringMessage(wsIndex, F("turnOnWaterPumpByIndex"));
 
   // If already Watering - skip scheduled operation
-  if (c_PumpOffAlarmIDArray[wsIndex] != dtINVALID_ALARM_ID){
+  if (c_PumpOffAlarmIDArray[wsIndex] != dtINVALID_ALARM_ID) {
     //showWateringMessage(wsIndex, F("turnOnWaterPumpByIndex - bad state"));
     return;
   }
@@ -374,45 +375,43 @@ void WateringClass::turnOnWaterPumpByIndex(byte wsIndex, boolean isSchedulecCall
   WateringEvent* wateringEvent = 0;
   byte wateringDuration = 0;
 
-  if (isSchedulecCall){
-    if (wsp.boolPreferencies.skipNextWatering){
-      wsp.boolPreferencies.skipNextWatering = false;     
+  if (isSchedulecCall) {
+    if (wsp.boolPreferencies.skipNextWatering) {
+      wsp.boolPreferencies.skipNextWatering = false;
       skipRealWatering = true;
-    } 
+    }
 
-    if (wsp.boolPreferencies.useWetSensorForWatering){
+    if (wsp.boolPreferencies.useWetSensorForWatering) {
 
       preUpdateWetSatus();
       updateWetSatus();
 
       WateringEvent* state = getCurrentWetSensorStatus(wsIndex);
 
-      if (state == &WATERING_EVENT_WET_SENSOR_DRY){
+      if (state == &WATERING_EVENT_WET_SENSOR_DRY) {
         wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_DRY;
         wateringDuration = wsp.dryWateringDuration;
 
-      } 
-      else if (state == &WATERING_EVENT_WET_SENSOR_VERY_DRY){  
+      }
+      else if (state == &WATERING_EVENT_WET_SENSOR_VERY_DRY) {
         wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_VERY_DRY;
         wateringDuration = wsp.veryDryWateringDuration;
 
-      } 
-      else if (state == &WATERING_EVENT_WET_SENSOR_IN_AIR ||
-        state == &WATERING_EVENT_WET_SENSOR_UNSTABLE ||
-        state == &WATERING_EVENT_WET_SENSOR_DISABLED){
+      }
+      else if (state == &WATERING_EVENT_WET_SENSOR_IN_AIR || state == &WATERING_EVENT_WET_SENSOR_UNSTABLE || state == &WATERING_EVENT_WET_SENSOR_DISABLED) {
 
         wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_NO_SENSOR_DRY;
         wateringDuration = wsp.dryWateringDuration;
-      } 
+      }
       else {
         skipRealWatering = true;
       }
-    } 
+    }
     else {
       wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_AUTO_DRY;
-      wateringDuration = wsp.dryWateringDuration;    
+      wateringDuration = wsp.dryWateringDuration;
     }
-  } 
+  }
   else {
     //   Serial.println("!isSchedulecCall");
     wateringEvent = &WATERING_EVENT_WATER_PUMP_ON_MANUAL_DRY;
@@ -443,29 +442,29 @@ void WateringClass::turnOnWaterPumpByIndex(byte wsIndex, boolean isSchedulecCall
 
 }
 
-void WateringClass::turnOffWaterPumpOnSchedule(){
+void WateringClass::turnOffWaterPumpOnSchedule() {
 
   //showWateringMessage( F("turnOffWaterPumpByIndex"));
   //showWateringMessage(c_PumpOffAlarm.getTriggeredAlarmId());
 
   // Find fired wsIndex
   byte wsIndex = 0xFF;
-  for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++){
-    if (c_PumpOffAlarmIDArray[i] == dtINVALID_ALARM_ID){
+  for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
+    if (c_PumpOffAlarmIDArray[i] == dtINVALID_ALARM_ID) {
       continue;
     }
-    if (c_PumpOffAlarmIDArray[i] == c_PumpOffAlarm.getTriggeredAlarmId()){
+    if (c_PumpOffAlarmIDArray[i] == c_PumpOffAlarm.getTriggeredAlarmId()) {
       wsIndex = i;
       break;
     }
   }
-  if (wsIndex == 0xFF){
+  if (wsIndex == 0xFF) {
     //showWateringMessage(wsIndex, F("turnOffWaterPumpByIndex - bad index"));
     return;
   }
 
   // If NOT already Watering - skip scheduled operation
-  if (c_PumpOffAlarmIDArray[wsIndex] == dtINVALID_ALARM_ID){
+  if (c_PumpOffAlarmIDArray[wsIndex] == dtINVALID_ALARM_ID) {
     //showWateringMessage(wsIndex, F("turnOffWaterPumpByIndex - bad state"));
     return;
   }
@@ -483,20 +482,19 @@ void WateringClass::turnOffWaterPumpOnSchedule(){
 
 }
 
-
-boolean WateringClass::isWetSensorValueReserved(byte value){
+boolean WateringClass::isWetSensorValueReserved(byte value) {
   return (value == WATERING_DISABLE_VALUE || value == WATERING_UNSTABLE_VALUE);
 }
 
-byte WateringClass::getCurrentWetSensorValue(byte wsIndex){
-  if(wsIndex >= MAX_WATERING_SYSTEMS_COUNT){
+byte WateringClass::getCurrentWetSensorValue(byte wsIndex) {
+  if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT) {
     return WATERING_DISABLE_VALUE;
   }
   return c_lastWetSensorValue[wsIndex];
 }
 
-WateringEvent* WateringClass::getCurrentWetSensorStatus(byte wsIndex){
-  if(wsIndex >= MAX_WATERING_SYSTEMS_COUNT){
+WateringEvent* WateringClass::getCurrentWetSensorStatus(byte wsIndex) {
+  if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT) {
     return &WATERING_EVENT_WET_SENSOR_DISABLED;
   }
   BootRecord::WateringSystemPreferencies wsp = GB_StorageHelper.getWateringSystemPreferenciesById(wsIndex);
@@ -505,82 +503,82 @@ WateringEvent* WateringClass::getCurrentWetSensorStatus(byte wsIndex){
 
 // private:
 
-byte WateringClass::readWetValue(byte wsIndex){
+byte WateringClass::readWetValue(byte wsIndex) {
 
-  if (g_useSerialMonitor){
+  if (g_useSerialMonitor) {
     showWateringMessage(wsIndex, F(""), false);
   }
 
-  byte lastValue = 0;  
+  byte lastValue = 0;
   byte equalsCounter = 0;
 
   for (byte counter = 0; counter < 12; counter++) {
 
-    byte currentValue = (analogRead(WATERING_WET_SENSOR_IN_PINS[wsIndex])>>2);  
-    if (g_useSerialMonitor){
+    byte currentValue = (analogRead(WATERING_WET_SENSOR_IN_PINS[wsIndex]) >> 2);
+    if (g_useSerialMonitor) {
       Serial.print(currentValue);
       Serial.print(' ');
     }
 
-    if (((currentValue >= lastValue) && ((currentValue - lastValue) <= 2)) || ((lastValue > currentValue) && ((lastValue - currentValue) <= 2)) ){
+    if (((currentValue >= lastValue) && ((currentValue - lastValue) <= 2)) || ((lastValue > currentValue) && ((lastValue - currentValue) <= 2))) {
 
-      if (counter > 0){ // prevent first loop incremtnt
+      if (counter > 0) { // prevent first loop incremtnt
         equalsCounter++;
       }
 
-      if (equalsCounter == 2){      
-        if (isWetSensorValueReserved(currentValue)){
+      if (equalsCounter == 2) {
+        if (isWetSensorValueReserved(currentValue)) {
           currentValue = 2;
         }
 
-        if (g_useSerialMonitor){
-          if (isWetSensorValueReserved(currentValue)){
+        if (g_useSerialMonitor) {
+          if (isWetSensorValueReserved(currentValue)) {
             Serial.print(F(" -> 2 "));
           }
           Serial.println(F("OK"));
         }
         return currentValue;
       }
-    } 
+    }
     else {
       equalsCounter = 0;
     }
     lastValue = currentValue;
     delay(10);
   }
-  if (g_useSerialMonitor){
+  if (g_useSerialMonitor) {
     Serial.println(F("FAIL"));
   }
   return WATERING_UNSTABLE_VALUE;
 }
 
-WateringEvent* WateringClass::valueToState(const BootRecord::WateringSystemPreferencies& wsp, byte value){
+WateringEvent* WateringClass::valueToState(const BootRecord::WateringSystemPreferencies& wsp, byte value) {
 
   // RESERVED values
-  if (value == WATERING_DISABLE_VALUE){
+  if (value == WATERING_DISABLE_VALUE) {
     return &WATERING_EVENT_WET_SENSOR_DISABLED;
   }
-  else if (value == WATERING_UNSTABLE_VALUE){
+  else if (value == WATERING_UNSTABLE_VALUE) {
     return &WATERING_EVENT_WET_SENSOR_UNSTABLE;
-  } 
+  }
 
   // Calculated states
-  else if (value > wsp.inAirValue){
+  else if (value > wsp.inAirValue) {
     return &WATERING_EVENT_WET_SENSOR_IN_AIR;
   }
-  else if (value > wsp.veryDryValue){
+  else if (value > wsp.veryDryValue) {
     return &WATERING_EVENT_WET_SENSOR_VERY_DRY;
   }
-  else if (value > wsp.dryValue){
+  else if (value > wsp.dryValue) {
     return &WATERING_EVENT_WET_SENSOR_DRY;
   }
-  else if (value > wsp.normalValue){
+  else if (value > wsp.normalValue) {
     return &WATERING_EVENT_WET_SENSOR_NORMAL;
   }
-  else if (value > wsp.wetValue){
+  else if (value > wsp.wetValue) {
     return &WATERING_EVENT_WET_SENSOR_WET;
   }
-  else if (value > wsp.veryWetValue){
+  else if (value > wsp.veryWetValue) {
     return &WATERING_EVENT_WET_SENSOR_VERY_WET;
   }
   else {
@@ -588,9 +586,5 @@ WateringEvent* WateringClass::valueToState(const BootRecord::WateringSystemPrefe
   }
 }
 
-
 WateringClass GB_Watering;
-
-
-
 

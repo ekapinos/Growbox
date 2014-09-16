@@ -38,18 +38,17 @@ boolean isDayInGrowbox() {
 
   boolean isDayInGrowbox = false;
   if (upTime < downTime) {
-    if (upTime < currentTime && currentTime < downTime ) {
+    if (upTime < currentTime && currentTime < downTime) {
       isDayInGrowbox = true;
     }
   }
   else { // upTime > downTime
-    if (upTime < currentTime || currentTime < downTime ) {
+    if (upTime < currentTime || currentTime < downTime) {
       isDayInGrowbox = true;
     }
   }
   return isDayInGrowbox;
 }
-
 
 void printStatusOnBoot(const __FlashStringHelper* str) { //TODO
   if (g_useSerialMonitor) {
@@ -93,7 +92,6 @@ void setup() {
   digitalWrite(LIGHT_PIN, RELAY_OFF);
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
-
 
   // Watering
   for (int i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
@@ -155,12 +153,10 @@ void setup() {
   GB_Controller.initClock(autoCalculatedTimeStamp); // may be disconnected - it is OK, then we will use last log time
   GB_Controller.checkFreeMemory();
 
-
   time_t startupTimeStamp = now() - (millis() - startupMillis) / 1000;
 
-
   printStatusOnBoot(F("stored configuration"));
-  GB_StorageHelper.init_loadConfiguration(startupTimeStamp);  // Logger will enabled after that   // after set clock and load configuration we are ready for logging
+  GB_StorageHelper.init_loadConfiguration(startupTimeStamp); // Logger will enabled after that   // after set clock and load configuration we are ready for logging
   GB_Controller.checkFreeMemory();
 
   GB_Controller.initClock_afterLoadConfiguration(); // Save Auticalculated flag
@@ -181,7 +177,6 @@ void setup() {
   Alarm.timerRepeat(UPDATE_TERMOMETER_STATISTICS_DELAY, updateThermometerStatistics);
   Alarm.timerRepeat(UPDATE_WEB_SERVER_STATUS_DELAY, updateWebServerStatus);
   GB_Controller.checkFreeMemory();
-
 
   updateGrowboxState();
   GB_Controller.checkFreeMemory();
@@ -237,7 +232,6 @@ void serialEvent1() {
   }
 }
 
-
 /////////////////////////////////////////////////////////////////////
 //                  TIMER/CLOCK EVENT HANDLERS                     //
 /////////////////////////////////////////////////////////////////////
@@ -266,12 +260,13 @@ void updateGrowboxState(boolean checkWetSensors) {
     }
   }
 
-  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
+  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin,
+      normalTemperatueNightMax, criticalTemperatue;
   GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
 
   float temperature = GB_Thermometer.getTemperature();
 
-  if (/*!isnan(temperature) &&*/ temperature >= criticalTemperatue) {
+  if (/*!isnan(temperature) &&*/temperature >= criticalTemperatue) {
     GB_Controller.turnOffLight();
     GB_Controller.turnOnFan(FAN_SPEED_MAX);
     GB_Logger.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
@@ -283,7 +278,7 @@ void updateGrowboxState(boolean checkWetSensors) {
       // Too cold, no heater
       GB_Controller.turnOnFan(FAN_SPEED_MIN); // no wind, no grow
     }
-    else if (/*!isnan(temperature) &&*/ temperature > normalTemperatueDayMax) {
+    else if (/*!isnan(temperature) &&*/temperature > normalTemperatueDayMax) {
       // Too hot
       GB_Controller.turnOnFan(FAN_SPEED_MAX);
     }
@@ -295,11 +290,11 @@ void updateGrowboxState(boolean checkWetSensors) {
   else {
     // Night mode
     GB_Controller.turnOffLight();
-    if (/*!isnan(temperature) &&*/ temperature < normalTemperatueNightMin) {
+    if (/*!isnan(temperature) &&*/temperature < normalTemperatueNightMin) {
       // Too cold, Nothig to do, no heater
       GB_Controller.turnOffFan();
     }
-    else if (/*!isnan(temperature) &&*/ temperature > normalTemperatueNightMax) {
+    else if (/*!isnan(temperature) &&*/temperature > normalTemperatueNightMax) {
       // Too hot
       GB_Controller.turnOnFan(FAN_SPEED_MIN);
     }
@@ -314,7 +309,6 @@ void updateGrowboxState(boolean checkWetSensors) {
   }
   GB_Watering.updateWateringSchedule(); // recalculate
 }
-
 
 /////////////////////////////////////////////////////////////////////
 //                              SCHEDULE                           //
@@ -340,7 +334,4 @@ void updateGrowboxCoreHardwareState() {
 void updateGrowboxAutoAdjustClockTime() {
   GB_Controller.updateAutoAdjustClockTime();
 }
-
-
-
 
