@@ -16,8 +16,8 @@ ControllerClass::ControllerClass() :
 
 void ControllerClass::rebootController() {
   showControllerMessage(F("Reboot"));
-  void (*resetFunc)(void) = 0; // Reset MC function
-  resetFunc(); // call
+  void (*resetFunc)(void) = 0; // initialize Software Reset function
+  resetFunc(); // call zero pointer
 }
 
 void ControllerClass::update() {
@@ -106,7 +106,7 @@ void ControllerClass::checkInputPinsStatus(boolean checkFirmwareReset) {
     }
     if (counter == 0) {
       GB_StorageHelper.resetFirmware();
-      showControllerMessage("Operation finished succesfully. Remove wire from Reset pin. Device will reboot automatically");
+      showControllerMessage("Operation finished successfully. Remove wire from Reset pin. Device will reboot automatically");
       while (digitalRead(HARDWARE_BUTTON_RESET_FIRMWARE_PIN) == HARDWARE_BUTTON_ON) {
         delay(1000);
       }
@@ -169,7 +169,7 @@ void ControllerClass::initClock_afterLoadConfiguration() {
   if (c_isAutoCalculatedClockTimeUsed) {
     GB_StorageHelper.setAutoCalculatedClockTimeUsed(true);
   }
-
+  c_isAutoCalculatedClockTimeUsed = false; // we will not use this variable. Call GB_StorageHelper.getAutoCalculatedClockTimeUsed(); instead
   updateClockState();
 }
 

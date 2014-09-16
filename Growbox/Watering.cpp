@@ -80,7 +80,7 @@ boolean WateringClass::preUpdateWetSatus() {
       isSensorsTurnedOn = true;
     }
     else {
-      // Used on startup
+      // On startup all pinss turned on
       if (digitalRead(WATERING_WET_SENSOR_POWER_PINS[wsIndex]) != LOW) {
         digitalWrite(WATERING_WET_SENSOR_POWER_PINS[wsIndex], LOW);
         showWateringMessage(wsIndex, F("Wet sensor OFF"));

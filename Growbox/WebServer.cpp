@@ -42,7 +42,7 @@ boolean WebServerClass::handleSerialEvent() {
 
   if (g_useSerialMonitor) {
     if (c_isWifiResponseError) {
-      showWebMessage(F("Error occurred during sending responce"));
+      showWebMessage(F("Error occurred during sending response"));
     }
   }
   return c_isWifiForceUpdateGrowboxState;
@@ -70,7 +70,7 @@ boolean WebServerClass::handleSerialMonitorEvent() {
   String postParams(input.substring(indexOfQestionChar + 1));
 
   if (g_useSerialMonitor) {
-    Serial.print(F("Recive from [SM] POST ["));
+    Serial.print(F("Receive from [SM] POST ["));
     Serial.print(url);
     Serial.print(F("] postParams ["));
     Serial.print(postParams);
@@ -783,6 +783,13 @@ void WebServerClass::sendStatusPage() {
       rawData(F("<dd>Wet sensor: "));
       WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
       spanTag_RedIfTrue(currentStatus->shortDescription, currentStatus != &WATERING_EVENT_WET_SENSOR_NORMAL);
+
+      byte value = GB_Watering.getCurrentWetSensorValue(wsIndex);
+      if (!GB_Watering.isWetSensorValueReserved(value)){
+        rawData(F(", value ["));
+        rawData(value);
+        rawData(F("]"));
+      }
       rawData(F("</dd>"));
     }
 

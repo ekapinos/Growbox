@@ -4,15 +4,15 @@
 #include <MemoryFree.h>
 
 #include <Time.h>
-// We use free() method
-#define USE_SPECIALIST_METHODS
+
+#define USE_SPECIALIST_METHODS // We use free() method in TimeAlarms.h library
 #include <TimeAlarms.h>
 
 // RTC
 #include <Wire.h>
 #include <DS1307RTC.h>
 
-// Termometer
+// Thermometer
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
@@ -75,15 +75,15 @@ void stopOnFatalError(const __FlashStringHelper* str) { //TODO
 void setup() {
 
   // Initialize the info pins
-  pinMode(LED_BUILTIN, OUTPUT); // brease
-  pinMode(BREEZE_PIN, OUTPUT);  // brease
+  pinMode(LED_BUILTIN, OUTPUT); // Breeze
+  pinMode(BREEZE_PIN, OUTPUT);  // Breeze
   pinMode(ERROR_PIN, OUTPUT);
 
   // Hardware buttons
   pinMode(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN, INPUT_PULLUP);
   pinMode(HARDWARE_BUTTON_RESET_FIRMWARE_PIN, INPUT_PULLUP);
 
-  // Reley pins
+  // Relay pins
   pinMode(LIGHT_PIN, OUTPUT);
   pinMode(FAN_PIN, OUTPUT);
   pinMode(FAN_SPEED_PIN, OUTPUT);
@@ -110,7 +110,13 @@ void setup() {
 
   GB_Controller.checkInputPinsStatus(true); // Check for Serial monitor and Firmware reset
   GB_Controller.checkFreeMemory();
-
+  if (g_useSerialMonitor) {
+    Serial.print(F("Build version: "));
+    Serial.print(__DATE__);
+    Serial.print(' ');
+    Serial.print(__TIME__);
+    Serial.println();
+  }
   printStatusOnBoot(F("software configuration"));
   initLoggerModel();
   if (!Event::isInitialized()) {
