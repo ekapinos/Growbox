@@ -207,6 +207,7 @@ void ControllerClass::setClockTime(time_t newTimeStamp, boolean checkStartupTime
 
   c_lastBreezeTimeStamp += delta;
   GB_Watering.adjustLastWatringTimeOnClockSet(delta);
+  // TODO what about wi-fi last active time stamp?
 
   // If we started with clean RTC we should update time stamps
   if (!checkStartupTime) {
