@@ -1,6 +1,6 @@
 // Warning! We need to include all used libraries,
 // otherwise Arduino IDE doesn't set correct build
-// params for gcc compilator
+// parameters for gcc compiler
 #include <MemoryFree.h>
 
 #include <Time.h>
@@ -50,7 +50,7 @@ boolean isDayInGrowbox() {
   return isDayInGrowbox;
 }
 
-void printStatusOnBoot(const __FlashStringHelper* str) { //TODO
+void printStatusOnBoot(const __FlashStringHelper* str) {
   if (g_useSerialMonitor) {
     Serial.print(F("Checking "));
     Serial.print(str);
@@ -58,13 +58,15 @@ void printStatusOnBoot(const __FlashStringHelper* str) { //TODO
   }
 }
 
-void stopOnFatalError(const __FlashStringHelper* str) { //TODO
+void stopOnFatalError(const __FlashStringHelper* str) {
   digitalWrite(ERROR_PIN, HIGH);
   if (g_useSerialMonitor) {
     Serial.print(F("Fatal error: "));
     Serial.println(str);
   }
-  while (true) delay(5000); // Stop boot process
+  while (true) {
+    // Stop boot process
+  };
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -88,12 +90,12 @@ void setup() {
   pinMode(FAN_PIN, OUTPUT);
   pinMode(FAN_SPEED_PIN, OUTPUT);
 
-  // Configure relay
+  // Configure relay pins
   digitalWrite(LIGHT_PIN, RELAY_OFF);
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
 
-  // Watering
+  // Watering pins
   for (int i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
     pinMode(WATERING_WET_SENSOR_IN_PINS[i], INPUT_PULLUP);
 
@@ -110,6 +112,7 @@ void setup() {
 
   GB_Controller.checkInputPinsStatus(true); // Check for Serial monitor and Firmware reset
   GB_Controller.checkFreeMemory();
+
   if (g_useSerialMonitor) {
     Serial.print(F("Build version: "));
     Serial.print(__DATE__);
@@ -149,14 +152,11 @@ void setup() {
   }
   GB_Controller.checkFreeMemory();
 
-  // Booted up
+  // On this point system pass all fatal checks
 
   printStatusOnBoot(F("clock"));
-  time_t autoCalculatedTimeStamp = GB_StorageHelper.init_getLastStoredTime(); // returns zero, if first startup
-  if (autoCalculatedTimeStamp != 0) {
-    autoCalculatedTimeStamp += SECS_PER_MIN; // if not first start, we set +minute as defaul time
-  }
-  GB_Controller.initClock(autoCalculatedTimeStamp); // may be disconnected - it is OK, then we will use last log time
+  time_t lastStoredTimeStamp = GB_StorageHelper.init_getLastStoredTime(); // returns zero, if first startup
+  GB_Controller.initClock(lastStoredTimeStamp); // may be disconnected - it is OK, then we will use last log time
   GB_Controller.checkFreeMemory();
 
   time_t startupTimeStamp = now() - (millis() - startupMillis) / 1000;
@@ -165,17 +165,13 @@ void setup() {
   GB_StorageHelper.init_loadConfiguration(startupTimeStamp); // Logger will enabled after that   // after set clock and load configuration we are ready for logging
   GB_Controller.checkFreeMemory();
 
-  GB_Controller.initClock_afterLoadConfiguration(); // Save Auticalculated flag
+  GB_Controller.initClock_afterLoadConfiguration(); // Save 'auticalculated' flag
   GB_Controller.checkFreeMemory();
 
   GB_Watering.init(startupTimeStamp); // call before updateGrowboxState();
   GB_Controller.checkFreeMemory();
 
-  //  No need to call
-  //  GB_Thermometer.updateStatistics();
-  //  GB_Controller.checkFreeMemory();
-
-  // Max 6 timer for Alarm instance
+  // WARNING! Max 6 timer for Alarm instance
   Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);
   Alarm.timerRepeat(UPDATE_CONTROLLER_STATE_DELAY, updateControllerStatus);
   Alarm.timerRepeat(UPDATE_CONTROLLER_CORE_HARDWARE_STATE_DELAY, updateGrowboxCoreHardwareState);
@@ -196,25 +192,19 @@ void setup() {
   if (g_useSerialMonitor) {
     Serial.println(F("Growbox successfully started"));
   }
-
 }
 
 // the loop routine runs over and over again forever:
 void loop() {
-  //WARNING! We need quick response for Serial events, thay handled afer each loop. So, we decreese delay to zero
+  //WARNING! We need quick response for Serial events, they handled after each loop. So, we decrease delay to zero
   Alarm.delay(0);
 
   // We use another instance of Alarm object to increase MAX alarms count (6 by default, look dtNBR_ALARMS in TimeAlarms.h
   GB_Watering.updateAlarms();
 }
 
+// Arduino IDE is connected to Serial and works on standard 9600 speed
 void serialEvent() {
-  //  Serial.println(F("serialEvent fired"));
-  //  if(!GB_StorageHelper.isConfigurationLoaded()){ //TODO maybe we should remove it
-  //    // We will not handle external events during startup
-  //    return;
-  //  }
-
   boolean forceUpdateGrowboxState = GB_WebServer.handleSerialMonitorEvent();
   if (forceUpdateGrowboxState) {
     updateGrowboxState(false);
@@ -223,16 +213,7 @@ void serialEvent() {
 
 // Wi-Fi is connected to Serial1
 void serialEvent1() {
-  //  Serial.println(F("serialEvent1 fired"));
-  //  if(!GB_StorageHelper.isConfigurationLoaded()){
-  //    // We will not handle external events during startup
-  //    return;
-  //  }
-
-  //  String input;
-  //  Serial_readString(input); // at first we should read, after manipulate
-  //  Serial.println(input);
-  boolean forceUpdateGrowboxState = GB_WebServer.handleSerialEvent();
+  boolean forceUpdateGrowboxState = GB_WebServer.handleSerialWiFiEvent();
   if (forceUpdateGrowboxState) {
     updateGrowboxState(false);
   }
@@ -248,11 +229,11 @@ void updateGrowboxState() {
 void updateGrowboxState(boolean checkWetSensors) {
 
   if (checkWetSensors) {
-    // Allows impruve stability on WEB call
+    // Allows improve stability on WEB call
     GB_Watering.preUpdateWetSatus();
   }
 
-  // Init/Restore growbox state
+  // Initialize/restore Growbox state
   if (isDayInGrowbox()) {
     if (g_isDayInGrowbox != true) {
       g_isDayInGrowbox = true;
@@ -270,9 +251,10 @@ void updateGrowboxState(boolean checkWetSensors) {
       normalTemperatueNightMax, criticalTemperatue;
   GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
 
+  // WARNING! May return NaN. Compare NaN with other numbers always 'false'
   float temperature = GB_Thermometer.getTemperature();
 
-  if (/*!isnan(temperature) &&*/temperature >= criticalTemperatue) {
+  if (temperature >= criticalTemperatue) {
     GB_Controller.turnOffLight();
     GB_Controller.turnOnFan(FAN_SPEED_MAX);
     GB_Logger.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
@@ -280,11 +262,11 @@ void updateGrowboxState(boolean checkWetSensors) {
   else if (g_isDayInGrowbox) {
     // Day mode
     GB_Controller.turnOnLight();
-    if (/*!isnan(temperature) && */temperature < normalTemperatueDayMin) {
+    if (temperature < normalTemperatueDayMin) {
       // Too cold, no heater
       GB_Controller.turnOnFan(FAN_SPEED_MIN); // no wind, no grow
     }
-    else if (/*!isnan(temperature) &&*/temperature > normalTemperatueDayMax) {
+    else if (temperature > normalTemperatueDayMax) {
       // Too hot
       GB_Controller.turnOnFan(FAN_SPEED_MAX);
     }
@@ -296,11 +278,11 @@ void updateGrowboxState(boolean checkWetSensors) {
   else {
     // Night mode
     GB_Controller.turnOffLight();
-    if (/*!isnan(temperature) &&*/temperature < normalTemperatueNightMin) {
+    if (temperature < normalTemperatueNightMin) {
       // Too cold, Nothig to do, no heater
       GB_Controller.turnOffFan();
     }
-    else if (/*!isnan(temperature) &&*/temperature > normalTemperatueNightMax) {
+    else if (temperature > normalTemperatueNightMax) {
       // Too hot
       GB_Controller.turnOnFan(FAN_SPEED_MIN);
     }
@@ -313,7 +295,7 @@ void updateGrowboxState(boolean checkWetSensors) {
   if (checkWetSensors) {
     GB_Watering.updateWetSatus(); // log new sensors values
   }
-  GB_Watering.updateWateringSchedule(); // recalculate
+  GB_Watering.updateWateringSchedule(); // recalculate next watering pump event
 }
 
 /////////////////////////////////////////////////////////////////////

@@ -17,7 +17,7 @@ void WebServerClass::update() {
 
 }
 
-boolean WebServerClass::handleSerialEvent() {
+boolean WebServerClass::handleSerialWiFiEvent() {
 
   String url, getParams, postParams;
 
@@ -634,7 +634,7 @@ void WebServerClass::sendStatusPage() {
 
   rawData(F("<dt>General</dt>"));
 
-  if ((now() - GB_Controller.getLastBreezeTimeStamp()) > 1 * SECS_PER_MIN) {
+  if (GB_Controller.isBreezeFatalError()) {
     rawData(F("<dd>"));
     spanTag_RedIfTrue(F("No breeze"), true);
     rawData(F("</dd>"));

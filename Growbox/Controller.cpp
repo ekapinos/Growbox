@@ -11,7 +11,7 @@
 #include "Watering.h"
 
 ControllerClass::ControllerClass() :
-    c_freeMemoryLastCheck(0), c_lastBreezeTimeStamp(0), c_isAutoCalculatedClockTimeUsed(false) {
+    c_lastFreeMemory(0), c_lastBreezeTimeStamp(0), c_isAutoCalculatedClockTimeUsed(false) {
 }
 
 void ControllerClass::rebootController() {
@@ -125,36 +125,40 @@ void ControllerClass::checkFreeMemory() {
     GB_Logger.logError(ERROR_MEMORY_LOW);
     rebootController();
   }
+  // no sense if reboot
   //  else {
   //    GB_Logger.stopLogError(ERROR_MEMORY_LOW); 
   //  }
 
-  if (c_freeMemoryLastCheck != currentFreeMemory) {
+  if (c_lastFreeMemory != currentFreeMemory) {
     if (g_useSerialMonitor) {
       showControllerMessage(F("Free memory: ["), false);
       Serial.print(currentFreeMemory);
       Serial.println(']');
     }
-    c_freeMemoryLastCheck = currentFreeMemory;
+    c_lastFreeMemory = currentFreeMemory;
   }
 }
 
-time_t ControllerClass::getLastBreezeTimeStamp() {
-  return c_lastBreezeTimeStamp;
+boolean ControllerClass::isBreezeFatalError() {
+  return ((now() - c_lastBreezeTimeStamp) > 10UL); // No breeze more than 10 seconds
 }
 
 /////////////////////////////////////////////////////////////////////
 //                              CLOCK                              //
 /////////////////////////////////////////////////////////////////////
 
-boolean ControllerClass::initClock(time_t defaultTimeStamp) {
+boolean ControllerClass::initClock(time_t lastStoredTimeStamp) {
 
   // TODO use only if GB_StorageHelper.isUseRTC() 
   setSyncProvider(RTC.get);   // the function to get the time from the RTC
 
-  if (isClockNotSet() || defaultTimeStamp > now()) {
-    // second expression can appear, if somthing wrong with RTC
-    setRTCandClockTimeStamp(defaultTimeStamp);
+  if (isClockNotSet() || lastStoredTimeStamp > now()) {
+    // second expression can appear, if something wrong with RTC
+    if (lastStoredTimeStamp != 0) {
+      lastStoredTimeStamp += SECS_PER_MIN; // if not first start, we set +minute as default time
+    }
+    setRTCandClockTimeStamp(lastStoredTimeStamp);
     c_isAutoCalculatedClockTimeUsed = true;
   }
   else {

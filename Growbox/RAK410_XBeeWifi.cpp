@@ -13,7 +13,7 @@ const char S_WIFI_GET_[] PROGMEM = "GET /";
 const char S_WIFI_POST_[] PROGMEM = "POST /";
 
 RAK410_XBeeWifiClass::RAK410_XBeeWifiClass() :
-    c_isWifiPresent(false), c_restartWifi(true), c_isWifiPrintCommandStarted(false), c_autoSizeFrameSize(0) {
+    c_isWifiPresent(false), c_restartWifi(true), c_isWifiPrintCommandStarted(false), c_autoSizeFrameSize(0), c_lastWifiActivityTimeStamp(0) {
 }
 
 boolean RAK410_XBeeWifiClass::isPresent() { // check if the device is present
@@ -22,7 +22,7 @@ boolean RAK410_XBeeWifiClass::isPresent() { // check if the device is present
 
 void RAK410_XBeeWifiClass::init() {
 
-  Serial1.begin(115200);
+  Serial1.begin(115200); // Default RAK 410 speed
   while (!Serial1) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
@@ -34,9 +34,11 @@ void RAK410_XBeeWifiClass::update() {
 
   // Check is Wi-Fi present
   if (isPresent()) {
-    if (!checkStartedWifi()) {
-      if (!restartWifi()) {
-        return;
+    if ((now() - c_lastWifiActivityTimeStamp) > UPDATE_WEB_SERVER_STATUS_DELAY) { // we skip scheduled check, if we use wi-fi now
+      if (!checkStartedWifi()) {
+        if (!restartWifi()) {
+          return;
+        }
       }
     }
   }
@@ -46,7 +48,7 @@ void RAK410_XBeeWifiClass::update() {
     }
   }
 
-  // Restart, if need
+  // Restart, if need and not restarted before
   if (c_restartWifi) {
     restartWifi();
   }
@@ -60,13 +62,13 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
 
   c_isWifiPresent = false;
 
-  for (byte i = 0; i < 3; i++) { // Sometimes first command returns ERROR, two attempts
+  for (byte i = 0; i < 3; i++) { // Sometimes first command returns ERROR. We use two attempts
 
     String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
 
     if (!StringUtils::flashStringEquals(input, FS(S_WIFI_RESPONSE_WELLCOME))) {
       if (g_useSerialMonitor && input.length() > 0) {
-        showWifiMessage(F("Not correct wellcome message: "), false);
+        showWifiMessage(F("Not correct welcome message: "), false);
         PrintUtils::printWithoutCRLF(input);
         Serial.print(FS(S_Next));
         PrintUtils::printHEX(input);
@@ -158,6 +160,7 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
     showWifiMessage(F("Wi-Fi not connected"));
   }
 
+  c_lastWifiActivityTimeStamp = now();
   return c_isWifiPresent;
 }
 
@@ -176,6 +179,7 @@ boolean RAK410_XBeeWifiClass::checkStartedWifi() {
     showWifiMessage(F("W-Fi connection LOST"));
   }
 
+  c_lastWifiActivityTimeStamp = now();
   return c_isWifiPresent;
 }
 // public:
@@ -185,6 +189,8 @@ boolean RAK410_XBeeWifiClass::checkStartedWifi() {
 /////////////////////////////////////////////////////////////////////
 
 RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &wifiPortDescriptor, String &input, String &getParams, String &postParams) {
+
+  c_lastWifiActivityTimeStamp = now();
 
   wifiPortDescriptor = 0xFF;
   input = getParams = postParams = String();
@@ -202,7 +208,7 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
     }
 
     if (g_useSerialMonitor) {
-      showWifiMessage(F("Recive unknown data: "), false);
+      showWifiMessage(F("Receive unknown data: "), false);
       PrintUtils::printWithoutCRLF(input);
       Serial.print(FS(S_Next));
       PrintUtils::printHEX(input);
@@ -314,7 +320,7 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
         Serial_skipBytes(dataLength); // remove all data
         Serial_skipBytes(2); // remove end mark 
         if (g_useSerialMonitor) {
-          showWifiMessage(F("Recive from ["), false);
+          showWifiMessage(F("Receive from ["), false);
           Serial.print(wifiPortDescriptor);
           Serial.print(F("] unknown HTTP ["));
           PrintUtils::printWithoutCRLF(input);

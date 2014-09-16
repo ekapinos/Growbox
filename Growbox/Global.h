@@ -57,13 +57,13 @@ const time_t UPDATE_CONTROLLER_STATE_DELAY = 1;
 const time_t UPDATE_CONTROLLER_CORE_HARDWARE_STATE_DELAY = 60; // 60 sec
 const time_t UPDATE_CONTROLLER_AUTO_ADJUST_CLOCK_TIME_DELAY = SECS_PER_DAY; // 1 day
 const time_t UPDATE_TERMOMETER_STATISTICS_DELAY = 20; //20 sec 
-const time_t UPDATE_WEB_SERVER_STATUS_DELAY = 3 * 60; // 2min
+const time_t UPDATE_WEB_SERVER_STATUS_DELAY = 2 * 60; // 2 min
 
 const int UPDATE_WEB_SERVER_AVERAGE_PAGE_LOAD_DELAY = 3; // 3 sec 
 
 const int WATERING_SYSTEM_TURN_ON_DELAY = 3; // 3 sec 
 
-// error blinks in milleseconds and blink sequences
+// error blinks in milliseconds and blink sequences
 const word ERROR_SHORT_SIGNAL_MS = 100;  // -> 0
 const word ERROR_LONG_SIGNAL_MS = 400;   // -> 1
 const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;

@@ -27,7 +27,7 @@ public:
   void update();
 
 public:
-  boolean handleSerialEvent();
+  boolean handleSerialWiFiEvent();
   boolean handleSerialMonitorEvent();
 
   /////////////////////////////////////////////////////////////////////

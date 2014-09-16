@@ -22,6 +22,7 @@ private:
   char c_autoSizeFrameBuffer[WIFI_MAX_SEND_FRAME_SIZE];
 #endif
   boolean c_isWifiPrintCommandStarted;
+  time_t c_lastWifiActivityTimeStamp;
 
 public:
 

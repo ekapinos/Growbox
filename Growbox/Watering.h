@@ -2,8 +2,6 @@
 #define Watering_h
 
 #include <Time.h>
-// We use free() method
-#define USE_SPECIALIST_METHODS 
 #include <TimeAlarms.h>
 
 #include "Global.h"

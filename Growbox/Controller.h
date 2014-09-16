@@ -5,7 +5,7 @@
 
 class ControllerClass{
 
-  int c_freeMemoryLastCheck;
+  int c_lastFreeMemory;
   boolean c_isAutoCalculatedClockTimeUsed;
   time_t c_lastBreezeTimeStamp;
 public:
@@ -20,7 +20,7 @@ public:
   // discover memory overflow errors in the arduino C++ code
   void checkInputPinsStatus(boolean checkFirmwareReset = false);
   void checkFreeMemory();
-  time_t getLastBreezeTimeStamp();
+  boolean isBreezeFatalError();
 
   /////////////////////////////////////////////////////////////////////
   //                              CLOCK                              //
