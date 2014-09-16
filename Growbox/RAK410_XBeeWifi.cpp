@@ -13,7 +13,7 @@ const char S_WIFI_GET_[] PROGMEM = "GET /";
 const char S_WIFI_POST_[] PROGMEM = "POST /";
 
 RAK410_XBeeWifiClass::RAK410_XBeeWifiClass() :
-    c_isWifiPresent(false), c_restartWifi(true), c_isWifiPrintCommandStarted(false) {
+    c_isWifiPresent(false), c_restartWifi(true), c_isWifiPrintCommandStarted(false), c_autoSizeFrameSize(0) {
 }
 
 boolean RAK410_XBeeWifiClass::isPresent() { // check if the device is present

@@ -7,7 +7,7 @@
 LinkedList<Error> Error::fullList = LinkedList<Error>();
 
 Error::Error() :
-    sequence(0xFF), sequenceSize(0xFF), isActive(false), isStored(false) {
+    sequence(0xFF), sequenceSize(0xFF), isActive(false), isStored(false), description(NULL){
   fullList.add(this);
 }
 
@@ -58,7 +58,7 @@ void Error::notify() {
 LinkedList<Event> Event::fullList = LinkedList<Event>();
 
 Event::Event() :
-    index(0xFF) {
+    index(0xFF), description(NULL) {
   fullList.add(this);
 }
 
@@ -89,7 +89,7 @@ boolean Event::isInitialized() {
 LinkedList<WateringEvent> WateringEvent::fullList = LinkedList<WateringEvent>();
 
 WateringEvent::WateringEvent() :
-    index(0xFF) {
+    index(0xFF), description(NULL), shortDescription(NULL), isData2Value(false), isData2Duration(false) {
   fullList.add(this);
 }
 

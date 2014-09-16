@@ -11,7 +11,7 @@
 #include "Watering.h"
 
 ControllerClass::ControllerClass() :
-    c_freeMemoryLastCheck(0), c_isAutoCalculatedClockTimeUsed(false) {
+    c_freeMemoryLastCheck(0), c_lastBreezeTimeStamp(0), c_isAutoCalculatedClockTimeUsed(false) {
 }
 
 void ControllerClass::rebootController() {
