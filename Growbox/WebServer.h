@@ -77,6 +77,8 @@ private:
 
   void growboxClockJavaScript(const __FlashStringHelper* growboxTimeStampId = 0, const __FlashStringHelper* browserTimeStampId = 0, const __FlashStringHelper* diffTimeStampId = 0);
   void spanTag_RedIfTrue(const __FlashStringHelper* text, boolean isRed);
+  void printTemperatue(float t);
+  void printTemperatueRange(float t1, float t2);
 
   /////////////////////////////////////////////////////////////////////
   //                      COMMON FOR ALL PAGES                       //

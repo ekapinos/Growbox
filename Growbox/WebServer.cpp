@@ -496,6 +496,27 @@ void WebServerClass::spanTag_RedIfTrue(const __FlashStringHelper* text, boolean 
   rawData(F("</span>"));
 }
 
+void WebServerClass::printTemperatue(float t) {
+  if (isnan(t)) {
+    rawData(F("N/A"));
+  }
+  else {
+    rawData(t);
+    rawData(F(" &deg;C"));
+  }
+}
+
+void WebServerClass::printTemperatueRange(float t1, float t2) {
+  if (isnan(t1)) {
+    rawData(F("N/A"));
+  }
+  else {
+    rawData(t1);
+  }
+  rawData(F(".."));
+  printTemperatue(t2);
+}
+
 /////////////////////////////////////////////////////////////////////
 //                        COMMON FOR ALL PAGES                     //
 /////////////////////////////////////////////////////////////////////
@@ -734,22 +755,10 @@ void WebServerClass::sendStatusPage() {
       spanTag_RedIfTrue(F("<dd>Not connected</dd>"), true);
     }
     rawData(F("<dd>Last check: "));
-    if (isnan(lastTemperature)) {
-      rawData(F("N/A"));
-    }
-    else {
-      rawData(lastTemperature);
-      rawData(F(" &deg;C"));
-    }
+    printTemperatue(lastTemperature);
     rawData(F("</dd>"));
     rawData(F("<dd>Forecast: "));
-    if (isnan(statisticsTemperature)) {
-      rawData(F("N/A"));
-    }
-    else {
-      rawData(statisticsTemperature);
-      rawData(F(" &deg;C"));
-    }
+    printTemperatue(statisticsTemperature);
     rawData(F(" ("));
     rawData(statisticsCount);
     rawData(F(" measurement"));
@@ -785,7 +794,7 @@ void WebServerClass::sendStatusPage() {
       spanTag_RedIfTrue(currentStatus->shortDescription, currentStatus != &WATERING_EVENT_WET_SENSOR_NORMAL);
 
       byte value = GB_Watering.getCurrentWetSensorValue(wsIndex);
-      if (!GB_Watering.isWetSensorValueReserved(value)){
+      if (!GB_Watering.isWetSensorValueReserved(value)) {
         rawData(F(", value ["));
         rawData(value);
         rawData(F("]"));
@@ -820,16 +829,12 @@ void WebServerClass::sendStatusPage() {
     GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
 
     rawData(F("<dd>Normal Day temperature: "));
-    rawData(normalTemperatueDayMin);
-    rawData(F(".."));
-    rawData(normalTemperatueDayMax);
-    rawData(F(" &deg;C</dd><dd>Normal Night temperature: "));
-    rawData(normalTemperatueNightMin);
-    rawData(F(".."));
-    rawData(normalTemperatueNightMax);
-    rawData(F(" &deg;C</dd><dd>Critical temperature: "));
-    rawData(criticalTemperatue);
-    rawData(F(" &deg;C</dd>"));
+    printTemperatueRange((float)normalTemperatueDayMin, (float)normalTemperatueDayMax);
+    rawData(F("</dd><dd>Normal Night temperature: "));
+    printTemperatueRange((float)normalTemperatueNightMin, (float)normalTemperatueNightMax);
+    rawData(F("</dd><dd>Critical temperature: "));
+    printTemperatue((float)criticalTemperatue);
+    rawData(F("</dd>"));
   }
 
   rawData(F("<dt>Other</dt>"));
@@ -1325,12 +1330,18 @@ void WebServerClass::sendHardwarePage(const String& getParams) {
   rawData(F("' method='post'>"));
 
   tagCheckbox(F("useLight"), F("Use Light"), GB_Controller.isUseLight());
-  rawData(F("<div class='description'>Current mode [<b>"));
+  rawData(F("<div class='description'>Current state [<b>"));
+  rawData(GB_Controller.isLightTurnedOn() ? F("Enabled") : F("Disabled"));
+  rawData(F("</b>], mode [<b>"));
   rawData(GB_Controller.isDayInGrowbox() ? F("Day") : F("Night"));
   rawData(F("</b>]</div>"));
 
   tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
-  rawData(F("<div class='description'> </div>"));
+  rawData(F("<div class='description'>Current state [<b>"));
+  rawData(GB_Controller.isFanTurnedOn() ? (GB_Controller.getFanSpeed() == FAN_SPEED_MAX ? F("Max speed") : F("Min speed")) : F("Disabled"));
+  rawData(F("</b>], temperature [<b>"));
+  printTemperatue(GB_Thermometer.getTemperature());
+  rawData(F("</b>]</div>"));
 
   tagCheckbox(F("useRTC"), F("Use Real-time clock DS1307"), GB_Controller.isUseRTC());
   rawData(F("<div class='description'>Current state [<b>"));
