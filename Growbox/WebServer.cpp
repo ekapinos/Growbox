@@ -14,7 +14,6 @@ void WebServerClass::init() {
 
 void WebServerClass::update() {
   RAK410_XBeeWifi.update();
-
 }
 
 boolean WebServerClass::handleSerialWiFiEvent() {
@@ -851,19 +850,17 @@ void WebServerClass::sendStatusPage() {
 /////////////////////////////////////////////////////////////////////
 //                             LOG PAGE                            //
 /////////////////////////////////////////////////////////////////////
+boolean WebServerClass::isSameDay(tmElements_t time1, tmElements_t time2){
+  return (time1.Day == time2.Day && time1.Month == time2.Month && time1.Year == time2.Year);
+}
 
 void WebServerClass::sendLogPage(const String& getParams) {
 
-  LogRecord logRecord;
-
   tmElements_t targetTm;
-  tmElements_t currentTm;
-  tmElements_t previousTm;
-
   String paramValue;
 
-  // fill targetTm
-  boolean isTargetDayFound = false;
+  // get target Day
+  boolean isTargetDayInParameter = false;
   if (searchHttpParamByName(getParams, F("date"), paramValue)) {
 
     if (paramValue.length() == 10) {
@@ -875,113 +872,108 @@ void WebServerClass::sendLogPage(const String& getParams) {
         targetTm.Day = dayInt;
         targetTm.Month = monthInt;
         targetTm.Year = CalendarYrToTm(yearInt);
-        isTargetDayFound = true;
+        isTargetDayInParameter = true;
       }
     }
   }
-  if (!isTargetDayFound) {
+  if (!isTargetDayInParameter) {
     breakTime(now(), targetTm);
   }
-  String targetDateAsString = StringUtils::timeStampToString(makeTime(targetTm), true, false);
 
-  boolean printEvents, printWateringEvents, printErrors, printTemperature;
-  printEvents = printWateringEvents = printErrors = printTemperature = true;
-
+  boolean printAll = false, printEvents = false, printWateringEvents = false, printErrors = false, printTemperature = false;
   if (searchHttpParamByName(getParams, F("type"), paramValue)) {
     if (StringUtils::flashStringEquals(paramValue, F("events"))) {
       printEvents = true;
-      printWateringEvents = false;
-      printErrors = false;
-      printTemperature = false;
     }
-    if (StringUtils::flashStringEquals(paramValue, F("wateringevents"))) {
-      printEvents = false;
+    else if (StringUtils::flashStringEquals(paramValue, F("wateringevents"))) {
       printWateringEvents = true;
-      printErrors = false;
-      printTemperature = false;
     }
     else if (StringUtils::flashStringEquals(paramValue, F("errors"))) {
-      printEvents = false;
-      printWateringEvents = false;
       printErrors = true;
-      printTemperature = false;
     }
     else if (StringUtils::flashStringEquals(paramValue, F("temperature"))) {
-      printEvents = false;
-      printWateringEvents = false;
-      printErrors = false;
       printTemperature = true;
     }
     else {
-      printEvents = true;
-      printWateringEvents = true;
-      printErrors = true;
-      printTemperature = true;
+      printAll = true;
     }
+  } else {
+    printAll = true;
   }
 
-  if (c_isWifiResponseError)
+  if (c_isWifiResponseError){
     return;
-
-  // fill previousTm
-  previousTm.Day = previousTm.Month = previousTm.Year = 0; //remove compiller warning
+  }
 
   rawData(F("<form action='"));
   rawData(FS(S_url_log));
   rawData(F("' method='get'>"));
 
   rawData(F("<select id='typeCombobox' name='type'>"));
-  tagOption(F("all"), F("All records"), printEvents && printWateringEvents && printErrors && printTemperature);
-  tagOption(F("events"), F("Events only"), printEvents && !printWateringEvents && !printErrors && !printTemperature);
-  tagOption(F("wateringevents"), F("Watering Events only"), !printEvents && printWateringEvents && !printErrors && !printTemperature);
-  tagOption(F("errors"), F("Errors only"), !printEvents && !printWateringEvents && printErrors && !printTemperature);
-  tagOption(F("temperature"), F("Temperature only"), !printEvents && !printWateringEvents && !printErrors && printTemperature);
+  tagOption(F("all"), F("All records"), printAll);
+  tagOption(F("events"), F("Events only"), printEvents);
+  tagOption(F("wateringevents"), F("Watering Events only"), printWateringEvents);
+  tagOption(F("errors"), F("Errors only"), printErrors);
+  tagOption(F("temperature"), F("Temperature only"), printTemperature);
   rawData(F("</select>"));
 
   rawData(F("<select id='dateCombobox' name='date'></select>"));
   rawData(F("<input type='submit' value='Show'/>"));
   rawData(F("</form>"));
 
+  LogRecord logRecord;
+  tmElements_t currentTm;
+  tmElements_t nextTm;
+
   boolean isTableTagPrinted = false;
-  word index;
-  for (index = 0; index < GB_StorageHelper.getLogRecordsCount(); index++) {
+  word logRecordIndex;
+  word currentDayRecordsCount = 0, currentDayPrintableRecordsCount = 0;
+  for (logRecordIndex = 0; logRecordIndex < GB_StorageHelper.getLogRecordsCount(); logRecordIndex++) {
 
-    if (c_isWifiResponseError)
+    if (c_isWifiResponseError) {
       return;
-
-    logRecord = GB_StorageHelper.getLogRecordByIndex(index);
-    breakTime(logRecord.timeStamp, currentTm);
-
-    boolean isDaySwitch = !(currentTm.Day == previousTm.Day && currentTm.Month == previousTm.Month && currentTm.Year == previousTm.Year);
-    if (isDaySwitch) {
-      previousTm = currentTm;
-    }
-    boolean isTargetDay = (currentTm.Day == targetTm.Day && currentTm.Month == targetTm.Month && currentTm.Year == targetTm.Year);
-    String currentDateAsString = StringUtils::timeStampToString(logRecord.timeStamp, true, false);
-
-    if (isDaySwitch) {
-      appendOptionToSelectDynamic(F("dateCombobox"), F(""), currentDateAsString, isTargetDay);
     }
 
-    if (!isTargetDay) {
-      continue;
-    }
+    logRecord = GB_StorageHelper.getLogRecordByIndex(logRecordIndex);
+    breakTime(logRecord.timeStamp, nextTm);
 
-    boolean isEvent = GB_Logger.isEvent(logRecord);
+    if (logRecordIndex == 0){
+      currentDayRecordsCount = 0;
+      currentDayPrintableRecordsCount = 0;
+
+    } else if (!isSameDay(currentTm, nextTm) || (logRecordIndex == (GB_StorageHelper.getLogRecordsCount()-1))) {
+      String value = StringUtils::timeStampToString(makeTime(currentTm), true, false);
+      String text = value + StringUtils::flashStringLoad(F("  ("));
+      if (!printAll){
+        text += currentDayPrintableRecordsCount;
+        text +='/';
+      }
+      text += currentDayRecordsCount;
+      text += ')';
+      appendOptionToSelectDynamic(F("dateCombobox"), value, text, isSameDay(currentTm, targetTm));
+
+      currentDayRecordsCount = 0;
+      currentDayPrintableRecordsCount = 0;
+    }
+    currentTm = nextTm;
+    currentDayRecordsCount++;
+
+    boolean isEvent         = GB_Logger.isEvent(logRecord);
     boolean isWateringEvent = GB_Logger.isWateringEvent(logRecord);
-    boolean isError = GB_Logger.isError(logRecord);
-    boolean isTemperature = GB_Logger.isTemperature(logRecord);
+    boolean isError         = GB_Logger.isError(logRecord);
+    boolean isTemperature   = GB_Logger.isTemperature(logRecord);
+    if (!printAll){
+      if ((!printEvents && isEvent) ||
+          (!printWateringEvents && isWateringEvent) ||
+          (!printErrors && isError) ||
+          (!printTemperature && isTemperature)) {
+        continue;
+      }
+    }
 
-    if (!printEvents && isEvent) {
-      continue;
-    }
-    if (!printWateringEvents && isWateringEvent) {
-      continue;
-    }
-    if (!printErrors && isError) {
-      continue;
-    }
-    if (!printTemperature && isTemperature) {
+    currentDayPrintableRecordsCount++;
+
+    if (!isSameDay(currentTm, targetTm)) {
       continue;
     }
 
@@ -998,7 +990,7 @@ void WebServerClass::sendLogPage(const String& getParams) {
       rawData(F(" style='font-weight:bold;'"));
     }
     rawData(F("><td>"));
-    rawData(index + 1);
+    rawData(logRecordIndex + 1);
     rawData(F("</td><td>"));
     rawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true));
     rawData(F("</td><td style='text-align:left;'>"));
@@ -1010,9 +1002,16 @@ void WebServerClass::sendLogPage(const String& getParams) {
     rawData(F("</table>"));
   }
   else {
-    appendOptionToSelectDynamic(F("dateCombobox"), F(""), targetDateAsString, true); // TODO Maybe will append not in correct position
+    String value = StringUtils::timeStampToString(makeTime(targetTm), true, false);
+    String text = value + StringUtils::flashStringLoad(F("  ("));
+    if (!printAll){
+      text += StringUtils::flashStringLoad(F("0/"));
+    }
+    text += '0';
+    text += ')';
+    appendOptionToSelectDynamic(F("dateCombobox"), value, text, true); // TODO Maybe will append not in correct position
     rawData(F("<br/>Not found stored records for "));
-    rawData(targetDateAsString);
+    rawData(value);
   }
 }
 

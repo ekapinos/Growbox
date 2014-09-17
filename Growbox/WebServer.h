@@ -96,6 +96,7 @@ private:
   //                            LOG PAGE                             //
   /////////////////////////////////////////////////////////////////////
 
+  boolean isSameDay(tmElements_t time1, tmElements_t time2);
   void sendLogPage(const String& getParams);
 
   /////////////////////////////////////////////////////////////////////
