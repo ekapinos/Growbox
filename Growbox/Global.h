@@ -78,7 +78,6 @@ const long WATERING_ERROR_DELTA = 5 * 60; // 6 minutes
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 extern OneWire g_oneWirePin;
-extern byte g_isDayInGrowbox;
 extern boolean g_useSerialMonitor;
 
 /////////////////////////////////////////////////////////////////////

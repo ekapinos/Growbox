@@ -641,7 +641,7 @@ void WebServerClass::sendStatusPage() {
   }
 
   rawData(F("<dd>"));
-  rawData(g_isDayInGrowbox ? F("Day") : F("Night"));
+  rawData(GB_Controller.isDayInGrowbox() ? F("Day") : F("Night"));
   rawData(F(" mode</dd>"));
 
   if (GB_Controller.isUseLight()) {
@@ -1325,7 +1325,9 @@ void WebServerClass::sendHardwarePage(const String& getParams) {
   rawData(F("' method='post'>"));
 
   tagCheckbox(F("useLight"), F("Use Light"), GB_Controller.isUseLight());
-  rawData(F("<div class='description'> </div>"));
+  rawData(F("<div class='description'>Current mode [<b>"));
+  rawData(GB_Controller.isDayInGrowbox() ? F("Day") : F("Night"));
+  rawData(F("</b>]</div>"));
 
   tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
   rawData(F("<div class='description'> </div>"));

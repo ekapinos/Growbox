@@ -8,6 +8,8 @@ class ControllerClass{
   int c_lastFreeMemory;
   boolean c_isAutoCalculatedClockTimeUsed;
   time_t c_lastBreezeTimeStamp;
+  boolean c_isDayInGrowbox; // Last updated state
+
 public:
   ControllerClass();
 
@@ -50,6 +52,7 @@ private:
   //                              DEVICES                            //
   /////////////////////////////////////////////////////////////////////
 public:
+  boolean isDayInGrowbox(boolean update = false);
   void setUseLight(boolean flag);
   boolean isUseLight();
   void setUseFan(boolean flag);

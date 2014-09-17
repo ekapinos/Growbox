@@ -29,27 +29,6 @@
 //                              STATUS                             //
 /////////////////////////////////////////////////////////////////////
 
-boolean isDayInGrowbox() {
-
-  word upTime, downTime;
-  GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
-
-  word currentTime = hour() * 60 + minute();
-
-  boolean isDayInGrowbox = false;
-  if (upTime < downTime) {
-    if (upTime < currentTime && currentTime < downTime) {
-      isDayInGrowbox = true;
-    }
-  }
-  else { // upTime > downTime
-    if (upTime < currentTime || currentTime < downTime) {
-      isDayInGrowbox = true;
-    }
-  }
-  return isDayInGrowbox;
-}
-
 void printStatusOnBoot(const __FlashStringHelper* str) {
   if (g_useSerialMonitor) {
     Serial.print(F("Checking "));
@@ -224,6 +203,7 @@ void serialEvent1() {
 /////////////////////////////////////////////////////////////////////
 
 void updateGrowboxState() {
+  // On schedule we check wet status also
   updateGrowboxState(true);
 }
 void updateGrowboxState(boolean checkWetSensors) {
@@ -234,18 +214,7 @@ void updateGrowboxState(boolean checkWetSensors) {
   }
 
   // Initialize/restore Growbox state
-  if (isDayInGrowbox()) {
-    if (g_isDayInGrowbox != true) {
-      g_isDayInGrowbox = true;
-      GB_Logger.logEvent(EVENT_MODE_DAY);
-    }
-  }
-  else {
-    if (g_isDayInGrowbox != false) {
-      g_isDayInGrowbox = false;
-      GB_Logger.logEvent(EVENT_MODE_NIGHT);
-    }
-  }
+  boolean isDayInGrowbox = GB_Controller.isDayInGrowbox(true);
 
   byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin,
       normalTemperatueNightMax, criticalTemperatue;
@@ -259,7 +228,7 @@ void updateGrowboxState(boolean checkWetSensors) {
     GB_Controller.turnOnFan(FAN_SPEED_MAX);
     GB_Logger.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
   }
-  else if (g_isDayInGrowbox) {
+  else if (isDayInGrowbox) {
     // Day mode
     GB_Controller.turnOnLight();
     if (temperature < normalTemperatueDayMin) {

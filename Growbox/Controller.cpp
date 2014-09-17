@@ -11,7 +11,8 @@
 #include "Watering.h"
 
 ControllerClass::ControllerClass() :
-    c_lastFreeMemory(0), c_lastBreezeTimeStamp(0), c_isAutoCalculatedClockTimeUsed(false) {
+    c_lastFreeMemory(0), c_lastBreezeTimeStamp(0), c_isAutoCalculatedClockTimeUsed(false), c_isDayInGrowbox(-1) {
+  // We set c_isDayInGrowbox == -1 to force log on startup
 }
 
 void ControllerClass::rebootController() {
@@ -267,6 +268,39 @@ void ControllerClass::setRTCandClockTimeStamp(time_t newTimeStamp) {
 /////////////////////////////////////////////////////////////////////
 
 // public:
+
+boolean ControllerClass::isDayInGrowbox(boolean update){
+
+  if (!update) {
+    return c_isDayInGrowbox;
+  }
+  word upTime, downTime;
+  GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
+
+  word currentTime = hour() * 60 + minute();
+
+  boolean isDayInGrowbox = false;
+  if (upTime < downTime) {
+    if (upTime < currentTime && currentTime < downTime) {
+      isDayInGrowbox = true;
+    }
+  }
+  else { // upTime > downTime
+    if (upTime < currentTime || currentTime < downTime) {
+      isDayInGrowbox = true;
+    }
+  }
+  // Log on change
+  if (c_isDayInGrowbox != isDayInGrowbox) {
+    if (isDayInGrowbox) {
+      GB_Logger.logEvent(EVENT_MODE_DAY);
+    } else {
+      GB_Logger.logEvent(EVENT_MODE_NIGHT);
+    }
+  }
+  c_isDayInGrowbox = isDayInGrowbox;
+  return c_isDayInGrowbox;
+}
 
 void ControllerClass::setUseLight(boolean flag) {
   if (isUseLight() == flag) {

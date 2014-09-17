@@ -34,7 +34,7 @@ void RAK410_XBeeWifiClass::update() {
 
   // Check is Wi-Fi present
   if (isPresent()) {
-    if ((now() - c_lastWifiActivityTimeStamp) > UPDATE_WEB_SERVER_STATUS_DELAY) { // we skip scheduled check, if we use wi-fi now
+    if ((now() - c_lastWifiActivityTimeStamp) > (3*UPDATE_WEB_SERVER_STATUS_DELAY/4)) { // we skip scheduled check, if Wi-Fi in use now
       if (!checkStartedWifi()) {
         if (!restartWifi()) {
           return;
@@ -114,7 +114,7 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
     if (isWifiStationMode) {
       wifiExecuteCommandPrint(F("at+connect="));
       wifiExecuteCommandPrint(wifiSSID);
-      if (!wifiExecuteCommand(0, 5000, false)) { // If password wrong, no response from RAK 410
+      if (!wifiExecuteCommand(NULL, 5000, false)) { // If password wrong, no response from RAK 410
         continue;
       }
 
