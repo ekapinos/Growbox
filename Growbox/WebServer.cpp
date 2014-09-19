@@ -501,7 +501,7 @@ void WebServerClass::printTemperatue(float t) {
   }
   else {
     rawData(t);
-    rawData(F(" &deg;C"));
+    rawData(F("&deg;C"));
   }
 }
 
@@ -580,8 +580,8 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
     rawData(F(" style='text-decoration: underline;'"));
   }
   rawData('>');
-  tagOption(F(""), F("Select Configuration page"), !isConfigurationPage, true);
-  tagOption(FS(S_url_general), F("General"), isGeneralPage);
+  tagOption(F(""), F("Select Options page"), !isConfigurationPage, true);
+  tagOption(FS(S_url_general), F("General options"), isGeneralPage);
   for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
     String url = StringUtils::flashStringLoad(FS(S_url_watering));
     if (i > 0) {
@@ -623,19 +623,19 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
     sendLogPage(getParams);
   }
   else if (isGeneralPage) {
-    sendGeneralPage(getParams);
+    sendGeneralOptionsPage(getParams);
   }
   else if (isWateringPage) {
-    sendWateringPage(url, wsIndex);
+    sendWateringOptionsPage(url, wsIndex);
   }
   else if (isHardwarePage) {
-    sendHardwarePage(getParams);
+    sendHardwareOptionsPage(getParams);
   }
   else if (isDumpInternal || isDumpAT24C32) {
     sendStorageDumpPage(getParams, isDumpInternal);
   }
   else if (isOtherPage) {
-    sendOtherPage(getParams);
+    sendOtherOptionsPage(getParams);
   }
 
   rawData(F("</body></html>"));
@@ -715,8 +715,9 @@ void WebServerClass::sendStatusPage() {
   rawData(F("</form>"));
   rawData(F("</dd>"));
 
-  if (c_isWifiResponseError)
+  if (c_isWifiResponseError) {
     return;
+  }
 
   rawData(F("<dt>Logger</dt>"));
   if (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) {
@@ -730,19 +731,17 @@ void WebServerClass::sendStatusPage() {
     rawData(F("</dd>"));
   }
   rawData(F("<dd>Stored records: "));
-  if (GB_StorageHelper.isLogOverflow()) {
-    rawData(F("<span class='red'>"));
-  }
   rawData(GB_StorageHelper.getLogRecordsCount());
   rawData('/');
   rawData(GB_StorageHelper.getLogRecordsCapacity());
   if (GB_StorageHelper.isLogOverflow()) {
-    rawData(F("</span>"));
+    rawData(F(", overflow"));
   }
   rawData(F("</dd>"));
 
-  if (c_isWifiResponseError)
+  if (c_isWifiResponseError) {
     return;
+  }
 
   if (GB_StorageHelper.isUseThermometer()) {
     float lastTemperature, statisticsTemperature;
@@ -1019,7 +1018,7 @@ void WebServerClass::sendLogPage(const String& getParams) {
 //                         GENERAL PAGE                           //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendGeneralPage(const String& getParams) {
+void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
 
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
@@ -1065,15 +1064,15 @@ void WebServerClass::sendGeneralPage(const String& getParams) {
   rawData(F("<table class='grab'>"));
   rawData(F("<tr><td colspan='2'>"));
   tagCheckbox(F("isStoreLogRecordsEnabled"), F("Enable logger"), GB_StorageHelper.isStoreLogRecordsEnabled());
-  rawData(F("<div class='description'>Stored records ["));
+  rawData(F("<div class='description'>Stored records [<b>"));
   rawData(GB_StorageHelper.getLogRecordsCount());
   rawData('/');
   rawData(GB_StorageHelper.getLogRecordsCapacity());
   if (GB_StorageHelper.isLogOverflow()) {
-    rawData(F(", <span class='red'>overflow</span>"));
+    rawData(F(", overflow"));
   }
-  rawData(F("]</div>"));
-  rawData(F("</td></tr>"));
+  rawData(F("</b>]"));
+  rawData(F("</div></td></tr>"));
 
   rawData(F("<tr><td>"));
   rawData(F("<input type='submit' value='Save'>"));
@@ -1147,7 +1146,7 @@ byte WebServerClass::getWateringIndexFromUrl(const String& url) {
   return wateringSystemIndex;
 }
 
-void WebServerClass::sendWateringPage(const String& url, byte wsIndex) {
+void WebServerClass::sendWateringOptionsPage(const String& url, byte wsIndex) {
 
   String actionURL;
   actionURL += StringUtils::flashStringLoad(FS(S_url_watering));
@@ -1320,7 +1319,7 @@ void WebServerClass::sendWateringPage(const String& url, byte wsIndex) {
 //                        HARDWARE PAGES                           //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendHardwarePage(const String& getParams) {
+void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
 
   rawData(F("<fieldset><legend>General</legend>"));
 
@@ -1395,7 +1394,7 @@ void WebServerClass::sendHardwarePage(const String& getParams) {
 
 }
 
-void WebServerClass::sendOtherPage(const String& getParams) {
+void WebServerClass::sendOtherOptionsPage(const String& getParams) {
   //rawData(F("<fieldset><legend>Other</legend>"));  
   rawData(F("<table style='vertical-align:top; border-spacing:0px;'>"));
 

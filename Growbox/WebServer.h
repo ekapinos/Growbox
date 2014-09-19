@@ -103,22 +103,22 @@ private:
   //                          GENERAL PAGE                           //
   /////////////////////////////////////////////////////////////////////
 
-  void sendGeneralPage(const String& getParams);
+  void sendGeneralOptionsPage(const String& getParams);
 
   /////////////////////////////////////////////////////////////////////
   //                         WATERING PAGE                           //
   /////////////////////////////////////////////////////////////////////
 
   byte getWateringIndexFromUrl(const String& url);
-  void sendWateringPage(const String& url, byte wsIndex);
+  void sendWateringOptionsPage(const String& url, byte wsIndex);
 
   /////////////////////////////////////////////////////////////////////
   //                        HARDWARE PAGES                           //
   /////////////////////////////////////////////////////////////////////
 
-  void sendHardwarePage(const String& getParams);
+  void sendHardwareOptionsPage(const String& getParams);
   void sendStorageDumpPage(const String& getParams, boolean isInternal);
-  void sendOtherPage(const String& getParams);
+  void sendOtherOptionsPage(const String& getParams);
 
   /////////////////////////////////////////////////////////////////////
   //                          POST HANDLING                          //
