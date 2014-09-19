@@ -26,7 +26,7 @@ public:
 
   String getLogRecordPrefix(const LogRecord &logRecord);
   const __FlashStringHelper* getLogRecordDescription(LogRecord &logRecord);
-  String getLogRecordDescriptionSuffix(const LogRecord &logRecord);
+  String getLogRecordDescriptionSuffix(const LogRecord &logRecord, boolean formatForHtml);
 
   boolean isEvent(const LogRecord &logRecord);
   boolean isWateringEvent(const LogRecord &logRecord);

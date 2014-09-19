@@ -119,7 +119,7 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
   }
 }
 
-String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord) {
+String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord, boolean formatForHtml) {
 
   String out;
   if (logRecord.isEmpty()) {
@@ -152,10 +152,11 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord) {
     byte temperature = (logRecord.data & B00111111);
     out += StringUtils::flashStringLoad(F(" ["));
     out += temperature;
-    out += StringUtils::flashStringLoad(F("] C"));
+    if (formatForHtml) {
+      out += StringUtils::flashStringLoad(F("&deg;C"));
+    }
+    out += StringUtils::flashStringLoad(F("]"));
   }
-  //Serial.print(F(" HEX: "));
-  //GB_PrintDirty::printRAM(&((LogRecord)logRecord), sizeof(LogRecord));  
 
   return out;
 }
@@ -185,7 +186,7 @@ void LoggerClass::printLogRecordToSerialMonotior(const LogRecord &logRecord, con
   }
   Serial.print(getLogRecordPrefix(logRecord));
   Serial.print(description);
-  Serial.print(getLogRecordDescriptionSuffix(logRecord));
+  Serial.print(getLogRecordDescriptionSuffix(logRecord, false));
 
   Serial.println();
 }

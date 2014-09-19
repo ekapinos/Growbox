@@ -994,7 +994,7 @@ void WebServerClass::sendLogPage(const String& getParams) {
     rawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true));
     rawData(F("</td><td style='text-align:left;'>"));
     rawData(GB_Logger.getLogRecordDescription(logRecord));
-    rawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord));
+    rawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord, true));
     rawData(F("</td></tr>")); // bug with linker was here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
   }
   if (isTableTagPrinted) {

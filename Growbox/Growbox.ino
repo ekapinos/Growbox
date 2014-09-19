@@ -141,10 +141,10 @@ void setup() {
   time_t startupTimeStamp = now() - (millis() - startupMillis) / 1000;
 
   printStatusOnBoot(F("stored configuration"));
-  GB_StorageHelper.init_loadConfiguration(startupTimeStamp); // Logger will enabled after that   // after set clock and load configuration we are ready for logging
+  GB_StorageHelper.init_loadConfiguration(startupTimeStamp); // Logger will enabled after that. After set clock and load configuration we are ready for logging
   GB_Controller.checkFreeMemory();
 
-  GB_Controller.initClock_afterLoadConfiguration(); // Save 'auticalculated' flag
+  GB_Controller.initClock_afterLoadConfiguration(); // Save 'auto calculated' flag
   GB_Controller.checkFreeMemory();
 
   GB_Watering.init(startupTimeStamp); // call before updateGrowboxState();
