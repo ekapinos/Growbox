@@ -7,7 +7,7 @@
 //                           HTML CONSTS                           //
 /////////////////////////////////////////////////////////////////////
 
-const char S_url_root[] PROGMEM = "/";
+const char S_url_status[] PROGMEM = "/";
 const char S_url_log[] PROGMEM = "/log";
 const char S_url_watering[] PROGMEM = "/watering";
 const char S_url_general[] PROGMEM = "/general";
@@ -89,7 +89,7 @@ private:
   /////////////////////////////////////////////////////////////////////
   //                          STATUS PAGE                            //
   /////////////////////////////////////////////////////////////////////
-
+  boolean isCriticalErrorOnStatusPage();
   void sendStatusPage();
 
   /////////////////////////////////////////////////////////////////////

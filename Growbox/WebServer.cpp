@@ -524,7 +524,7 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
 
   byte wsIndex = getWateringIndexFromUrl(url); // FF ig not watering system
 
-  boolean isRootPage = StringUtils::flashStringEquals(url, FS(S_url_root));
+  boolean isStatusPage = StringUtils::flashStringEquals(url, FS(S_url_status));
   boolean isLogPage = StringUtils::flashStringEquals(url, FS(S_url_log));
 
   boolean isGeneralPage = StringUtils::flashStringEquals(url, FS(S_url_general));
@@ -536,7 +536,7 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
 
   boolean isConfigurationPage = (isGeneralPage || isWateringPage || isHardwarePage || isDumpInternal || isDumpAT24C32 || isOtherPage);
 
-  boolean isValidPage = (isRootPage || isLogPage || isConfigurationPage);
+  boolean isValidPage = (isStatusPage || isLogPage || isConfigurationPage);
   if (!isValidPage) {
     httpNotFound();
     return;
@@ -544,7 +544,7 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
 
   httpPageHeader();
 
-  if (isRootPage || isWateringPage) {
+  if (isStatusPage || isWateringPage) {
 #ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
     if (g_useSerialMonitor) {
       Serial.println(); // We cut log stream to show wet status in new line
@@ -572,8 +572,14 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
 
   rawData(F("<body>"));
   rawData(F("<h1>Growbox</h1>"));
+  if (isCriticalErrorOnStatusPage()){
+    spanTag_RedIfTrue(F("Critical system error"), true);
+    if (!isStatusPage) {
+      spanTag_RedIfTrue(F(". Check Status page"), true);
+    }
+  }
   rawData(F("<form>"));   // HTML Validator warning
-  tagButton(FS(S_url_root), F("Status"), isRootPage);
+  tagButton(FS(S_url_status), F("Status"), isStatusPage);
   tagButton(FS(S_url_log), F("Daily log"), isLogPage);
   rawData(F("<select id='configPageSelect' onchange='g_onChangeConfigPageSelect();' "));
   if (isConfigurationPage) {
@@ -607,16 +613,17 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
   rawData(F("<script type='text/javascript'>"));
   rawData(F("var g_configPageSelect = document.getElementById('configPageSelect');"));
   rawData(F("var g_configPageSelectedDefault = g_configPageSelect.value;"));
-  rawData(F("function g_onChangeConfigPageSelect(event) {"));
-  rawData(F("  var newValue = g_configPageSelect.value;"));
-  rawData(F("  g_configPageSelect.value = g_configPageSelectedDefault;"));
-  rawData(F("  location=newValue;"));
+  rawData(F("function g_onChangeConfigPageSelect(event) {"));{
+    rawData(F("var newValue = g_configPageSelect.value;"));
+    rawData(F("g_configPageSelect.value = g_configPageSelectedDefault;"));
+    rawData(F("location = newValue;"));
+  }
   rawData(F("}"));
   rawData(F("</script>"));
 
   rawData(F("<hr/>"));
 
-  if (isRootPage) {
+  if (isStatusPage) {
     sendStatusPage();
   }
   else if (isLogPage) {
@@ -648,6 +655,15 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
 //                          STATUS PAGE                            //
 /////////////////////////////////////////////////////////////////////
 
+boolean WebServerClass::isCriticalErrorOnStatusPage(){
+  return (
+      (GB_Controller.isBreezeFatalError()) ||
+      (GB_Controller.isUseRTC() && (!GB_Controller.isRTCPresent() || GB_Controller.isClockNeedsSync() || GB_Controller.isClockNotSet())) ||
+      (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) ||
+      (GB_StorageHelper.isUseThermometer() && !GB_Thermometer.isPresent())
+  );
+}
+
 void WebServerClass::sendStatusPage() {
 
   rawData(F("<dl>"));
@@ -673,11 +689,7 @@ void WebServerClass::sendStatusPage() {
   if (GB_Controller.isUseFan()) {
     rawData(F("<dd>Fan: "));
     boolean isFanEnabled = GB_Controller.isFanTurnedOn();
-    rawData(isFanEnabled ? F("Enabled, ") : F("Disabled"));
-    if (isFanEnabled) {
-      rawData(
-          (GB_Controller.getFanSpeed() == FAN_SPEED_MIN) ? F("min speed") : F("max speed"));
-    }
+    rawData(isFanEnabled ? ((GB_Controller.getFanSpeed() == FAN_SPEED_MIN) ? F("Min speed") : F("Max speed")) : F("Disabled"));
     rawData(F("</dd>"));
   }
 
@@ -708,7 +720,7 @@ void WebServerClass::sendStatusPage() {
   rawData(F("<br/><small><span id='diffTimeStampId'></span></small>"));
   growboxClockJavaScript(F("growboxTimeStampId"), NULL, F("diffTimeStampId"));
   rawData(F("<form action='"));
-  rawData(FS(S_url_root));
+  rawData(FS(S_url_status));
   rawData(F("' method='post' onSubmit='return g_checkBeforeSetClockTime()'>"));
   rawData(F("<input type='hidden' name='setClockTime' id='setClockTimeInput'>"));
   rawData(F("<input type='submit' value='Sync'>"));
@@ -1415,7 +1427,7 @@ void WebServerClass::sendOtherOptionsPage(const String& getParams) {
 
   rawData(F("<tr><td>"));
   rawData(F("<form action='"));
-  rawData(FS(S_url_root));
+  rawData(FS(S_url_status));
   rawData(F("' method='post' onSubmit='return confirm(\"Reboot Growbox?\")'>"));
   rawData(F("<input type='hidden' name='rebootController'/><input type='submit' value='Reboot Growbox'>"));
   rawData(F("</form>"));
@@ -1425,7 +1437,7 @@ void WebServerClass::sendOtherOptionsPage(const String& getParams) {
 
   rawData(F("<tr><td>"));
   rawData(F("<form action='"));
-  rawData(FS(S_url_root));
+  rawData(FS(S_url_status));
   rawData(F("' method='post' onSubmit='return confirm(\"Reset Firmware?\")'>"));
   rawData(F("<input type='hidden' name='resetFirmware'/><input type='submit' value='Reset Firmware'>"));
   rawData(F("</form>"));
