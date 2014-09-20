@@ -466,7 +466,7 @@ void WebServerClass::sendLogPage(const String& getParams) {
 
   boolean isTableTagPrinted = false;
   word logRecordIndex;
-  word currentDayRecordsCount = 0, currentDayPrintableRecordsCount = 0;
+  word currentDayRecordsCount = 0, currentDayPrintableRecordsCount = 0, allPrintableRecordsCount = 0;
   for (logRecordIndex = 0; logRecordIndex < GB_StorageHelper.getLogRecordsCount(); logRecordIndex++) {
 
     if (c_isWifiResponseError) {
@@ -514,6 +514,7 @@ void WebServerClass::sendLogPage(const String& getParams) {
     }
 
     currentDayPrintableRecordsCount++;
+    allPrintableRecordsCount++;
 
     if (!printAllDays && !isSameDay(currentDayTm, targetDayTm)) {
       continue;
@@ -533,15 +534,15 @@ void WebServerClass::sendLogPage(const String& getParams) {
 
     rawData(F("<td>"));
     if (printAllDays) {
-      rawData(logRecordIndex + 1);
+      rawData(allPrintableRecordsCount);
     } else {
-      rawData(currentDayRecordsCount);
+      rawData(currentDayPrintableRecordsCount);
     }
     rawData(F("</td>"));
 
     if (printAllDays){
       rawData(F("<td style='font-weight:bold;'>"));
-      if (currentDayRecordsCount == 1){
+      if (currentDayPrintableRecordsCount == 1){
         rawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
       }
       rawData(F("</td>"));
@@ -574,7 +575,19 @@ void WebServerClass::sendLogPage(const String& getParams) {
     text += '0';
     text += ')';
     appendOptionToSelectDynamic(F("dateCombobox"), value, text, true); // TODO Maybe will append not in correct position
-    rawData(F("<br/>Not found stored records for "));
+    rawData(F("<br/>"));
+    if (printEvents) {
+      rawData(F("Event"));
+    } else if (printWateringEvents) {
+      rawData(F("Watering event"));
+    } else if (printErrors) {
+      rawData(F("Error "));
+    } else if (printTemperature) {
+      rawData(F("Temperature"));
+    } else {
+      rawData(F("Log"));
+    }
+    rawData(F(" records not found for "));
     rawData(value);
   }
 }
