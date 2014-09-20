@@ -208,9 +208,8 @@ void WebServerClass::sendStatusPage() {
   rawData(F("</dd>"));
 
   rawData(F("<dd>Date &amp; time: "));
-  rawData(F("<span id='growboxTimeStampId'></span>"));
-  rawData(F("<br/><small><span id='diffTimeStampId'></span></small>"));
-  growboxClockJavaScript(F("growboxTimeStampId"), NULL, F("diffTimeStampId"));
+  rawData(F("<span id='growboxTimeStampId'>Loading...</span>"));
+  rawData(F("<br/><small><span id='diffTimeStampId'>Wait just a little</span></small>"));
   rawData(F("<form action='"));
   rawData(FS(S_URL_STATUS));
   rawData(F("' method='post' onSubmit='return g_checkBeforeSetClockTime()'>"));
@@ -269,8 +268,9 @@ void WebServerClass::sendStatusPage() {
     }
     rawData(F(")</dd>"));
   }
-  if (c_isWifiResponseError)
+  if (c_isWifiResponseError) {
     return;
+  }
 
 #ifdef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
   if (g_useSerialMonitor) {
@@ -327,8 +327,12 @@ void WebServerClass::sendStatusPage() {
 
   if (GB_StorageHelper.isUseThermometer()) {
     byte normalTemperatueDayMin, normalTemperatueDayMax,
-        normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
-    GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
+        normalTemperatueNightMin, normalTemperatueNightMax,
+        criticalTemperatue;
+    GB_StorageHelper.getTemperatureParameters(
+        normalTemperatueDayMin, normalTemperatueDayMax,
+        normalTemperatueNightMin, normalTemperatueNightMax,
+        criticalTemperatue);
 
     rawData(F("<dd>Normal Day temperature: "));
     printTemperatueRange((float)normalTemperatueDayMin, (float)normalTemperatueDayMax);
@@ -348,6 +352,9 @@ void WebServerClass::sendStatusPage() {
   rawData(F("</dd>"));
 
   rawData(F("</dl>"));
+
+  growboxClockJavaScript(F("growboxTimeStampId"), NULL, F("diffTimeStampId"), F("setClockTimeInput"));
+
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -462,8 +469,11 @@ void WebServerClass::sendLogPage(const String& getParams) {
       text += ')';
       appendOptionToSelectDynamic(F("dateCombobox"), value, text, !printAllDays && isSameDay(currentDayTm, targetDayTm));
 
-      currentDayRecordsCount = 0;
-      currentDayPrintableRecordsCount = 0;
+      if (logRecordIndex != (GB_StorageHelper.getLogRecordsCount()-1)){
+        // reset counters only on day change
+        currentDayRecordsCount = 0;
+        currentDayPrintableRecordsCount = 0;
+      }
     }
     currentDayTm = nextDayTm;
     currentDayRecordsCount++;

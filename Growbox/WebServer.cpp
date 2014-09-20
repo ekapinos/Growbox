@@ -373,109 +373,105 @@ void WebServerClass::appendOptionToSelectDynamic(const __FlashStringHelper* sele
   appendOptionToSelectDynamic(selectId, StringUtils::flashStringLoad(value), StringUtils::flashStringLoad(text), isSelected);
 }
 
-void WebServerClass::growboxClockJavaScript(const __FlashStringHelper* growboxTimeStampId, const __FlashStringHelper* browserTimeStampId, const __FlashStringHelper* diffTimeStampId) {
+void WebServerClass::growboxClockJavaScript(const __FlashStringHelper* growboxTimeStampId, const __FlashStringHelper* browserTimeStampId, const __FlashStringHelper* diffTimeStampId, const __FlashStringHelper* setClockTimeHiddenInputId) {
 
   rawData(F("<script type='text/javascript'>"));
-  rawData(F("var g_timeFormat = {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'};"));
-  rawData(F("var g_GBTS = new Date((")); //growbox timestamp
+  rawData(F("var g_timeFormat={year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'};"));
+  rawData(F("var g_gbts=new Date((")); //growbox timestamp
   rawData(now() + UPDATE_WEB_SERVER_AVERAGE_PAGE_LOAD_DELAY, true);
-  rawData(F(" + new Date().getTimezoneOffset()*60) * 1000"));
-  //  tmElements_t nowTmElements; 
-  //  breakTime(now(), nowTmElements);
-  //  rawData(tmYearToCalendar(nowTmElements.Year));
-  //  rawData(',');
-  //  rawData(nowTmElements.Month-1);
-  //  rawData(',');
-  //  rawData(nowTmElements.Day);
-  //  rawData(',');
-  //  rawData(nowTmElements.Hour);
-  //  rawData(',');
-  //  rawData(nowTmElements.Minute);
-  //  rawData(',');
-  //  rawData(nowTmElements.Second);
+  rawData(F("+new Date().getTimezoneOffset()*60)*1000"));
   rawData(F(");"));
-  rawData(F("var g_TSDiff=new Date().getTime()-g_GBTS;"));
+
+  rawData(F("var g_TSDiff=new Date().getTime()-g_gbts;"));
   if (diffTimeStampId != NULL) {
-    rawData(F("var resultDiffString = '';"));
-    rawData(F("var absTSDiffSec = Math.abs(Math.floor(g_TSDiff/1000));"));
+    rawData(F("var diffStr='';"));
+    rawData(F("var absTSDiffSec=Math.abs(Math.floor(g_TSDiff/1000));"));
     rawData(F("if (absTSDiffSec>0){"));
     {
-      rawData(F("var diffSeconds = absTSDiffSec % 60;"));
-      rawData(F("var diffMinutes = Math.floor(absTSDiffSec/60) % 60;"));
-      rawData(F("var diffHours = Math.floor(absTSDiffSec/60/60);"));
-      rawData(F("if (diffHours>365*24) {"));
+      rawData(F("var diffSeconds=absTSDiffSec%60;"));
+      rawData(F("var diffMinutes=Math.floor(absTSDiffSec/60)%60;"));
+      rawData(F("var diffHours=Math.floor(absTSDiffSec/60/60);"));
+      rawData(F("if(diffHours>365*24){"));
       {
-        rawData(F("resultDiffString='over year';"));
+        rawData(F("diffStr='over year';"));
       }
-      rawData(F("} else if (diffHours>30*24) {"));
+      rawData(F("}else if (diffHours>30*24){"));
       {
-        rawData(F("resultDiffString='over month';"));
+        rawData(F("diffStr='over month';"));
       }
-      rawData(F("} else if (diffHours>7*24) {"));
+      rawData(F("}else if (diffHours>7*24){"));
       {
-        rawData(F("resultDiffString='over week';"));
+        rawData(F("diffStr='over week';"));
       }
-      rawData(F("} else if (diffHours>24) {"));
+      rawData(F("}else if (diffHours>24){"));
       {
-        rawData(F("resultDiffString='over day';"));
+        rawData(F("diffStr='over day';"));
       }
-      rawData(F("} else if (diffHours>0) {"));
+      rawData(F("}else if (diffHours>0){"));
       {
-        rawData(F("resultDiffString=diffHours+' h '+diffMinutes+' m '+diffSeconds+' s';"));
+        rawData(F("diffStr=diffHours+' h '+diffMinutes+' m '+diffSeconds+' s';"));
       }
-      rawData(F("} else if (diffMinutes > 0) {"));
+      rawData(F("}else if (diffMinutes > 0){"));
       {
-        rawData(F("resultDiffString=diffMinutes+' min '+diffSeconds+' sec';"));
+        rawData(F("diffStr=diffMinutes+' min '+diffSeconds+' sec';"));
       }
-      rawData(F("} else if (diffSeconds > 0) {"));
+      rawData(F("}else if (diffSeconds > 0){"));
       {
-        rawData(F("resultDiffString=diffSeconds+' sec';"));
+        rawData(F("diffStr=diffSeconds+' sec';"));
       }
       rawData(F("}"));
-      rawData(F("resultDiffString='Out of sync '+resultDiffString+' with browser time';"));
+      rawData(F("diffStr='Out of sync '+diffStr+' with browser time';"));
     }
-    rawData(F("} else {"));
+    rawData(F("}else{"));
     {
-      rawData(F("resultDiffString='Synced with browser time';"));
+      rawData(F("diffStr='Synced with browser time';"));
     }
     rawData(F("}"));
-    rawData(F("var g_diffSpanDesc=document.getElementById('"));
+    rawData(F("var g_diffTimeStamp=document.getElementById('"));
     rawData(diffTimeStampId);
     rawData(F("');"));
     if (GB_StorageHelper.isAutoCalculatedClockTimeUsed()) {
-      rawData(F("resultDiffString='Auto calculated. '+resultDiffString;"));
-      rawData(F("g_diffSpanDesc.style.color='red';"));
+      rawData(F("diffStr='Auto calculated. '+diffStr;"));
+      rawData(F("g_diffTimeStamp.style.color='red';"));
     }
     else {
-      rawData(F("if (absTSDiffSec>60) { g_diffSpanDesc.style.color='red'; }"));
+      rawData(F("if (absTSDiffSec>60){g_diffTimeStamp.style.color='red';}"));
     }
-    rawData(F("g_diffSpanDesc.innerHTML=resultDiffString;"));
+    rawData(F("g_diffTimeStamp.innerHTML=diffStr;"));
   }
 
-  rawData(F("function updateTimeStamps() {"));
-  rawData(F("    var browserTimeStamp = new Date();"));
-  rawData(F("    g_GBTS.setTime(browserTimeStamp.getTime() - g_TSDiff);"));
-  if (growboxTimeStampId != NULL) {
-    rawData(F("document.getElementById('"));
-    rawData(growboxTimeStampId);
-    rawData(F("').innerHTML = g_GBTS.toLocaleString('uk', g_timeFormat);"));
+  rawData(F("function g_uts(){"));{ // update time stamps
+    rawData(F("var bts=new Date();")); // browser time stamp
+    rawData(F("g_gbts.setTime(bts.getTime()-g_TSDiff);"));
+    if (growboxTimeStampId != NULL) {
+      rawData(F("document.getElementById('"));
+      rawData(growboxTimeStampId);
+      rawData(F("').innerHTML=g_gbts.toLocaleString('uk',g_timeFormat);"));
+    }
+    if (browserTimeStampId != NULL) {
+      rawData(F("document.getElementById('"));
+      rawData(browserTimeStampId);
+      rawData(F("').innerHTML=bts.toLocaleString('uk',g_timeFormat);"));
+    }
+    rawData(F("setTimeout(function () {g_uts(); }, 1000);"));
   }
-  if (browserTimeStampId != NULL) {
-    rawData(F("document.getElementById('"));
-    rawData(browserTimeStampId);
-    rawData(F("').innerHTML = browserTimeStamp.toLocaleString('uk', g_timeFormat);"));
-  }
-  rawData(F("    setTimeout(function () {updateTimeStamps(); }, 1000);"));
   rawData(F("};"));
-  rawData(F("updateTimeStamps();"));
 
-  rawData(F("var g_checkBeforeSetClockTime = function () {"));
-  rawData(F("  if(!confirm(\"Syncronize Growbox time with browser time?\")) {"));
-  rawData(F("    return false;"));
-  rawData(F("  }"));
-  rawData(F("  document.getElementById(\"setClockTimeInput\").value = Math.floor(new Date().getTime()/1000 - new Date().getTimezoneOffset()*60);"));
-  rawData(F("  return true;"));
-  rawData(F("}"));
+  rawData(F("g_uts();"));
+
+  if (setClockTimeHiddenInputId != NULL){
+    rawData(F("var g_checkBeforeSetClockTime=function(){"));{
+      rawData(F("if(!confirm(\"Syncronize Growbox time with browser time?\")) {"));{
+        rawData(F("return false;"));
+      }
+      rawData(F("}"));
+      rawData(F("document.getElementById(\""));
+      rawData(setClockTimeHiddenInputId);
+      rawData(F("\").value=Math.floor(new Date().getTime()/1000-new Date().getTimezoneOffset()*60);"));
+      rawData(F("return true;"));
+    }
+    rawData(F("}"));
+  }
 
   rawData(F("</script>"));
 }

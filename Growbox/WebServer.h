@@ -75,7 +75,7 @@ private:
   void appendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const String& text, boolean isSelected);
   void appendOptionToSelectDynamic(const __FlashStringHelper* selectId, const __FlashStringHelper* value, const __FlashStringHelper* text, boolean isSelected);
 
-  void growboxClockJavaScript(const __FlashStringHelper* growboxTimeStampId = 0, const __FlashStringHelper* browserTimeStampId = 0, const __FlashStringHelper* diffTimeStampId = 0);
+  void growboxClockJavaScript(const __FlashStringHelper* growboxTimeStampId = NULL, const __FlashStringHelper* browserTimeStampId = NULL, const __FlashStringHelper* diffTimeStampId = NULL, const __FlashStringHelper* setClockTimeHiddenInputId = NULL);
   void spanTag_RedIfTrue(const __FlashStringHelper* text, boolean isRed);
   void printTemperatue(float t);
   void printTemperatueRange(float t1, float t2);
