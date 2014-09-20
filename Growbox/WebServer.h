@@ -7,14 +7,14 @@
 //                           HTML CONSTS                           //
 /////////////////////////////////////////////////////////////////////
 
-const char S_url_status[] PROGMEM = "/";
-const char S_url_log[] PROGMEM = "/log";
-const char S_url_watering[] PROGMEM = "/watering";
-const char S_url_general[] PROGMEM = "/general";
-const char S_url_hardware[] PROGMEM = "/hardware";
-const char S_url_other[] PROGMEM = "/other";
-const char S_url_dump_internal[] PROGMEM = "/other/dump_internal";
-const char S_url_dump_AT24C32[] PROGMEM = "/other/dump_AT24C32";
+const char S_URL_STATUS[] PROGMEM = "/";
+const char S_URL_DAILY_LOG[] PROGMEM = "/log";
+const char S_URL_GENERAL_OPTIONS[] PROGMEM = "/general";
+const char S_URL_WATERING[] PROGMEM = "/watering";
+const char S_URL_HARDWARE[] PROGMEM = "/hardware";
+const char S_URL_OTHER_PAGE[] PROGMEM = "/other";
+const char S_URL_DUMP_INTERNAL[] PROGMEM = "/other/dump_internal";
+const char S_URL_DUMP_AT24C32[] PROGMEM = "/other/dump_AT24C32";
 
 class WebServerClass{
 private:

@@ -16,15 +16,15 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
 
   byte wsIndex = getWateringIndexFromUrl(url); // FF ig not watering system
 
-  boolean isStatusPage = StringUtils::flashStringEquals(url, FS(S_url_status));
-  boolean isLogPage = StringUtils::flashStringEquals(url, FS(S_url_log));
+  boolean isStatusPage = StringUtils::flashStringEquals(url, FS(S_URL_STATUS));
+  boolean isLogPage = StringUtils::flashStringEquals(url, FS(S_URL_DAILY_LOG));
 
-  boolean isGeneralPage = StringUtils::flashStringEquals(url, FS(S_url_general));
+  boolean isGeneralPage = StringUtils::flashStringEquals(url, FS(S_URL_GENERAL_OPTIONS));
   boolean isWateringPage = (wsIndex != 0xFF);
-  boolean isHardwarePage = StringUtils::flashStringEquals(url, FS(S_url_hardware));
-  boolean isDumpInternal = StringUtils::flashStringEquals(url, FS(S_url_dump_internal));
-  boolean isDumpAT24C32 = StringUtils::flashStringEquals(url, FS(S_url_dump_AT24C32));
-  boolean isOtherPage = StringUtils::flashStringEquals(url, FS(S_url_other));
+  boolean isHardwarePage = StringUtils::flashStringEquals(url, FS(S_URL_HARDWARE));
+  boolean isDumpInternal = StringUtils::flashStringEquals(url, FS(S_URL_DUMP_INTERNAL));
+  boolean isDumpAT24C32 = StringUtils::flashStringEquals(url, FS(S_URL_DUMP_AT24C32));
+  boolean isOtherPage = StringUtils::flashStringEquals(url, FS(S_URL_OTHER_PAGE));
 
   boolean isConfigurationPage = (isGeneralPage || isWateringPage || isHardwarePage || isDumpInternal || isDumpAT24C32 || isOtherPage);
 
@@ -71,17 +71,17 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
     }
   }
   rawData(F("<form>"));   // HTML Validator warning
-  tagButton(FS(S_url_status), F("Status"), isStatusPage);
-  tagButton(FS(S_url_log), F("Daily log"), isLogPage);
+  tagButton(FS(S_URL_STATUS), F("Status"), isStatusPage);
+  tagButton(FS(S_URL_DAILY_LOG), F("Daily log"), isLogPage);
   rawData(F("<select id='configPageSelect' onchange='g_onChangeConfigPageSelect();' "));
   if (isConfigurationPage) {
     rawData(F(" style='text-decoration: underline;'"));
   }
   rawData('>');
   tagOption(F(""), F("Select Options page"), !isConfigurationPage, true);
-  tagOption(FS(S_url_general), F("General options"), isGeneralPage);
+  tagOption(FS(S_URL_GENERAL_OPTIONS), F("General options"), isGeneralPage);
   for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
-    String url = StringUtils::flashStringLoad(FS(S_url_watering));
+    String url = StringUtils::flashStringLoad(FS(S_URL_WATERING));
     if (i > 0) {
       url += '/';
       url += (i + 1);
@@ -91,12 +91,12 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
     tagOption(url, description, (wsIndex == i));
   }
 
-  tagOption(FS(S_url_hardware), F("Hardware"), isHardwarePage);
-  tagOption(FS(S_url_other), F("Other"), isOtherPage);
+  tagOption(FS(S_URL_HARDWARE), F("Hardware"), isHardwarePage);
+  tagOption(FS(S_URL_OTHER_PAGE), F("Other"), isOtherPage);
   if (isDumpInternal || isDumpAT24C32) {
-    tagOption(FS(S_url_dump_internal), F("Other: Arduino dump"), isDumpInternal);
+    tagOption(FS(S_URL_DUMP_INTERNAL), F("Other: Arduino dump"), isDumpInternal);
     if (EEPROM_AT24C32.isPresent()) {
-      tagOption(FS(S_url_dump_AT24C32), F("Other: AT24C32 dump"), isDumpAT24C32);
+      tagOption(FS(S_URL_DUMP_AT24C32), F("Other: AT24C32 dump"), isDumpAT24C32);
     }
   }
   rawData(F("</select>"));
@@ -212,7 +212,7 @@ void WebServerClass::sendStatusPage() {
   rawData(F("<br/><small><span id='diffTimeStampId'></span></small>"));
   growboxClockJavaScript(F("growboxTimeStampId"), NULL, F("diffTimeStampId"));
   rawData(F("<form action='"));
-  rawData(FS(S_url_status));
+  rawData(FS(S_URL_STATUS));
   rawData(F("' method='post' onSubmit='return g_checkBeforeSetClockTime()'>"));
   rawData(F("<input type='hidden' name='setClockTime' id='setClockTimeInput'>"));
   rawData(F("<input type='submit' value='Sync'>"));
@@ -413,7 +413,7 @@ void WebServerClass::sendLogPage(const String& getParams) {
   }
 
   rawData(F("<form action='"));
-  rawData(FS(S_url_log));
+  rawData(FS(S_URL_DAILY_LOG));
   rawData(F("' method='get'>"));
 
   rawData(F("<select id='typeCombobox' name='type'>"));
@@ -558,7 +558,7 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
 
   rawData(F("<fieldset><legend>Clock</legend>"));
   rawData(F("<form action='"));
-  rawData(FS(S_url_general));
+  rawData(FS(S_URL_GENERAL_OPTIONS));
   rawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value) { alert(\"Turn times should be different\"); return false;}'>"));
   rawData(F("<table class='grab'>"));
   rawData(F("<tr><td>Day mode at</td><td>"));
@@ -585,13 +585,13 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
   rawData(F("<fieldset><legend>Logger</legend>"));
 
   rawData(F("<form action='"));
-  rawData(FS(S_url_general));
+  rawData(FS(S_URL_GENERAL_OPTIONS));
   rawData(F("' method='post' id='resetLogForm' onSubmit='return confirm(\"Delete all stored records?\")'>"));
   rawData(F("<input type='hidden' name='resetStoredLog'/>"));
   rawData(F("</form>"));
 
   rawData(F("<form action='"));
-  rawData(FS(S_url_general));
+  rawData(FS(S_URL_GENERAL_OPTIONS));
   rawData(F("' method='post'>"));
 
   rawData(F("<table class='grab'>"));
@@ -629,7 +629,7 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
 
     rawData(F("<fieldset><legend>Thermometer</legend>"));
     rawData(F("<form action='"));
-    rawData(FS(S_url_general));
+    rawData(FS(S_URL_GENERAL_OPTIONS));
     rawData(F("' method='post' onSubmit='if (document.getElementById(\"normalTemperatueDayMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
     rawData(F("|| document.getElementById(\"normalTemperatueNightMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
     rawData(F("<table>"));
@@ -660,11 +660,11 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
 
 byte WebServerClass::getWateringIndexFromUrl(const String& url) {
 
-  if (!StringUtils::flashStringStartsWith(url, FS(S_url_watering))) {
+  if (!StringUtils::flashStringStartsWith(url, FS(S_URL_WATERING))) {
     return 0xFF;
   }
 
-  String urlSuffix = url.substring(StringUtils::flashStringLength(FS(S_url_watering)));
+  String urlSuffix = url.substring(StringUtils::flashStringLength(FS(S_URL_WATERING)));
   if (urlSuffix.length() == 0) {
     return 0;
   }
@@ -682,7 +682,7 @@ byte WebServerClass::getWateringIndexFromUrl(const String& url) {
 void WebServerClass::sendWateringOptionsPage(const String& url, byte wsIndex) {
 
   String actionURL;
-  actionURL += StringUtils::flashStringLoad(FS(S_url_watering));
+  actionURL += StringUtils::flashStringLoad(FS(S_URL_WATERING));
   if (wsIndex > 0) {
     actionURL += '/';
     actionURL += (wsIndex + 1);
@@ -857,7 +857,7 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
   rawData(F("<fieldset><legend>General</legend>"));
 
   rawData(F("<form action='"));
-  rawData(FS(S_url_hardware));
+  rawData(FS(S_URL_HARDWARE));
   rawData(F("' method='post'>"));
 
   tagCheckbox(F("useLight"), F("Use Light"), GB_Controller.isUseLight());
@@ -904,7 +904,7 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
   boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
   rawData(F("<fieldset><legend>Wi-Fi</legend>"));
   rawData(F("<form action='"));
-  rawData(FS(S_url_hardware));
+  rawData(FS(S_URL_HARDWARE));
   rawData(F("' method='post'>"));
   tagRadioButton(F("isWifiStationMode"), F("Create new Network"), F("0"), !isWifiStationMode);
   rawData(F("<div class='description'>Hidden, security WPA2, ip 192.168.0.1</div>"));
@@ -933,13 +933,13 @@ void WebServerClass::sendOtherOptionsPage(const String& getParams) {
 
   rawData(F("<tr><td colspan ='2'>"));
   rawData(F("<a href='"));
-  rawData(FS(S_url_dump_internal));
+  rawData(FS(S_URL_DUMP_INTERNAL));
   rawData(F("'>View internal Arduino dump</a>"));
   rawData(F("</td></tr>"));
   if (EEPROM_AT24C32.isPresent()) {
     rawData(F("<tr><td colspan ='2'>"));
     rawData(F("<a href='"));
-    rawData(FS(S_url_dump_AT24C32));
+    rawData(FS(S_URL_DUMP_AT24C32));
     rawData(F("'>View external AT24C32 dump</a>"));
     rawData(F("</td></tr>"));
   }
@@ -948,7 +948,7 @@ void WebServerClass::sendOtherOptionsPage(const String& getParams) {
 
   rawData(F("<tr><td>"));
   rawData(F("<form action='"));
-  rawData(FS(S_url_status));
+  rawData(FS(S_URL_STATUS));
   rawData(F("' method='post' onSubmit='return confirm(\"Reboot Growbox?\")'>"));
   rawData(F("<input type='hidden' name='rebootController'/><input type='submit' value='Reboot Growbox'>"));
   rawData(F("</form>"));
@@ -958,7 +958,7 @@ void WebServerClass::sendOtherOptionsPage(const String& getParams) {
 
   rawData(F("<tr><td>"));
   rawData(F("<form action='"));
-  rawData(FS(S_url_status));
+  rawData(FS(S_URL_STATUS));
   rawData(F("' method='post' onSubmit='return confirm(\"Reset Firmware?\")'>"));
   rawData(F("<input type='hidden' name='resetFirmware'/><input type='submit' value='Reset Firmware'>"));
   rawData(F("</form>"));
@@ -998,10 +998,10 @@ void WebServerClass::sendStorageDumpPage(const String& getParams, boolean isInte
 
   rawData(F("<form action='"));
   if (isInternal) {
-    rawData(FS(S_url_dump_internal));
+    rawData(FS(S_URL_DUMP_INTERNAL));
   }
   else {
-    rawData(FS(S_url_dump_AT24C32));
+    rawData(FS(S_URL_DUMP_AT24C32));
   }
   rawData(F("' method='get' onSubmit='if (document.getElementById(\"rangeStartCombobox\").value > document.getElementById(\"rangeEndCombobox\").value){ alert(\"Address range is incorrect\"); return false;}'>"));
   rawData(F("Address from "));
