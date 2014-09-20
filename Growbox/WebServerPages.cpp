@@ -497,22 +497,35 @@ void WebServerClass::sendLogPage(const String& getParams) {
       }
       rawData(F("<th>Time</th><th>Description</th></tr>"));
     }
-    rawData(F("<tr"));
+    rawData(F("<tr>"));
+
+    rawData(F("<td>"));
+    if (printAllDays) {
+      rawData(logRecordIndex + 1);
+    } else {
+      rawData(currentDayRecordsCount);
+    }
+    rawData(F("</td>"));
+
+    if (printAllDays){
+      rawData(F("<td style='font-weight:bold;'>"));
+      if (currentDayRecordsCount == 1){
+        rawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
+      }
+      rawData(F("</td>"));
+    }
+    rawData(F("<td>"));
+    rawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true));
+    rawData(F("</td><td style='text-align:left;"));
     if (isError || logRecord.isEmpty()) {
-      rawData(F(" class='red'"));
+      rawData(F("color:red;"));
     }
     else if (isEvent && (logRecord.data == EVENT_FIRST_START_UP.index || logRecord.data == EVENT_RESTART.index)) { // TODO create check method in Logger.h
-      rawData(F(" style='font-weight:bold;'"));
+      rawData(F("font-weight:bold;"));
     }
-    rawData(F("><td>"));
-    rawData(logRecordIndex + 1);
-    rawData(F("</td><td>"));
-    if (printAllDays){
-      rawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
-      rawData(F("</td><td>"));
-    }
-    rawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true));
-    rawData(F("</td><td style='text-align:left;'>"));
+    rawData(F("'>"));
+
+
     rawData(GB_Logger.getLogRecordDescription(logRecord));
     rawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord, true));
     rawData(F("</td></tr>")); // bug with linker was here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
@@ -982,13 +995,6 @@ void WebServerClass::sendStorageDumpPage(const String& getParams, boolean isInte
   if (rangeStart > rangeEnd) {
     rangeEnd = rangeStart;
   }
-
-  //  if(isInternal){
-  //    rawData(F("Internal Arduino dump"));
-  //  } else {
-  //    rawData(F("External AT24C32 dump"));
-  //  }
-  //rawData(F("<br/>"));
 
   rawData(F("<form action='"));
   if (isInternal) {
