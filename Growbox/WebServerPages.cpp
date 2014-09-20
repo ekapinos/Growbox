@@ -46,20 +46,23 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
   }
 
   rawData(F("<!DOCTYPE html>")); // HTML 5
-  rawData(F("<html><head>"));
-  rawData(F("  <title>Growbox</title>"));
-  rawData(F("  <meta name='viewport' content='width=device-width, initial-scale=1'/>"));
-  rawData(F("<style type='text/css'>"));
-  rawData(F("  body {font-family:Arial; max-width:600px; }")); // 350px 
-  rawData(F("  form {margin: 0px;}"));
-  rawData(F("  dt {font-weight: bold; margin-top:5px;}"));
+  rawData(F("<html><head>"));{
+    rawData(F("<title>Growbox</title>"));
+    rawData(F("<meta name='viewport' content='width=device-width, initial-scale=1'/>"));
+    rawData(F("<style type='text/css'>"));{
+      rawData(F("body{font-family:Arial;max-width:600px; }")); // 350px
+      rawData(F("form{margin: 0px;}"));
+      rawData(F("dt{font-weight:bold; margin-top:5px;}"));
 
-  rawData(F("  .red {color: red;}"));
-  rawData(F("  .grab {border-spacing:5px; width:100%; }"));
-  rawData(F("  .align_right {float:right; text-align:right;}"));
-  rawData(F("  .align_center {float:center; text-align:center;}"));
-  rawData(F("  .description {font-size:small; margin-left:20px; margin-bottom:5px;}"));
-  rawData(F("</style>"));
+      rawData(F(".red {color: red;}"));
+      rawData(F(".grab {border-spacing:5px;width:100%; }"));
+      rawData(F(".align_right{float:right;text-align:right;}"));
+      rawData(F(".align_center{float:center;text-align:center;}"));
+      rawData(F(".description{font-size:small;margin-left:20px;margin-bottom:5px;}"));
+    }
+    rawData(F("</style>"));
+  }
+
   rawData(F("</head>"));
 
   rawData(F("<body>"));
@@ -78,7 +81,7 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
     rawData(F(" style='text-decoration: underline;'"));
   }
   rawData('>');
-  tagOption(F(""), F("Select Options page"), !isConfigurationPage, true);
+  tagOption(F(""), F("Select options page"), !isConfigurationPage, true);
   tagOption(FS(S_URL_GENERAL_OPTIONS), F("General options"), isGeneralPage);
   for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
     String url = StringUtils::flashStringLoad(FS(S_URL_WATERING));
@@ -168,9 +171,31 @@ void WebServerClass::sendStatusPage() {
     rawData(F("</dd>"));
   }
 
-  rawData(F("<dd>"));
-  rawData(GB_Controller.isDayInGrowbox() ? F("Day") : F("Night"));
-  rawData(F(" mode</dd>"));
+  boolean isDayInGrowbox = GB_Controller.isDayInGrowbox();
+
+  word upTime, downTime, dayPeriod;
+  GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
+  dayPeriod = (downTime - upTime) ? downTime - upTime : upTime - downTime;
+
+  rawData(F("<dd>Mode: "));
+  rawData(isDayInGrowbox ? F("Day") : F("Night"));
+  rawData(F(" ["));
+  if (isDayInGrowbox) {
+    rawData(F("<b>"));
+  }
+  rawData(StringUtils::wordTimeToString(dayPeriod));
+  if (isDayInGrowbox) {
+    rawData(F("</b>"));
+  }
+  rawData(F("/"));
+  if (!isDayInGrowbox) {
+    rawData(F("<b>"));
+  }
+  rawData(StringUtils::wordTimeToString(24 * SECS_PER_MIN - dayPeriod));
+  if (!isDayInGrowbox) {
+    rawData(F("<b>"));
+  }
+  rawData(F("]</dd>"));
 
   if (GB_Controller.isUseLight()) {
     rawData(F("<dd>Light: "));
@@ -314,9 +339,6 @@ void WebServerClass::sendStatusPage() {
       rawData(F("</dd>"));
     }
   }
-
-  word upTime, downTime;
-  GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
 
   rawData(F("<dt>Configuration</dt>"));
   rawData(F("<dd>Day mode at: "));
