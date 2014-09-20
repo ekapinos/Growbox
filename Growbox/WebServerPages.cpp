@@ -359,28 +359,32 @@ boolean WebServerClass::isSameDay(tmElements_t time1, tmElements_t time2){
 
 void WebServerClass::sendLogPage(const String& getParams) {
 
-  tmElements_t targetTm;
+  tmElements_t targetDayTm;
   String paramValue;
 
   // get target Day
+  boolean printAllDays = false;
   boolean isTargetDayInParameter = false;
   if (searchHttpParamByName(getParams, F("date"), paramValue)) {
-
-    if (paramValue.length() == 10) {
+    if (StringUtils::flashStringEquals(paramValue, F("all"))) {
+      printAllDays = true;
+      isTargetDayInParameter = true;
+    }
+    else if (paramValue.length() == 10) {
       byte dayInt = paramValue.substring(0, 2).toInt();
       byte monthInt = paramValue.substring(3, 5).toInt();
       word yearInt = paramValue.substring(6, 10).toInt();
 
       if (dayInt != 0 && monthInt != 0 && yearInt != 0) {
-        targetTm.Day = dayInt;
-        targetTm.Month = monthInt;
-        targetTm.Year = CalendarYrToTm(yearInt);
+        targetDayTm.Day = dayInt;
+        targetDayTm.Month = monthInt;
+        targetDayTm.Year = CalendarYrToTm(yearInt);
         isTargetDayInParameter = true;
       }
     }
   }
   if (!isTargetDayInParameter) {
-    breakTime(now(), targetTm);
+    breakTime(now(), targetDayTm);
   }
 
   boolean printAll = false, printEvents = false, printWateringEvents = false, printErrors = false, printTemperature = false;
@@ -413,20 +417,23 @@ void WebServerClass::sendLogPage(const String& getParams) {
   rawData(F("' method='get'>"));
 
   rawData(F("<select id='typeCombobox' name='type'>"));
-  tagOption(F("all"), F("All records"), printAll);
+  tagOption(F("all"), F("All types"), printAll);
   tagOption(F("events"), F("Events only"), printEvents);
   tagOption(F("wateringevents"), F("Watering Events only"), printWateringEvents);
   tagOption(F("errors"), F("Errors only"), printErrors);
   tagOption(F("temperature"), F("Temperature only"), printTemperature);
   rawData(F("</select>"));
 
-  rawData(F("<select id='dateCombobox' name='date'></select>"));
+  rawData(F("<select id='dateCombobox' name='date'>"));
+  tagOption(F("all"), F("All days"), printAllDays);
+  // Other will append by java script
+  rawData(F("</select>"));
   rawData(F("<input type='submit' value='Show'/>"));
   rawData(F("</form>"));
 
   LogRecord logRecord;
-  tmElements_t currentTm;
-  tmElements_t nextTm;
+  tmElements_t currentDayTm;
+  tmElements_t nextDayTm;
 
   boolean isTableTagPrinted = false;
   word logRecordIndex;
@@ -438,14 +445,14 @@ void WebServerClass::sendLogPage(const String& getParams) {
     }
 
     logRecord = GB_StorageHelper.getLogRecordByIndex(logRecordIndex);
-    breakTime(logRecord.timeStamp, nextTm);
+    breakTime(logRecord.timeStamp, nextDayTm);
 
     if (logRecordIndex == 0){
       currentDayRecordsCount = 0;
       currentDayPrintableRecordsCount = 0;
 
-    } else if (!isSameDay(currentTm, nextTm) || (logRecordIndex == (GB_StorageHelper.getLogRecordsCount()-1))) {
-      String value = StringUtils::timeStampToString(makeTime(currentTm), true, false);
+    } else if (!isSameDay(currentDayTm, nextDayTm) || (logRecordIndex == (GB_StorageHelper.getLogRecordsCount()-1))) {
+      String value = StringUtils::timeStampToString(makeTime(currentDayTm), true, false);
       String text = value + StringUtils::flashStringLoad(F("  ("));
       if (!printAll){
         text += currentDayPrintableRecordsCount;
@@ -453,12 +460,12 @@ void WebServerClass::sendLogPage(const String& getParams) {
       }
       text += currentDayRecordsCount;
       text += ')';
-      appendOptionToSelectDynamic(F("dateCombobox"), value, text, isSameDay(currentTm, targetTm));
+      appendOptionToSelectDynamic(F("dateCombobox"), value, text, !printAllDays && isSameDay(currentDayTm, targetDayTm));
 
       currentDayRecordsCount = 0;
       currentDayPrintableRecordsCount = 0;
     }
-    currentTm = nextTm;
+    currentDayTm = nextDayTm;
     currentDayRecordsCount++;
 
     boolean isEvent         = GB_Logger.isEvent(logRecord);
@@ -476,14 +483,19 @@ void WebServerClass::sendLogPage(const String& getParams) {
 
     currentDayPrintableRecordsCount++;
 
-    if (!isSameDay(currentTm, targetTm)) {
+    if (!printAllDays && !isSameDay(currentDayTm, targetDayTm)) {
       continue;
     }
 
     if (!isTableTagPrinted) {
       isTableTagPrinted = true;
       rawData(F("<table class='grab align_center'>"));
-      rawData(F("<tr><th>#</th><th>Time</th><th>Description</th></tr>"));
+      rawData(F("<tr>"));
+      rawData(F("<th>#</th>"));
+      if (printAllDays){
+        rawData(F("<th>Day</th>"));
+      }
+      rawData(F("<th>Time</th><th>Description</th></tr>"));
     }
     rawData(F("<tr"));
     if (isError || logRecord.isEmpty()) {
@@ -495,6 +507,10 @@ void WebServerClass::sendLogPage(const String& getParams) {
     rawData(F("><td>"));
     rawData(logRecordIndex + 1);
     rawData(F("</td><td>"));
+    if (printAllDays){
+      rawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
+      rawData(F("</td><td>"));
+    }
     rawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true));
     rawData(F("</td><td style='text-align:left;'>"));
     rawData(GB_Logger.getLogRecordDescription(logRecord));
@@ -505,7 +521,7 @@ void WebServerClass::sendLogPage(const String& getParams) {
     rawData(F("</table>"));
   }
   else {
-    String value = StringUtils::timeStampToString(makeTime(targetTm), true, false);
+    String value = StringUtils::timeStampToString(makeTime(targetDayTm), true, false);
     String text = value + StringUtils::flashStringLoad(F("  ("));
     if (!printAll){
       text += StringUtils::flashStringLoad(F("0/"));
