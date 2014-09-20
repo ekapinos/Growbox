@@ -175,14 +175,15 @@ void WebServerClass::sendStatusPage() {
 
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
-
+  word dayPeriod = getWordTimePeriodinDay(upTime, downTime); // Can be 24:00
+  word nightPeriod = 24 * 60 - dayPeriod; // Can be 00:00
   rawData(F("<dd>Mode: "));
   rawData(isDayInGrowbox ? F("Day") : F("Night"));
   rawData(F(", "));
   if (isDayInGrowbox) {
     rawData(F("<b>"));
   }
-  rawData(StringUtils::wordTimeToString(getWordTimePeriodinDay(upTime, downTime)));
+  rawData(StringUtils::wordTimeToString(dayPeriod));
   if (isDayInGrowbox) {
     rawData(F("</b>"));
   }
@@ -190,7 +191,7 @@ void WebServerClass::sendStatusPage() {
   if (!isDayInGrowbox) {
     rawData(F("<b>"));
   }
-  rawData(StringUtils::wordTimeToString(getWordTimePeriodinDay(downTime, upTime)));
+  rawData(StringUtils::wordTimeToString(nightPeriod));
   if (!isDayInGrowbox) {
     rawData(F("</b>"));
   }
@@ -586,11 +587,13 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
 
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
+  word dayPeriod = getWordTimePeriodinDay(upTime, downTime); // Can be 24:00
+  word nightPeriod = 24 * 60 - dayPeriod; // Can be 00:00
 
   rawData(F("<fieldset><legend>Clock</legend>"));
   rawData(F("<form action='"));
   rawData(FS(S_URL_GENERAL_OPTIONS));
-  rawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value) { alert(\"Turn times should be different\"); return false;}'>"));
+  rawData(F("' method='post'>"));
   rawData(F("<table class='grab'>"));
   rawData(F("<tr><td>Day mode at</td><td>"));
   tagInputTime(F("turnToDayModeAt"), NULL, upTime, F("g_updDayNightPeriod()")); // see WebServerClass::updateDayNightPeriodJavaScript()
@@ -600,9 +603,9 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
   rawData(F("</td></tr>"));
 
   rawData(F("<tr><td>Day/Night period</td><td><span id='dayNightPeriod'>"));
-  rawData(StringUtils::wordTimeToString(getWordTimePeriodinDay(upTime, downTime)));
+  rawData(StringUtils::wordTimeToString(dayPeriod));
   rawData(F("/"));
-  rawData(StringUtils::wordTimeToString(getWordTimePeriodinDay(downTime, upTime)));
+  rawData(StringUtils::wordTimeToString(nightPeriod));
   rawData(F("</span></td></tr>"));
 
   rawData(F("<tr><td>Auto adjust time</td><td>"));

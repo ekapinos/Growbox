@@ -280,7 +280,10 @@ boolean ControllerClass::isDayInGrowbox(boolean update){
   word currentTime = hour() * 60 + minute();
 
   boolean isDayInGrowbox = false;
-  if (upTime < downTime) {
+  if (upTime == downTime) {
+    isDayInGrowbox = true; // Always day
+  }
+  else if (upTime < downTime) {
     if (upTime < currentTime && currentTime < downTime) {
       isDayInGrowbox = true;
     }

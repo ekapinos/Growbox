@@ -512,8 +512,9 @@ void WebServerClass::printTemperatueRange(float t1, float t2) {
   printTemperatue(t2);
 }
 
+// Returns 24:00 if dates equal
 word WebServerClass::getWordTimePeriodinDay(word start, word stop){
-  if (stop >= start){
+  if (stop > start){
     return stop - start;
   } else {
     return 24 * 60 - (start - stop);
