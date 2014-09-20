@@ -292,8 +292,8 @@ void WebServerClass::tagInputNumber(const __FlashStringHelper* name, const __Fla
   }
 }
 
-void WebServerClass::tagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value) {
-  if (text != 0) {
+void WebServerClass::tagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value, const __FlashStringHelper* onChange) {
+  if (text != NULL) {
     rawData(F("<label>"));
     rawData(text);
   }
@@ -303,8 +303,12 @@ void WebServerClass::tagInputTime(const __FlashStringHelper* name, const __Flash
   rawData(name);
   rawData(F("' value='"));
   rawData(StringUtils::wordTimeToString(value));
+  if (onChange != NULL){
+    rawData(F("' onchange='"));
+    rawData(onChange);
+  }
   rawData(F("'/>"));
-  if (text != 0) {
+  if (text != NULL) {
     rawData(F("</label>"));
   }
 }
@@ -506,6 +510,34 @@ void WebServerClass::printTemperatueRange(float t1, float t2) {
   }
   rawData(F(".."));
   printTemperatue(t2);
+}
+
+word WebServerClass::getWordTimePeriodinDay(word start, word stop){
+  if (stop >= start){
+    return stop - start;
+  } else {
+    return 24 * 60 - (start - stop);
+  }
+}
+void WebServerClass::updateDayNightPeriodJavaScript() {
+  rawData(F("<script type='text/javascript'>"));
+  rawData(F("function g_wordTimeToString(time){"));{
+    rawData(F("var hour=Math.floor(time/60);"));
+    rawData(F("var minute=time%60;"));
+    rawData(F("return (hour<10?'0':'')+hour+':'+(minute<10?'0':'')+minute;"));
+  }
+  rawData(F("}"));
+  rawData(F("function g_updDayNightPeriod(){"));
+  {
+    rawData(F("var upTime=new Date('01.01.2000 '+document.getElementById('turnToDayModeAt').value+':00');"));
+    rawData(F("var downTime=new Date('01.01.2000 '+document.getElementById('turnToNightModeAt').value+':00');"));
+    rawData(F("var delta=Math.floor((downTime-upTime)/1000/60);")); // in minutes
+    rawData(F("var dayPeriod=(delta>0?delta:24*60+delta);"));
+    rawData(F("document.getElementById(\"dayNightPeriod\").innerHTML=g_wordTimeToString(dayPeriod)+'/'+g_wordTimeToString(24*60-dayPeriod);"));
+  }
+  rawData(F("}"));
+  rawData(F("g_updDayNightPeriod();"));
+  rawData(F("</script>"));
 }
 
 WebServerClass GB_WebServer;

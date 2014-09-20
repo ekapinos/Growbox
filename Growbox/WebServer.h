@@ -65,7 +65,7 @@ private:
   void tagCheckbox(const __FlashStringHelper* name, const __FlashStringHelper* text, boolean isSelected);
   void tagRadioButton(const __FlashStringHelper* name, const __FlashStringHelper* text, const __FlashStringHelper* value, boolean isSelected);
   void tagInputNumber(const __FlashStringHelper* name, const __FlashStringHelper* text, long minValue, long maxValue, long value);
-  void tagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value);
+  void tagInputTime(const __FlashStringHelper* name, const __FlashStringHelper* text, word value, const __FlashStringHelper* onChange = NULL);
   word getTimeFromInput(const String& value);
 
   void tagOption(const String& value, const String& text, boolean isSelected, boolean isDisabled = false);
@@ -90,6 +90,7 @@ private:
   //                          STATUS PAGE                            //
   /////////////////////////////////////////////////////////////////////
   boolean isCriticalErrorOnStatusPage();
+  word getWordTimePeriodinDay(word start, word stop);
   void sendStatusPage();
 
   /////////////////////////////////////////////////////////////////////
@@ -103,6 +104,7 @@ private:
   //                          GENERAL PAGE                           //
   /////////////////////////////////////////////////////////////////////
 
+  void updateDayNightPeriodJavaScript();
   void sendGeneralOptionsPage(const String& getParams);
 
   /////////////////////////////////////////////////////////////////////

@@ -173,17 +173,16 @@ void WebServerClass::sendStatusPage() {
 
   boolean isDayInGrowbox = GB_Controller.isDayInGrowbox();
 
-  word upTime, downTime, dayPeriod;
+  word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
-  dayPeriod = (downTime - upTime) ? downTime - upTime : upTime - downTime;
 
   rawData(F("<dd>Mode: "));
   rawData(isDayInGrowbox ? F("Day") : F("Night"));
-  rawData(F(" ["));
+  rawData(F(", "));
   if (isDayInGrowbox) {
     rawData(F("<b>"));
   }
-  rawData(StringUtils::wordTimeToString(dayPeriod));
+  rawData(StringUtils::wordTimeToString(getWordTimePeriodinDay(upTime, downTime)));
   if (isDayInGrowbox) {
     rawData(F("</b>"));
   }
@@ -191,11 +190,11 @@ void WebServerClass::sendStatusPage() {
   if (!isDayInGrowbox) {
     rawData(F("<b>"));
   }
-  rawData(StringUtils::wordTimeToString(24 * SECS_PER_MIN - dayPeriod));
+  rawData(StringUtils::wordTimeToString(getWordTimePeriodinDay(downTime, upTime)));
   if (!isDayInGrowbox) {
-    rawData(F("<b>"));
+    rawData(F("</b>"));
   }
-  rawData(F("]</dd>"));
+  rawData(F("</dd>"));
 
   if (GB_Controller.isUseLight()) {
     rawData(F("<dd>Light: "));
@@ -594,11 +593,17 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
   rawData(F("' method='post' onSubmit='if (document.getElementById(\"turnToDayModeAt\").value == document.getElementById(\"turnToNightModeAt\").value) { alert(\"Turn times should be different\"); return false;}'>"));
   rawData(F("<table class='grab'>"));
   rawData(F("<tr><td>Day mode at</td><td>"));
-  tagInputTime(F("turnToDayModeAt"), 0, upTime);
+  tagInputTime(F("turnToDayModeAt"), NULL, upTime, F("g_updDayNightPeriod()")); // see WebServerClass::updateDayNightPeriodJavaScript()
   rawData(F("</td></tr>"));
   rawData(F("<tr><td>Night mode at</td><td>"));
-  tagInputTime(F("turnToNightModeAt"), 0, downTime);
+  tagInputTime(F("turnToNightModeAt"), NULL, downTime, F("g_updDayNightPeriod()"));
   rawData(F("</td></tr>"));
+
+  rawData(F("<tr><td>Day/Night period</td><td><span id='dayNightPeriod'>"));
+  rawData(StringUtils::wordTimeToString(getWordTimePeriodinDay(upTime, downTime)));
+  rawData(F("/"));
+  rawData(StringUtils::wordTimeToString(getWordTimePeriodinDay(downTime, upTime)));
+  rawData(F("</span></td></tr>"));
 
   rawData(F("<tr><td>Auto adjust time</td><td>"));
   tagInputNumber(F("autoAdjustTimeStampDelta"), 0, -32768, 32767, GB_Controller.getAutoAdjustClockTimeDelta());
@@ -684,6 +689,8 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
     rawData(F("</form>"));
     rawData(F("</fieldset>"));
   }
+
+  updateDayNightPeriodJavaScript();
 }
 
 /////////////////////////////////////////////////////////////////////
