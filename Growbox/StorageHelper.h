@@ -67,7 +67,7 @@ public:
   void setNormalTemperatueDayMax(const byte normalTemperatueDayMax);
   void setNormalTemperatueNightMin(const byte normalTemperatueNightMin);
   void setNormalTemperatueNightMax(const byte normalTemperatueNightMax);
-  void setCriticalTemperatue(const byte criticalTemperatue);
+  void setCriticalTemperatueMax(const byte criticalTemperatue);
 
   /////////////////////////////////////////////////////////////////////
   //                           OTHER DEVICES                         //

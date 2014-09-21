@@ -102,7 +102,7 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime) {
     bootRecord.normalTemperatueDayMax = 27;
     bootRecord.normalTemperatueNightMin = 16;
     bootRecord.normalTemperatueNightMax = 21;
-    bootRecord.criticalTemperatue = 35;
+    bootRecord.criticalTemperatueMax = 35;
 
     for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
 
@@ -275,12 +275,12 @@ boolean StorageHelperClass::isUseThermometer() {
   return getBoolPreferencies().useThermometer;
 }
 
-void StorageHelperClass::getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatue) {
+void StorageHelperClass::getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatueMax) {
   normalTemperatueDayMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueDayMin));
   normalTemperatueDayMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueDayMax));
   normalTemperatueNightMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMin));
   normalTemperatueNightMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMax));
-  criticalTemperatue = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, criticalTemperatue));
+  criticalTemperatueMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, criticalTemperatueMax));
 }
 
 void StorageHelperClass::setNormalTemperatueDayMin(const byte normalTemperatueDayMin) {
@@ -295,8 +295,8 @@ void StorageHelperClass::setNormalTemperatueNightMin(const byte normalTemperatue
 void StorageHelperClass::setNormalTemperatueNightMax(const byte normalTemperatueNightMax) {
   EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMax), normalTemperatueNightMax);
 }
-void StorageHelperClass::setCriticalTemperatue(const byte criticalTemperatue) {
-  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, criticalTemperatue), criticalTemperatue);
+void StorageHelperClass::setCriticalTemperatueMax(const byte criticalTemperatue) {
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, criticalTemperatueMax), criticalTemperatue);
 }
 
 /////////////////////////////////////////////////////////////////////

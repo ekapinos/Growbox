@@ -356,18 +356,18 @@ void WebServerClass::sendStatusPage() {
   if (GB_StorageHelper.isUseThermometer()) {
     byte normalTemperatueDayMin, normalTemperatueDayMax,
         normalTemperatueNightMin, normalTemperatueNightMax,
-        criticalTemperatue;
+        criticalTemperatueMax;
     GB_StorageHelper.getTemperatureParameters(
         normalTemperatueDayMin, normalTemperatueDayMax,
         normalTemperatueNightMin, normalTemperatueNightMax,
-        criticalTemperatue);
+        criticalTemperatueMax);
 
     rawData(F("<dd>Normal Day temperature: "));
     printTemperatueRange((float)normalTemperatueDayMin, (float)normalTemperatueDayMax);
     rawData(F("</dd><dd>Normal Night temperature: "));
     printTemperatueRange((float)normalTemperatueNightMin, (float)normalTemperatueNightMax);
     rawData(F("</dd><dd>Critical temperature: "));
-    printTemperatue((float)criticalTemperatue);
+    printTemperatue((float)criticalTemperatueMax);
     rawData(F("</dd>"));
   }
 
@@ -708,8 +708,8 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       return;
 
     byte normalTemperatueDayMin, normalTemperatueDayMax,
-        normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue;
-    GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatue);
+        normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatueMax;
+    GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatueMax);
 
     rawData(F("<fieldset><legend>Thermometer</legend>"));
     rawData(F("<form action='"));
@@ -729,7 +729,7 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
     tagInputNumber(F("normalTemperatueNightMax"), 0, 1, 50, normalTemperatueNightMax);
     rawData(F("&deg;C</td></tr>"));
     rawData(F("<tr><td>Critical temperature</td><td>"));
-    tagInputNumber(F("criticalTemperatue"), 0, 1, 50, criticalTemperatue);
+    tagInputNumber(F("criticalTemperatueMax"), 0, 1, 50, criticalTemperatueMax);
     rawData(F("&deg;C</td></tr>"));
     rawData(F("</table>"));
     rawData(F("<input type='submit' value='Save'>"));
@@ -1237,7 +1237,8 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     GB_Controller.rebootController();
   }
 
-  else if (StringUtils::flashStringEquals(name, F("turnToDayModeAt")) || StringUtils::flashStringEquals(name, F("turnToNightModeAt"))) {
+  else if (StringUtils::flashStringEquals(name, F("turnToDayModeAt")) ||
+      StringUtils::flashStringEquals(name, F("turnToNightModeAt"))) {
     word timeValue = getTimeFromInput(value);
     if (timeValue == 0xFFFF) {
       return false;
@@ -1251,7 +1252,11 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     }
     c_isWifiForceUpdateGrowboxState = true;
   }
-  else if (StringUtils::flashStringEquals(name, F("normalTemperatueDayMin")) || StringUtils::flashStringEquals(name, F("normalTemperatueDayMax")) || StringUtils::flashStringEquals(name, F("normalTemperatueNightMin")) || StringUtils::flashStringEquals(name, F("normalTemperatueNightMax")) || StringUtils::flashStringEquals(name, F("criticalTemperatue"))) {
+  else if (StringUtils::flashStringEquals(name, F("normalTemperatueDayMin")) ||
+      StringUtils::flashStringEquals(name, F("normalTemperatueDayMax")) ||
+      StringUtils::flashStringEquals(name, F("normalTemperatueNightMin")) ||
+      StringUtils::flashStringEquals(name, F("normalTemperatueNightMax")) ||
+      StringUtils::flashStringEquals(name, F("criticalTemperatueMax"))) {
     byte temp = value.toInt();
     if (temp == 0) {
       return false;
@@ -1269,14 +1274,17 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     else if (StringUtils::flashStringEquals(name, F("normalTemperatueNightMax"))) {
       GB_StorageHelper.setNormalTemperatueNightMax(temp);
     }
-    else if (StringUtils::flashStringEquals(name, F("criticalTemperatue"))) {
-      GB_StorageHelper.setCriticalTemperatue(temp);
+    else if (StringUtils::flashStringEquals(name, F("criticalTemperatueMax"))) {
+      GB_StorageHelper.setCriticalTemperatueMax(temp);
     }
 
     c_isWifiForceUpdateGrowboxState = true;
   }
 
-  else if (StringUtils::flashStringEquals(name, F("isWetSensorConnected")) || StringUtils::flashStringEquals(name, F("isWaterPumpConnected")) || StringUtils::flashStringEquals(name, F("useWetSensorForWatering")) || StringUtils::flashStringEquals(name, F("skipNextWatering"))) {
+  else if (StringUtils::flashStringEquals(name, F("isWetSensorConnected")) ||
+      StringUtils::flashStringEquals(name, F("isWaterPumpConnected")) ||
+      StringUtils::flashStringEquals(name, F("useWetSensorForWatering")) ||
+      StringUtils::flashStringEquals(name, F("skipNextWatering"))) {
 
     byte wsIndex = getWateringIndexFromUrl(url);
     if (wsIndex == 0xFF) {
@@ -1307,7 +1315,12 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
       GB_Watering.updateWateringSchedule();
     }
   }
-  else if (StringUtils::flashStringEquals(name, F("inAirValue")) || StringUtils::flashStringEquals(name, F("veryDryValue")) || StringUtils::flashStringEquals(name, F("dryValue")) || StringUtils::flashStringEquals(name, F("normalValue")) || StringUtils::flashStringEquals(name, F("wetValue")) || StringUtils::flashStringEquals(name, F("veryWetValue"))) {
+  else if (StringUtils::flashStringEquals(name, F("inAirValue")) ||
+      StringUtils::flashStringEquals(name, F("veryDryValue")) ||
+      StringUtils::flashStringEquals(name, F("dryValue")) ||
+      StringUtils::flashStringEquals(name, F("normalValue")) ||
+      StringUtils::flashStringEquals(name, F("wetValue")) ||
+      StringUtils::flashStringEquals(name, F("veryWetValue"))) {
 
     byte wsIndex = getWateringIndexFromUrl(url);
     if (wsIndex == 0xFF) {
@@ -1339,7 +1352,8 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     }
     GB_StorageHelper.setWateringSystemPreferenciesById(wsIndex, wsp);
   }
-  else if (StringUtils::flashStringEquals(name, F("dryWateringDuration")) || StringUtils::flashStringEquals(name, F("veryDryWateringDuration"))) {
+  else if (StringUtils::flashStringEquals(name, F("dryWateringDuration")) ||
+      StringUtils::flashStringEquals(name, F("veryDryWateringDuration"))) {
 
     byte wsIndex = getWateringIndexFromUrl(url);
     if (wsIndex == 0xFF) {

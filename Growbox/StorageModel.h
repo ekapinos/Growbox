@@ -35,7 +35,7 @@ struct BootRecord{
   byte normalTemperatueDayMax;      // 1
   byte normalTemperatueNightMin;    // 1
   byte normalTemperatueNightMax;    // 1
-  byte criticalTemperatue;          // 1
+  byte criticalTemperatueMax;       // 1
 
   struct WateringSystemPreferencies{
 
