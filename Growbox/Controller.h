@@ -55,17 +55,22 @@ public:
   boolean isDayInGrowbox(boolean update = false);
   void setUseLight(boolean flag);
   boolean isUseLight();
-  void setUseFan(boolean flag);
-  boolean isUseFan();
-
   void turnOnLight();
   void turnOffLight();
   boolean isLightTurnedOn();
 
+  void setUseFan(boolean flag);
+  boolean isUseFan();
   void turnOnFan(int speed);
   void turnOffFan();
   boolean isFanTurnedOn();
   byte getFanSpeed();
+
+  void setUseHeater(boolean flag);
+  boolean isUseHeater();
+  void turnOnHeater();
+  void turnOffHeater();
+  boolean isHeaterTurnedOn();
 
   /////////////////////////////////////////////////////////////////////
   //                              OTHER                              //

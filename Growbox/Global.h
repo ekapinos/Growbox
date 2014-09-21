@@ -14,6 +14,7 @@
 const byte LIGHT_PIN = 2;
 const byte FAN_PIN = 3;
 const byte FAN_SPEED_PIN = 4;
+const byte HEATER_PIN = 5;
 
 // 1-Wire pins
 const byte ONE_WIRE_PIN = 12;

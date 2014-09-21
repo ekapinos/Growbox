@@ -68,11 +68,13 @@ void setup() {
   pinMode(LIGHT_PIN, OUTPUT);
   pinMode(FAN_PIN, OUTPUT);
   pinMode(FAN_SPEED_PIN, OUTPUT);
+  pinMode(HEATER_PIN, OUTPUT);
 
   // Configure relay pins
   digitalWrite(LIGHT_PIN, RELAY_OFF);
   digitalWrite(FAN_PIN, RELAY_OFF);
   digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
+  digitalWrite(HEATER_PIN, RELAY_OFF);
 
   // Watering pins
   for (int i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
@@ -226,14 +228,16 @@ void updateGrowboxState(boolean checkWetSensors) {
   if (temperature >= criticalTemperatue) {
     GB_Controller.turnOffLight();
     GB_Controller.turnOnFan(FAN_SPEED_MAX);
+    GB_Controller.turnOffHeater();
     GB_Logger.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
   }
   else if (isDayInGrowbox) {
     // Day mode
     GB_Controller.turnOnLight();
     if (temperature < normalTemperatueDayMin) {
-      // Too cold, no heater
+      // Too cold
       GB_Controller.turnOnFan(FAN_SPEED_MIN); // no wind, no grow
+      //GB_Controller.turnOffFan();
     }
     else if (temperature > normalTemperatueDayMax) {
       // Too hot
@@ -242,6 +246,13 @@ void updateGrowboxState(boolean checkWetSensors) {
     else {
       // Normal, day wind
       GB_Controller.turnOnFan(FAN_SPEED_MIN);
+    }
+
+    if (temperature < normalTemperatueDayMin) {
+      GB_Controller.turnOnHeater();
+    }
+    else {
+      GB_Controller.turnOffHeater();
     }
   }
   else {
@@ -258,6 +269,12 @@ void updateGrowboxState(boolean checkWetSensors) {
     else {
       // Normal, all devices are turned off
       GB_Controller.turnOffFan();
+    }
+    if (temperature < normalTemperatueNightMin) {
+      GB_Controller.turnOnHeater();
+    }
+    else {
+      GB_Controller.turnOffHeater();
     }
   }
 

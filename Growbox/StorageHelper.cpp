@@ -96,11 +96,11 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime) {
     bootRecord.boolPreferencies.useFan = false;
     bootRecord.boolPreferencies.useLight = false;
 
-    bootRecord.turnToDayModeAt = 9 * 60;
-    bootRecord.turnToNightModeAt = 21 * 60;
+    bootRecord.turnToDayModeAt = 5 * 60; // mode 18:00/06:00
+    bootRecord.turnToNightModeAt = 23 * 60;
     bootRecord.normalTemperatueDayMin = 22;
-    bootRecord.normalTemperatueDayMax = 26;
-    bootRecord.normalTemperatueNightMin = 17;
+    bootRecord.normalTemperatueDayMax = 27;
+    bootRecord.normalTemperatueNightMin = 16;
     bootRecord.normalTemperatueNightMax = 21;
     bootRecord.criticalTemperatue = 35;
 
@@ -319,6 +319,15 @@ void StorageHelperClass::setUseLight(boolean flag) {
 }
 boolean StorageHelperClass::isUseLight() {
   return getBoolPreferencies().useLight;
+}
+
+void StorageHelperClass::setUseHeater(boolean flag) {
+  BootRecord::BoolPreferencies boolPreferencies = getBoolPreferencies();
+  boolPreferencies.useHeater = flag;
+  setBoolPreferencies(boolPreferencies);
+}
+boolean StorageHelperClass::isUseHeater() {
+  return getBoolPreferencies().useHeater;
 }
 
 /////////////////////////////////////////////////////////////////////

@@ -24,7 +24,9 @@ struct BootRecord{
     boolean useThermometer :1;
     boolean useRTC :1;
     boolean useFan :1;
+
     boolean useLight :1;
+    boolean useHeater :1;
   } boolPreferencies;                 // 2
 
   word turnToDayModeAt;             // 2

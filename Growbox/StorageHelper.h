@@ -79,6 +79,9 @@ public:
   void setUseLight(boolean flag);
   boolean isUseLight();
 
+  void setUseHeater(boolean flag);
+  boolean isUseHeater();
+
   /////////////////////////////////////////////////////////////////////
   //                               LOGGER                            //
   /////////////////////////////////////////////////////////////////////

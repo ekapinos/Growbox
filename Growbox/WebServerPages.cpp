@@ -210,6 +210,12 @@ void WebServerClass::sendStatusPage() {
     rawData(F("</dd>"));
   }
 
+  if (GB_Controller.isUseHeater()) {
+    rawData(F("<dd>Heater: "));
+    rawData(GB_Controller.isUseHeater() ? F("Enabled") : F("Disabled"));
+    rawData(F("</dd>"));
+  }
+
   if (GB_Controller.isUseRTC()) {
     if (!GB_Controller.isRTCPresent()) {
       rawData(F("<dd>Real-time clock: "));
@@ -940,20 +946,6 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
   rawData(FS(S_URL_HARDWARE));
   rawData(F("' method='post'>"));
 
-  tagCheckbox(F("useLight"), F("Use Light"), GB_Controller.isUseLight());
-  rawData(F("<div class='description'>Current state [<b>"));
-  rawData(GB_Controller.isLightTurnedOn() ? F("Enabled") : F("Disabled"));
-  rawData(F("</b>], mode [<b>"));
-  rawData(GB_Controller.isDayInGrowbox() ? F("Day") : F("Night"));
-  rawData(F("</b>]</div>"));
-
-  tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
-  rawData(F("<div class='description'>Current state [<b>"));
-  rawData(GB_Controller.isFanTurnedOn() ? (GB_Controller.getFanSpeed() == FAN_SPEED_MAX ? F("Max speed") : F("Min speed")) : F("Disabled"));
-  rawData(F("</b>], temperature [<b>"));
-  printTemperatue(GB_Thermometer.getTemperature());
-  rawData(F("</b>]</div>"));
-
   tagCheckbox(F("useRTC"), F("Use Real-time clock DS1307"), GB_Controller.isUseRTC());
   rawData(F("<div class='description'>Current state [<b>"));
   spanTag_RedIfTrue(
@@ -970,6 +962,25 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
   rawData(F("<div class='description'>Current state [<b>"));
   spanTag_RedIfTrue(
       GB_Thermometer.isPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseThermometer() && !GB_Thermometer.isPresent());
+  rawData(F("</b>]</div>"));
+
+  tagCheckbox(F("useLight"), F("Use Light"), GB_Controller.isUseLight());
+  rawData(F("<div class='description'>Current state [<b>"));
+  rawData(GB_Controller.isLightTurnedOn() ? F("Enabled") : F("Disabled"));
+  rawData(F("</b>], mode [<b>"));
+  rawData(GB_Controller.isDayInGrowbox() ? F("Day") : F("Night"));
+  rawData(F("</b>]</div>"));
+
+  tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
+  rawData(F("<div class='description'>Current state [<b>"));
+  rawData(GB_Controller.isFanTurnedOn() ? (GB_Controller.getFanSpeed() == FAN_SPEED_MAX ? F("Max speed") : F("Min speed")) : F("Disabled"));
+  rawData(F("</b>], temperature [<b>"));
+  printTemperatue(GB_Thermometer.getTemperature());
+  rawData(F("</b>]</div>"));
+
+  tagCheckbox(F("useHeater"), F("Use Heater"), GB_Controller.isUseHeater());
+  rawData(F("<div class='description'>Current state [<b>"));
+  rawData(GB_Controller.isHeaterTurnedOn() ? F("Enabled") : F("Disabled"));
   rawData(F("</b>]</div>"));
 
   rawData(F("<input type='submit' value='Save'>"));
@@ -1448,6 +1459,15 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     }
     boolean boolValue = (value[0] == '1');
     GB_Controller.setUseFan(boolValue);
+
+    c_isWifiForceUpdateGrowboxState = true;
+  }
+  else if (StringUtils::flashStringEquals(name, F("useHeater"))) {
+    if (value.length() != 1) {
+      return false;
+    }
+    boolean boolValue = (value[0] == '1');
+    GB_Controller.setUseHeater(boolValue);
 
     c_isWifiForceUpdateGrowboxState = true;
   }

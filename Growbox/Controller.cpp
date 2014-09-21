@@ -269,6 +269,8 @@ void ControllerClass::setRTCandClockTimeStamp(time_t newTimeStamp) {
 
 // public:
 
+// Light
+
 boolean ControllerClass::isDayInGrowbox(boolean update){
 
   if (!update) {
@@ -313,19 +315,9 @@ void ControllerClass::setUseLight(boolean flag) {
   GB_StorageHelper.setUseLight(flag);
   GB_Logger.logEvent(flag ? EVENT_LIGHT_ENABLED : EVENT_LIGHT_DISABLED);
 }
+
 boolean ControllerClass::isUseLight() {
   return GB_StorageHelper.isUseLight();
-}
-void ControllerClass::setUseFan(boolean flag) {
-  if (isUseFan() == flag) {
-    return;
-  }
-  turnOffFan();
-  GB_StorageHelper.setUseFan(flag);
-  GB_Logger.logEvent(flag ? EVENT_FAN_ENABLED : EVENT_FAN_DISABLED);
-}
-boolean ControllerClass::isUseFan() {
-  return GB_StorageHelper.isUseFan();
 }
 
 void ControllerClass::turnOnLight() {
@@ -352,6 +344,20 @@ void ControllerClass::turnOffLight() {
 
 boolean ControllerClass::isLightTurnedOn() {
   return (digitalRead(LIGHT_PIN) == RELAY_ON);
+}
+
+// Fan
+
+void ControllerClass::setUseFan(boolean flag) {
+  if (isUseFan() == flag) {
+    return;
+  }
+  turnOffFan();
+  GB_StorageHelper.setUseFan(flag);
+  GB_Logger.logEvent(flag ? EVENT_FAN_ENABLED : EVENT_FAN_DISABLED);
+}
+boolean ControllerClass::isUseFan() {
+  return GB_StorageHelper.isUseFan();
 }
 
 void ControllerClass::turnOnFan(int speed) {
@@ -389,6 +395,47 @@ boolean ControllerClass::isFanTurnedOn() {
 }
 byte ControllerClass::getFanSpeed() {
   return digitalRead(FAN_SPEED_PIN);
+}
+
+// Heater
+
+void ControllerClass::setUseHeater(boolean flag) {
+  if (isUseHeater() == flag) {
+    return;
+  }
+  turnOffHeater();
+  GB_StorageHelper.setUseHeater(flag);
+  GB_Logger.logEvent(flag ? EVENT_HEATER_ENABLED : EVENT_HEATER_DISABLED);
+}
+
+boolean ControllerClass::isUseHeater() {
+  return GB_StorageHelper.isUseHeater();
+}
+
+void ControllerClass::turnOnHeater() {
+  if (!isUseHeater()) {
+    return;
+  }
+  if (digitalRead(HEATER_PIN) == RELAY_ON) {
+    return;
+  }
+  digitalWrite(HEATER_PIN, RELAY_ON);
+  GB_Logger.logEvent(EVENT_HEATER_ON);
+}
+
+void ControllerClass::turnOffHeater() {
+  if (!isUseHeater()) {
+    return;
+  }
+  if (digitalRead(HEATER_PIN) == RELAY_OFF) {
+    return;
+  }
+  digitalWrite(HEATER_PIN, RELAY_OFF);
+  GB_Logger.logEvent(EVENT_HEATER_OFF);
+}
+
+boolean ControllerClass::isHeaterTurnedOn() {
+  return (digitalRead(HEATER_PIN) == RELAY_ON);
 }
 
 ControllerClass GB_Controller;
