@@ -490,7 +490,7 @@ boolean RAK410_XBeeWifiClass::sendAutoSizeFrameStop(const byte &wifiPortDescript
 boolean RAK410_XBeeWifiClass::sendCloseConnection(const byte wifiPortDescriptor) {
   wifiExecuteCommandPrint(F("at+cls="));
   wifiExecuteCommandPrint(wifiPortDescriptor);
-  return wifiExecuteCommand();
+  return wifiExecuteCommand(NULL, WIFI_RESPONSE_DEFAULT_DELAY, false);
 }
 
 //private:
