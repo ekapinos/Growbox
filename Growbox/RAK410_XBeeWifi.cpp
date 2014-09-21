@@ -62,7 +62,7 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
 
   c_isWifiPresent = false;
 
-  for (byte i = 0; i < 4; i++) { // Sometimes first command returns ERROR. We use two attempts
+  for (byte i = 0; i <= WEB_SERVER_RECONNECT_ATTEMPTS_BEFORE_DEFAULT; i++) { // Sometimes first command returns ERROR. We use two attempts
 
     String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
 
@@ -85,7 +85,7 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
       continue;
     }
 
-    boolean useDefaultParameters = (i == 3);
+    boolean useDefaultParameters = (i == WEB_SERVER_RECONNECT_ATTEMPTS_BEFORE_DEFAULT);
     if (useDefaultParameters) {
       showWifiMessage(F("Default parameters will be used"));
     }
@@ -160,7 +160,6 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
     showWifiMessage(F("Wi-Fi not connected"));
   }
 
-  c_lastWifiActivityTimeStamp = now();
   return c_isWifiPresent;
 }
 
@@ -179,7 +178,6 @@ boolean RAK410_XBeeWifiClass::checkStartedWifi() {
     showWifiMessage(F("Wi-Fi connection LOST"));
   }
 
-  c_lastWifiActivityTimeStamp = now();
   return c_isWifiPresent;
 }
 // public:
@@ -500,6 +498,7 @@ boolean RAK410_XBeeWifiClass::sendCloseConnection(const byte wifiPortDescriptor)
 boolean RAK410_XBeeWifiClass::wifiExecuteCommand(const __FlashStringHelper* command, size_t maxResponseDeleay, boolean rebootIfNoResponse) {
   String input = wifiExecuteRawCommand(command, maxResponseDeleay);
   if (StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_OK)) && StringUtils::flashStringEndsWith(input, FS(S_CRLF))) {
+    c_lastWifiActivityTimeStamp = now();
     return true;
   }
   else if (input.length() == 0) {
