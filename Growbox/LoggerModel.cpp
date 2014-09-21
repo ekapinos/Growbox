@@ -168,8 +168,8 @@ void initLoggerModel() {
   EVENT_LOGGER_ENABLED.init(14, F("Logger enabled"));
   EVENT_LOGGER_DISABLED.init(15, F("Logger disabled"));
   EVENT_CLOCK_AUTO_ADJUST.init(16, F("Clock auto adjust"));
-  EVENT_HEATER_OFF.init(17, F("Heater on"));;
-  EVENT_HEATER_ON.init(18, F("Heater off"));;
+  EVENT_HEATER_OFF.init(17, F("Heater off"));;
+  EVENT_HEATER_ON.init(18, F("Heater on"));;
   EVENT_HEATER_ENABLED.init(19, F("Heater enabled"));;
   EVENT_HEATER_DISABLED.init(20, F("Heater disabled"));;
 

@@ -199,20 +199,20 @@ void WebServerClass::sendStatusPage() {
 
   if (GB_Controller.isUseLight()) {
     rawData(F("<dd>Light: "));
-    rawData(GB_Controller.isLightTurnedOn() ? F("Enabled") : F("Disabled"));
+    rawData(GB_Controller.isLightTurnedOn() ? F("On") : F("Off"));
     rawData(F("</dd>"));
   }
 
   if (GB_Controller.isUseFan()) {
     rawData(F("<dd>Fan: "));
     boolean isFanEnabled = GB_Controller.isFanTurnedOn();
-    rawData(isFanEnabled ? ((GB_Controller.getFanSpeed() == FAN_SPEED_MIN) ? F("Min speed") : F("Max speed")) : F("Disabled"));
+    rawData(isFanEnabled ? ((GB_Controller.getFanSpeed() == FAN_SPEED_MIN) ? F("Min speed") : F("Max speed")) : F("Off"));
     rawData(F("</dd>"));
   }
 
   if (GB_Controller.isUseHeater()) {
     rawData(F("<dd>Heater: "));
-    rawData(GB_Controller.isUseHeater() ? F("Enabled") : F("Disabled"));
+    rawData(GB_Controller.isHeaterTurnedOn() ? F("On") : F("Off"));
     rawData(F("</dd>"));
   }
 
@@ -940,7 +940,7 @@ void WebServerClass::sendWateringOptionsPage(const String& url, byte wsIndex) {
 
 void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
 
-  rawData(F("<fieldset><legend>General</legend>"));
+  rawData(F("<fieldset><legend>Internal hardware</legend>"));
 
   rawData(F("<form action='"));
   rawData(FS(S_URL_HARDWARE));
@@ -964,27 +964,38 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
       GB_Thermometer.isPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseThermometer() && !GB_Thermometer.isPresent());
   rawData(F("</b>]</div>"));
 
+  rawData(F("<input type='submit' value='Save'>"));
+  rawData(F("</form>"));
+  rawData(F("</fieldset>"));
+
+  rawData(F("<br/>"));
+
+  rawData(F("<fieldset><legend>External hardware</legend>"));
+
+  rawData(F("<form action='"));
+  rawData(FS(S_URL_HARDWARE));
+  rawData(F("' method='post'>"));
+
   tagCheckbox(F("useLight"), F("Use Light"), GB_Controller.isUseLight());
   rawData(F("<div class='description'>Current state [<b>"));
-  rawData(GB_Controller.isLightTurnedOn() ? F("Enabled") : F("Disabled"));
+  rawData(GB_Controller.isLightTurnedOn() ? F("On") : F("Off"));
   rawData(F("</b>], mode [<b>"));
   rawData(GB_Controller.isDayInGrowbox() ? F("Day") : F("Night"));
   rawData(F("</b>]</div>"));
 
   tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
   rawData(F("<div class='description'>Current state [<b>"));
-  rawData(GB_Controller.isFanTurnedOn() ? (GB_Controller.getFanSpeed() == FAN_SPEED_MAX ? F("Max speed") : F("Min speed")) : F("Disabled"));
+  rawData(GB_Controller.isFanTurnedOn() ? (GB_Controller.getFanSpeed() == FAN_SPEED_MAX ? F("Max speed") : F("Min speed")) : F("Off"));
   rawData(F("</b>], temperature [<b>"));
   printTemperatue(GB_Thermometer.getTemperature());
   rawData(F("</b>]</div>"));
 
   tagCheckbox(F("useHeater"), F("Use Heater"), GB_Controller.isUseHeater());
   rawData(F("<div class='description'>Current state [<b>"));
-  rawData(GB_Controller.isHeaterTurnedOn() ? F("Enabled") : F("Disabled"));
+  rawData(GB_Controller.isHeaterTurnedOn() ? F("On") : F("Off"));
   rawData(F("</b>]</div>"));
 
   rawData(F("<input type='submit' value='Save'>"));
-
   rawData(F("</form>"));
   rawData(F("</fieldset>"));
 
