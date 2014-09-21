@@ -460,28 +460,59 @@ void WebServerClass::sendLogPage(const String& getParams) {
   rawData(F("<input type='submit' value='Show'/>"));
   rawData(F("</form>"));
 
-  LogRecord logRecord;
-  tmElements_t currentDayTm;
-  tmElements_t nextDayTm;
+  LogRecord logRecord, nextLogRecord;
+  tmElements_t currentDayTm, nextDayTm;
 
   boolean isTableTagPrinted = false;
-  word logRecordIndex;
   word currentDayRecordsCount = 0, currentDayPrintableRecordsCount = 0, allPrintableRecordsCount = 0;
-  for (logRecordIndex = 0; logRecordIndex < GB_StorageHelper.getLogRecordsCount(); logRecordIndex++) {
+  for (word logRecordIndex = 0; logRecordIndex < GB_StorageHelper.getLogRecordsCount(); logRecordIndex++) {
 
     if (c_isWifiResponseError) {
       return;
     }
 
-    logRecord = GB_StorageHelper.getLogRecordByIndex(logRecordIndex);
-    breakTime(logRecord.timeStamp, nextDayTm);
-
+    // get current day info
     if (logRecordIndex == 0){
-      currentDayRecordsCount = 0;
-      currentDayPrintableRecordsCount = 0;
+      logRecord = GB_StorageHelper.getLogRecordByIndex(logRecordIndex);
+    } else {
+      logRecord = nextLogRecord;
+    }
+    breakTime(logRecord.timeStamp, currentDayTm);
 
-    } else if (!isSameDay(currentDayTm, nextDayTm) || (logRecordIndex == (GB_StorageHelper.getLogRecordsCount()-1))) {
-      String value = StringUtils::timeStampToString(makeTime(currentDayTm), true, false);
+    // is last record in current day?
+    boolean isLastRecordInCurrentDay = false;
+    if (logRecordIndex == GB_StorageHelper.getLogRecordsCount()-1){
+      isLastRecordInCurrentDay = true;
+    } else {
+      nextLogRecord = GB_StorageHelper.getLogRecordByIndex(logRecordIndex+1);
+      breakTime(nextLogRecord.timeStamp, nextDayTm);
+      isLastRecordInCurrentDay = !isSameDay(currentDayTm, nextDayTm);
+    }
+
+    // increase independent counters
+    currentDayRecordsCount++;
+
+    boolean isEvent         = GB_Logger.isEvent(logRecord);
+    boolean isWateringEvent = GB_Logger.isWateringEvent(logRecord);
+    boolean isError         = GB_Logger.isError(logRecord);
+    boolean isTemperature   = GB_Logger.isTemperature(logRecord);
+
+    boolean isPassTypeFilter = (
+        (printAll) ||
+        (printEvents && isEvent) ||
+        (printWateringEvents && isWateringEvent) ||
+        (printErrors && isError) ||
+        (printTemperature && isTemperature));
+
+    if (isPassTypeFilter) {
+      // increase printable counters
+      currentDayPrintableRecordsCount++;
+      allPrintableRecordsCount++;
+    }
+
+    // add date to combo box
+    if (isLastRecordInCurrentDay){
+      String value = StringUtils::timeStampToString(logRecord.timeStamp, true, false);
       String text = value + StringUtils::flashStringLoad(F("  ("));
       if (!printAll){
         text += currentDayPrintableRecordsCount;
@@ -490,79 +521,59 @@ void WebServerClass::sendLogPage(const String& getParams) {
       text += currentDayRecordsCount;
       text += ')';
       appendOptionToSelectDynamic(F("dateCombobox"), value, text, !printAllDays && isSameDay(currentDayTm, targetDayTm));
+    }
 
-      if (logRecordIndex != (GB_StorageHelper.getLogRecordsCount()-1)){
-        // reset counters only on day change
-        currentDayRecordsCount = 0;
-        currentDayPrintableRecordsCount = 0;
+    if (isPassTypeFilter && (printAllDays || isSameDay(currentDayTm, targetDayTm))) {
+      // Print table row
+      if (!isTableTagPrinted) {
+        isTableTagPrinted = true;
+        rawData(F("<table class='grab align_center'>"));
+        rawData(F("<tr>"));
+        rawData(F("<th>#</th>"));
+        if (printAllDays){
+          rawData(F("<th>Day</th>"));
+        }
+        rawData(F("<th>Time</th><th>Description</th></tr>"));
       }
-    }
-    currentDayTm = nextDayTm;
-    currentDayRecordsCount++;
-
-    boolean isEvent         = GB_Logger.isEvent(logRecord);
-    boolean isWateringEvent = GB_Logger.isWateringEvent(logRecord);
-    boolean isError         = GB_Logger.isError(logRecord);
-    boolean isTemperature   = GB_Logger.isTemperature(logRecord);
-    if (!printAll){
-      if ((!printEvents && isEvent) ||
-          (!printWateringEvents && isWateringEvent) ||
-          (!printErrors && isError) ||
-          (!printTemperature && isTemperature)) {
-        continue;
-      }
-    }
-
-    currentDayPrintableRecordsCount++;
-    allPrintableRecordsCount++;
-
-    if (!printAllDays && !isSameDay(currentDayTm, targetDayTm)) {
-      continue;
-    }
-
-    if (!isTableTagPrinted) {
-      isTableTagPrinted = true;
-      rawData(F("<table class='grab align_center'>"));
       rawData(F("<tr>"));
-      rawData(F("<th>#</th>"));
-      if (printAllDays){
-        rawData(F("<th>Day</th>"));
-      }
-      rawData(F("<th>Time</th><th>Description</th></tr>"));
-    }
-    rawData(F("<tr>"));
 
-    rawData(F("<td>"));
-    if (printAllDays) {
-      rawData(allPrintableRecordsCount);
-    } else {
-      rawData(currentDayPrintableRecordsCount);
-    }
-    rawData(F("</td>"));
-
-    if (printAllDays){
-      rawData(F("<td style='font-weight:bold;'>"));
-      if (currentDayPrintableRecordsCount == 1){
-        rawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
+      rawData(F("<td>"));
+      if (printAllDays) {
+        rawData(allPrintableRecordsCount);
+      } else {
+        rawData(currentDayPrintableRecordsCount);
       }
       rawData(F("</td>"));
-    }
-    rawData(F("<td>"));
-    rawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true));
-    rawData(F("</td><td style='text-align:left;"));
-    if (isError || logRecord.isEmpty()) {
-      rawData(F("color:red;"));
-    }
-    else if (isEvent && (logRecord.data == EVENT_FIRST_START_UP.index || logRecord.data == EVENT_RESTART.index)) { // TODO create check method in Logger.h
-      rawData(F("font-weight:bold;"));
-    }
-    rawData(F("'>"));
 
+      if (printAllDays){
+        rawData(F("<td style='font-weight:bold;'>"));
+        if (currentDayPrintableRecordsCount == 1){
+          rawData(StringUtils::timeStampToString(logRecord.timeStamp, true, false));
+        }
+        rawData(F("</td>"));
+      }
+      rawData(F("<td>"));
+      rawData(StringUtils::timeStampToString(logRecord.timeStamp, false, true));
+      rawData(F("</td><td style='text-align:left;"));
+      if (isError || logRecord.isEmpty()) {
+        rawData(F("color:red;"));
+      }
+      else if (isEvent && (logRecord.data == EVENT_FIRST_START_UP.index || logRecord.data == EVENT_RESTART.index)) { // TODO create check method in Logger.h
+        rawData(F("font-weight:bold;"));
+      }
+      rawData(F("'>"));
 
-    rawData(GB_Logger.getLogRecordDescription(logRecord));
-    rawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord, true));
-    rawData(F("</td></tr>")); // bug with linker was here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
+      rawData(GB_Logger.getLogRecordDescription(logRecord));
+      rawData(GB_Logger.getLogRecordDescriptionSuffix(logRecord, true));
+      rawData(F("</td></tr>")); // bug with linker was here https://github.com/arduino/Arduino/issues/1071#issuecomment-19832135
+    }
+
+    if (isLastRecordInCurrentDay){ // on day change reset counters
+      currentDayRecordsCount = 0;
+      currentDayPrintableRecordsCount = 0;
+    }
   }
+
   if (isTableTagPrinted) {
     rawData(F("</table>"));
   }
