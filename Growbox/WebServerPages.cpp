@@ -453,8 +453,12 @@ void WebServerClass::sendLogPage(const String& getParams) {
   tagOption(F("temperature"), F("Temperature only"), printTemperature);
   rawData(F("</select>"));
 
+//  String text = StringUtils::flashStringLoad(F("All days  ("));
+//  text += GB_StorageHelper.getLogRecordsCount();
+//  text += StringUtils::flashStringLoad(F(")"));
+
   rawData(F("<select id='dateCombobox' name='date'>"));
-  tagOption(F("all"), F("All days"), printAllDays);
+  //tagOption(F("all"), text, printAllDays);
   // Other will append by java script
   rawData(F("</select>"));
   rawData(F("<input type='submit' value='Show'/>"));
@@ -601,6 +605,16 @@ void WebServerClass::sendLogPage(const String& getParams) {
     rawData(F(" records not found for "));
     rawData(value);
   }
+
+  String text = StringUtils::flashStringLoad(F("All days  ("));
+  if (!printAll){
+    text += allPrintableRecordsCount;
+    text +='/';
+  }
+  text += GB_StorageHelper.getLogRecordsCount();
+  text += ')';
+  appendOptionToSelectDynamic(F("dateCombobox"), F("all"), text, printAllDays);
+
 }
 
 /////////////////////////////////////////////////////////////////////
