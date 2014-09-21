@@ -70,6 +70,10 @@ public:
   void setCriticalTemperatueMin(const byte criticalTemperatueMin);
   void setCriticalTemperatueMax(const byte criticalTemperatueMax);
 
+  void getOnColdFanParameters(byte& onColdTurnOnFanCount, byte& onColdTurnOnFanTime);
+  void setOnColdTurnOnFanCount(const byte onColdTurnOnFanCount);
+  void setOnColdTurnOnFanTime(const byte onColdTurnOnFanTime);
+
   /////////////////////////////////////////////////////////////////////
   //                           OTHER DEVICES                         //
   /////////////////////////////////////////////////////////////////////

@@ -716,31 +716,42 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
         normalTemperatueNightMin, normalTemperatueNightMax,
         criticalTemperatueMin, criticalTemperatueMax);
 
+    byte onColdTurnOnFanCount, onColdTurnOnFanTime;
+    GB_StorageHelper.getOnColdFanParameters(onColdTurnOnFanCount, onColdTurnOnFanTime);
+
     rawData(F("<fieldset><legend>Thermometer</legend>"));
     rawData(F("<form action='"));
     rawData(FS(S_URL_GENERAL_OPTIONS));
     rawData(F("' method='post' onSubmit='if (document.getElementById(\"normalTemperatueDayMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
-    rawData(F("|| document.getElementById(\"normalTemperatueNightMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
+    rawData(F("|| document.getElementById(\"normalTemperatueNightMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
+    rawData(F("|| document.getElementById(\"criticalTemperatueMin\").value >= document.getElementById(\"criticalTemperatueMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
     rawData(F("<table>"));
 
-    rawData(F("<tr><td>Normal Day temperature</td><td>"));
-    tagInputNumber(F("normalTemperatueDayMin"), 0, 1, 50, normalTemperatueDayMin);
+    rawData(F("<tr><td>Day temperature</td><td>"));
+    tagInputNumber(F("tempDayMin"), NULL, 1, 50, normalTemperatueDayMin);
     rawData(F(" .. "));
-    tagInputNumber(F("normalTemperatueDayMax"), 0, 1, 50, normalTemperatueDayMax);
+    tagInputNumber(F("tempDayMax"), NULL, 1, 50, normalTemperatueDayMax);
     rawData(F("&deg;C</td></tr>"));
 
-    rawData(F("<tr><td>Normal Night temperature</td><td>"));
-    tagInputNumber(F("normalTemperatueNightMin"), 0, 1, 50, normalTemperatueNightMin);
+    rawData(F("<tr><td>Night temperature</td><td>"));
+    tagInputNumber(F("tempNightMin"), NULL, 1, 50, normalTemperatueNightMin);
     rawData(F(" .. "));
-    tagInputNumber(F("normalTemperatueNightMax"), 0, 1, 50, normalTemperatueNightMax);
+    tagInputNumber(F("tempNightMax"), NULL, 1, 50, normalTemperatueNightMax);
     rawData(F("&deg;C</td></tr>"));
 
     rawData(F("<tr><td>Critical temperature</td><td>"));
-    tagInputNumber(F("criticalTemperatueMin"), 0, 1, 50, criticalTemperatueMin);
+    tagInputNumber(F("critTempMin"), NULL, 1, 50, criticalTemperatueMin);
     rawData(F(" .. "));
-    tagInputNumber(F("criticalTemperatueMax"), 0, 1, 50, criticalTemperatueMax);
+    tagInputNumber(F("critTempMax"), NULL, 1, 50, criticalTemperatueMax);
     rawData(F("&deg;C</td></tr>"));
 
+    rawData(F("<tr><td>On Cold turn on Fan </td><td>"));
+    tagInputNumber(F("onColdFanCount"), NULL, 1, 10, onColdTurnOnFanCount);
+    rawData(F(" times/hour</td></tr>"));
+
+    rawData(F("<tr><td class='align_right'>...periodically for</td><td>"));
+    tagInputNumber(F("onColdFanTime"), NULL, 0, 60, onColdTurnOnFanTime);
+    rawData(F(" minutes</td></tr>"));
 
     rawData(F("<tr><td colspan ='2'>"));
     rawData(F("<input type='submit' value='Save'>"));
@@ -748,9 +759,9 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
 
     rawData(F("<tr><td colspan ='2'><div class='description'>"));
     rawData(F("<table class='align_center'>"));
-    rawData(F("<tr><th>State</th><th>Light</th><th>Fan</th><th>Heater</th></tr>"));
+    rawData(F("<tr><th>State</th><th>Light<br/>day/night</th><th>Fan<br/>day/night</th><th>Heater</th></tr>"));
     rawData(F("<tr><td class='align_left'>Critical cold</td><td>on/off</td><td>off</td><td>on</td></tr>"));
-    rawData(F("<tr><td class='align_left'>Cold</td><td>on/off</td><td>periodical/off</td><td>on</td></tr>"));
+    rawData(F("<tr><td class='align_left'>Cold</td><td>on/off</td><td>periodically/off</td><td>on</td></tr>"));
     rawData(F("<tr><td class='align_left'>Normal</td><td>on/off</td><td>min speed/off</td><td>off</td></tr>"));
     rawData(F("<tr><td class='align_left'>Hot</td><td>on/off</td><td>max speed/min speed</td><td>off</td></tr>"));
     rawData(F("<tr><td class='align_left'>Critical hot</td><td>off</td><td>max speed</td><td>off</td></tr>"));
@@ -1288,39 +1299,61 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     }
     c_isWifiForceUpdateGrowboxState = true;
   }
-  else if (StringUtils::flashStringEquals(name, F("normalTemperatueDayMin")) ||
-      StringUtils::flashStringEquals(name, F("normalTemperatueDayMax")) ||
-      StringUtils::flashStringEquals(name, F("normalTemperatueNightMin")) ||
-      StringUtils::flashStringEquals(name, F("normalTemperatueNightMax")) ||
-      StringUtils::flashStringEquals(name, F("criticalTemperatueMin")) ||
-      StringUtils::flashStringEquals(name, F("criticalTemperatueMax"))) {
+  else if (StringUtils::flashStringEquals(name, F("tempDayMin")) ||
+      StringUtils::flashStringEquals(name, F("tempDayMax")) ||
+      StringUtils::flashStringEquals(name, F("tempNightMin")) ||
+      StringUtils::flashStringEquals(name, F("tempNightMax")) ||
+      StringUtils::flashStringEquals(name, F("critTempMin")) ||
+      StringUtils::flashStringEquals(name, F("critTempMax"))) {
     byte temp = value.toInt();
     if (temp == 0) {
       return false;
     }
 
-    if (StringUtils::flashStringEquals(name, F("normalTemperatueDayMin"))) {
+    if (StringUtils::flashStringEquals(name, F("tempDayMin"))) {
       GB_StorageHelper.setNormalTemperatueDayMin(temp);
     }
-    else if (StringUtils::flashStringEquals(name, F("normalTemperatueDayMax"))) {
+    else if (StringUtils::flashStringEquals(name, F("tempDayMax"))) {
       GB_StorageHelper.setNormalTemperatueDayMax(temp);
     }
-    else if (StringUtils::flashStringEquals(name, F("normalTemperatueNightMin"))) {
+    else if (StringUtils::flashStringEquals(name, F("tempNightMin"))) {
       GB_StorageHelper.setNormalTemperatueNightMin(temp);
     }
-    else if (StringUtils::flashStringEquals(name, F("normalTemperatueNightMax"))) {
+    else if (StringUtils::flashStringEquals(name, F("tempNightMax"))) {
       GB_StorageHelper.setNormalTemperatueNightMax(temp);
     }
-    else if (StringUtils::flashStringEquals(name, F("criticalTemperatueMin"))) {
+    else if (StringUtils::flashStringEquals(name, F("critTempMin"))) {
       GB_StorageHelper.setCriticalTemperatueMin(temp);
     }
-    else if (StringUtils::flashStringEquals(name, F("criticalTemperatueMax"))) {
+    else if (StringUtils::flashStringEquals(name, F("critTempMax"))) {
       GB_StorageHelper.setCriticalTemperatueMax(temp);
     }
 
     c_isWifiForceUpdateGrowboxState = true;
   }
-
+  else if (StringUtils::flashStringEquals(name, F("onColdFanCount")) ||
+      StringUtils::flashStringEquals(name, F("onColdFanTime"))) {
+    if (value.length() == 0) {
+      return false;
+    }
+    boolean isZero = false;
+    if (value.length() == 1) {
+      if (value[0] == '0') {
+        isZero = true;
+      }
+    }
+    int16_t intValue = value.toInt();
+    if (intValue == 0 && !isZero) {
+      return false;
+    }
+    if (StringUtils::flashStringEquals(name, F("onColdFanCount"))) {
+      GB_StorageHelper.setOnColdTurnOnFanCount(intValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("onColdFanTime"))) {
+      GB_StorageHelper.setOnColdTurnOnFanTime(intValue);
+    }
+    c_isWifiForceUpdateGrowboxState = true;
+  }
   else if (StringUtils::flashStringEquals(name, F("isWetSensorConnected")) ||
       StringUtils::flashStringEquals(name, F("isWaterPumpConnected")) ||
       StringUtils::flashStringEquals(name, F("useWetSensorForWatering")) ||

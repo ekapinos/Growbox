@@ -106,6 +106,9 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime) {
     bootRecord.criticalTemperatureMin = 16;
     bootRecord.criticalTemperatureMax = 35;
 
+    bootRecord.onColdTurnOnFanCount = 2; // 2 times each during 10 minutes per hour
+    bootRecord.onColdTurnOnFanTime = 10;
+
     for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
 
       BootRecord::WateringSystemPreferencies& wsp = bootRecord.wateringSystemPreferencies[i];
@@ -307,6 +310,18 @@ void StorageHelperClass::setCriticalTemperatueMin(const byte criticalTemperatueM
 void StorageHelperClass::setCriticalTemperatueMax(const byte criticalTemperatueMax) {
   EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, criticalTemperatureMax), criticalTemperatueMax);
 }
+
+void StorageHelperClass::getOnColdFanParameters(byte& onColdTurnOnFanCount, byte& onColdTurnOnFanTime){
+  onColdTurnOnFanCount = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, onColdTurnOnFanCount));
+  onColdTurnOnFanTime = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, onColdTurnOnFanTime));
+}
+void StorageHelperClass::setOnColdTurnOnFanCount(const byte onColdTurnOnFanCount){
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, onColdTurnOnFanCount), onColdTurnOnFanCount);
+}
+void StorageHelperClass::setOnColdTurnOnFanTime(const byte onColdTurnOnFanTime){
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, onColdTurnOnFanTime), onColdTurnOnFanTime);
+}
+
 
 /////////////////////////////////////////////////////////////////////
 //                           OTHER DEVICES                         //
