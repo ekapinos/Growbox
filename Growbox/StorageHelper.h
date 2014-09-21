@@ -62,12 +62,13 @@ public:
   void setUseThermometer(boolean flag);
   boolean isUseThermometer();
 
-  void getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatue);
+  void getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatueMin, byte& criticalTemperatueMax);
   void setNormalTemperatueDayMin(const byte normalTemperatueDayMin);
   void setNormalTemperatueDayMax(const byte normalTemperatueDayMax);
   void setNormalTemperatueNightMin(const byte normalTemperatueNightMin);
   void setNormalTemperatueNightMax(const byte normalTemperatueNightMax);
-  void setCriticalTemperatueMax(const byte criticalTemperatue);
+  void setCriticalTemperatueMin(const byte criticalTemperatueMin);
+  void setCriticalTemperatueMax(const byte criticalTemperatueMax);
 
   /////////////////////////////////////////////////////////////////////
   //                           OTHER DEVICES                         //

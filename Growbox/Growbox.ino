@@ -218,18 +218,30 @@ void updateGrowboxState(boolean checkWetSensors) {
   // Initialize/restore Growbox state
   boolean isDayInGrowbox = GB_Controller.isDayInGrowbox(true);
 
-  byte normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin,
-      normalTemperatueNightMax, criticalTemperatueMax;
-  GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatueMax);
+  byte normalTemperatueDayMin, normalTemperatueDayMax,
+    normalTemperatueNightMin, normalTemperatueNightMax,
+    criticalTemperatueMin, criticalTemperatueMax;
+  GB_StorageHelper.getTemperatureParameters(
+    normalTemperatueDayMin, normalTemperatueDayMax,
+    normalTemperatueNightMin, normalTemperatueNightMax,
+    criticalTemperatueMin, criticalTemperatueMax);
 
   // WARNING! May return NaN. Compare NaN with other numbers always 'false'
   float temperature = GB_Thermometer.getTemperature();
 
-  if (temperature >= criticalTemperatueMax) {
+  if (temperature > criticalTemperatueMax) {
     GB_Controller.turnOffLight();
     GB_Controller.turnOnFan(FAN_SPEED_MAX);
     GB_Controller.turnOffHeater();
-    GB_Logger.logError(ERROR_TERMOMETER_CRITICAL_VALUE);
+  }
+  else if (temperature < criticalTemperatueMax) {
+      if (isDayInGrowbox) {
+        GB_Controller.turnOnLight();
+      } else {
+        GB_Controller.turnOffLight();
+      }
+      GB_Controller.turnOffFan();
+      GB_Controller.turnOnHeater();
   }
   else if (isDayInGrowbox) {
     // Day mode

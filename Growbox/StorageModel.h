@@ -31,11 +31,11 @@ struct BootRecord{
 
   word turnToDayModeAt;             // 2
   word turnToNightModeAt;           // 2
-  byte normalTemperatueDayMin;      // 1
-  byte normalTemperatueDayMax;      // 1
-  byte normalTemperatueNightMin;    // 1
-  byte normalTemperatueNightMax;    // 1
-  byte criticalTemperatueMax;       // 1
+  byte normalTemperatureDayMin;      // 1
+  byte normalTemperatureDayMax;      // 1
+  byte normalTemperatureNightMin;    // 1
+  byte normalTemperatureNightMax;    // 1
+  byte criticalTemperatureMax;       // 1
 
   struct WateringSystemPreferencies{
 
@@ -63,8 +63,9 @@ struct BootRecord{
   } wateringSystemPreferencies[MAX_WATERING_SYSTEMS_COUNT]; // 16*MAX_WATERING_SYSTEMS_COUNT(4) = 64
 
   int16_t autoAdjustClockTimeDelta; // 2
+  byte criticalTemperatureMin;      // 1 // TODO move upper
 
-  byte reserved[73];                //  <----reserved
+  byte reserved[72];                //  <----reserved
   char wifiSSID[WIFI_SSID_LENGTH];  // 32  
   char wifiPass[WIFI_PASS_LENGTH];  // 64
   word last_magic;                  //  2  

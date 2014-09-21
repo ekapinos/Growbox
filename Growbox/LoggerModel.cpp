@@ -118,7 +118,7 @@ boolean WateringEvent::isInitialized() {
 
 Error ERROR_CLOCK_NOT_SET, ERROR_CLOCK_NEEDS_SYNC,
     ERROR_TERMOMETER_DISCONNECTED, ERROR_TERMOMETER_ZERO_VALUE,
-    ERROR_TERMOMETER_CRITICAL_VALUE, ERROR_MEMORY_LOW,
+    ERROR_MEMORY_LOW,
     ERROR_AT24C32_EEPROM_DISCONNECTED, ERROR_CLOCK_RTC_DISCONNECTED;
 
 Event EVENT_FIRST_START_UP, EVENT_RESTART, EVENT_MODE_DAY, EVENT_MODE_NIGHT,
@@ -144,9 +144,8 @@ void initLoggerModel() {
   // Use F macro to reduce requirements to memory. We can't use F macro in constructors.
   ERROR_CLOCK_NOT_SET.init(B00, 2, F("Error: Clock not set"));
   ERROR_CLOCK_NEEDS_SYNC.init(B01, 2, F("Error: Clock needs sync"));
-  ERROR_TERMOMETER_DISCONNECTED.init(B000, 3, F("Error: Termometer disconnected"));
-  ERROR_TERMOMETER_ZERO_VALUE.init(B001, 3, F("Error: Termometer returned ZERO value"));
-  ERROR_TERMOMETER_CRITICAL_VALUE.init(B010, 3, F("Error: Termometer returned CRITICAL value"));
+  ERROR_TERMOMETER_DISCONNECTED.init(B000, 3, F("Error: Thermometer disconnected"));
+  ERROR_TERMOMETER_ZERO_VALUE.init(B001, 3, F("Error: Thermometer returned ZERO value"));
   ERROR_MEMORY_LOW.init(B011, 3, F("Error: Free memory less than 200 bytes"));
   ERROR_AT24C32_EEPROM_DISCONNECTED.init(B100, 3, F("Error: External AT24C32 EEPROM disconnected"));
   ERROR_CLOCK_RTC_DISCONNECTED.init(B101, 3, F("Error: Real-time clock disconnected"));

@@ -56,8 +56,9 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
 
       rawData(F(".red {color: red;}"));
       rawData(F(".grab {border-spacing:5px;width:100%; }"));
-      rawData(F(".align_right{float:right;text-align:right;}"));
+      rawData(F(".align_left{float:left;text-align:left;}"));
       rawData(F(".align_center{float:center;text-align:center;}"));
+      rawData(F(".align_right{float:right;text-align:right;}"));
       rawData(F(".description{font-size:small;margin-left:20px;margin-bottom:5px;}"));
     }
     rawData(F("</style>"));
@@ -356,18 +357,18 @@ void WebServerClass::sendStatusPage() {
   if (GB_StorageHelper.isUseThermometer()) {
     byte normalTemperatueDayMin, normalTemperatueDayMax,
         normalTemperatueNightMin, normalTemperatueNightMax,
-        criticalTemperatueMax;
+        criticalTemperatueMin, criticalTemperatueMax;
     GB_StorageHelper.getTemperatureParameters(
         normalTemperatueDayMin, normalTemperatueDayMax,
         normalTemperatueNightMin, normalTemperatueNightMax,
-        criticalTemperatueMax);
+        criticalTemperatueMin, criticalTemperatueMax);
 
-    rawData(F("<dd>Normal Day temperature: "));
+    rawData(F("<dd>Day temperature: "));
     printTemperatueRange((float)normalTemperatueDayMin, (float)normalTemperatueDayMax);
-    rawData(F("</dd><dd>Normal Night temperature: "));
+    rawData(F("</dd><dd>Night temperature: "));
     printTemperatueRange((float)normalTemperatueNightMin, (float)normalTemperatueNightMax);
     rawData(F("</dd><dd>Critical temperature: "));
-    printTemperatue((float)criticalTemperatueMax);
+    printTemperatueRange((float)criticalTemperatueMin, (float)criticalTemperatueMax);
     rawData(F("</dd>"));
   }
 
@@ -708,8 +709,12 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       return;
 
     byte normalTemperatueDayMin, normalTemperatueDayMax,
-        normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatueMax;
-    GB_StorageHelper.getTemperatureParameters(normalTemperatueDayMin, normalTemperatueDayMax, normalTemperatueNightMin, normalTemperatueNightMax, criticalTemperatueMax);
+        normalTemperatueNightMin, normalTemperatueNightMax,
+        criticalTemperatueMin, criticalTemperatueMax;
+    GB_StorageHelper.getTemperatureParameters(
+        normalTemperatueDayMin, normalTemperatueDayMax,
+        normalTemperatueNightMin, normalTemperatueNightMax,
+        criticalTemperatueMin, criticalTemperatueMax);
 
     rawData(F("<fieldset><legend>Thermometer</legend>"));
     rawData(F("<form action='"));
@@ -723,16 +728,36 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
     rawData(F(" .. "));
     tagInputNumber(F("normalTemperatueDayMax"), 0, 1, 50, normalTemperatueDayMax);
     rawData(F("&deg;C</td></tr>"));
+
     rawData(F("<tr><td>Normal Night temperature</td><td>"));
     tagInputNumber(F("normalTemperatueNightMin"), 0, 1, 50, normalTemperatueNightMin);
     rawData(F(" .. "));
     tagInputNumber(F("normalTemperatueNightMax"), 0, 1, 50, normalTemperatueNightMax);
     rawData(F("&deg;C</td></tr>"));
+
     rawData(F("<tr><td>Critical temperature</td><td>"));
+    tagInputNumber(F("criticalTemperatueMin"), 0, 1, 50, criticalTemperatueMin);
+    rawData(F(" .. "));
     tagInputNumber(F("criticalTemperatueMax"), 0, 1, 50, criticalTemperatueMax);
     rawData(F("&deg;C</td></tr>"));
-    rawData(F("</table>"));
+
+
+    rawData(F("<tr><td colspan ='2'>"));
     rawData(F("<input type='submit' value='Save'>"));
+    rawData(F("</td></tr>"));
+
+    rawData(F("<tr><td colspan ='2'><div class='description'>"));
+    rawData(F("<table class='align_center'>"));
+    rawData(F("<tr><th>State</th><th>Light</th><th>Fan</th><th>Heater</th></tr>"));
+    rawData(F("<tr><td class='align_left'>Critical cold</td><td>on/off</td><td>off</td><td>on</td></tr>"));
+    rawData(F("<tr><td class='align_left'>Cold</td><td>on/off</td><td>periodical/off</td><td>on</td></tr>"));
+    rawData(F("<tr><td class='align_left'>Normal</td><td>on/off</td><td>min speed/off</td><td>off</td></tr>"));
+    rawData(F("<tr><td class='align_left'>Hot</td><td>on/off</td><td>max speed/min speed</td><td>off</td></tr>"));
+    rawData(F("<tr><td class='align_left'>Critical hot</td><td>off</td><td>max speed</td><td>off</td></tr>"));
+    rawData(F("</table>"));
+    rawData(F("</div></td></tr>"));
+
+    rawData(F("</table>"));
     rawData(F("</form>"));
     rawData(F("</fieldset>"));
   }
@@ -1267,6 +1292,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
       StringUtils::flashStringEquals(name, F("normalTemperatueDayMax")) ||
       StringUtils::flashStringEquals(name, F("normalTemperatueNightMin")) ||
       StringUtils::flashStringEquals(name, F("normalTemperatueNightMax")) ||
+      StringUtils::flashStringEquals(name, F("criticalTemperatueMin")) ||
       StringUtils::flashStringEquals(name, F("criticalTemperatueMax"))) {
     byte temp = value.toInt();
     if (temp == 0) {
@@ -1284,6 +1310,9 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     }
     else if (StringUtils::flashStringEquals(name, F("normalTemperatueNightMax"))) {
       GB_StorageHelper.setNormalTemperatueNightMax(temp);
+    }
+    else if (StringUtils::flashStringEquals(name, F("criticalTemperatueMin"))) {
+      GB_StorageHelper.setCriticalTemperatueMin(temp);
     }
     else if (StringUtils::flashStringEquals(name, F("criticalTemperatueMax"))) {
       GB_StorageHelper.setCriticalTemperatueMax(temp);

@@ -98,11 +98,13 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime) {
 
     bootRecord.turnToDayModeAt = 5 * 60; // mode 18:00/06:00
     bootRecord.turnToNightModeAt = 23 * 60;
-    bootRecord.normalTemperatueDayMin = 22;
-    bootRecord.normalTemperatueDayMax = 27;
-    bootRecord.normalTemperatueNightMin = 16;
-    bootRecord.normalTemperatueNightMax = 21;
-    bootRecord.criticalTemperatueMax = 35;
+
+    bootRecord.normalTemperatureDayMin = 22;
+    bootRecord.normalTemperatureDayMax = 27;
+    bootRecord.normalTemperatureNightMin = 16;
+    bootRecord.normalTemperatureNightMax = 21;
+    bootRecord.criticalTemperatureMin = 16;
+    bootRecord.criticalTemperatureMax = 35;
 
     for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
 
@@ -275,28 +277,35 @@ boolean StorageHelperClass::isUseThermometer() {
   return getBoolPreferencies().useThermometer;
 }
 
-void StorageHelperClass::getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatueMax) {
-  normalTemperatueDayMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueDayMin));
-  normalTemperatueDayMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueDayMax));
-  normalTemperatueNightMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMin));
-  normalTemperatueNightMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMax));
-  criticalTemperatueMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, criticalTemperatueMax));
+void StorageHelperClass::getTemperatureParameters(
+    byte& normalTemperatueDayMin, byte& normalTemperatueDayMax,
+    byte& normalTemperatueNightMin, byte& normalTemperatueNightMax,
+    byte& criticalTemperatueMin, byte& criticalTemperatueMax) {
+  normalTemperatueDayMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatureDayMin));
+  normalTemperatueDayMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatureDayMax));
+  normalTemperatueNightMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatureNightMin));
+  normalTemperatueNightMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatureNightMax));
+  criticalTemperatueMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, criticalTemperatureMin));
+  criticalTemperatueMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, criticalTemperatureMax));
 }
 
 void StorageHelperClass::setNormalTemperatueDayMin(const byte normalTemperatueDayMin) {
-  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatueDayMin), normalTemperatueDayMin);
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatureDayMin), normalTemperatueDayMin);
 }
 void StorageHelperClass::setNormalTemperatueDayMax(const byte normalTemperatueDayMax) {
-  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatueDayMax), normalTemperatueDayMax);
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatureDayMax), normalTemperatueDayMax);
 }
 void StorageHelperClass::setNormalTemperatueNightMin(const byte normalTemperatueNightMin) {
-  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMin), normalTemperatueNightMin);
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatureNightMin), normalTemperatueNightMin);
 }
 void StorageHelperClass::setNormalTemperatueNightMax(const byte normalTemperatueNightMax) {
-  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatueNightMax), normalTemperatueNightMax);
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, normalTemperatureNightMax), normalTemperatueNightMax);
 }
-void StorageHelperClass::setCriticalTemperatueMax(const byte criticalTemperatue) {
-  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, criticalTemperatueMax), criticalTemperatue);
+void StorageHelperClass::setCriticalTemperatueMin(const byte criticalTemperatueMin) {
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, criticalTemperatureMin), criticalTemperatueMin);
+}
+void StorageHelperClass::setCriticalTemperatueMax(const byte criticalTemperatueMax) {
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, criticalTemperatureMax), criticalTemperatueMax);
 }
 
 /////////////////////////////////////////////////////////////////////
