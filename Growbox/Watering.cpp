@@ -110,7 +110,7 @@ void WateringClass::updateWetSatus() {
     }
   }
 
-  long remanedDelay = c_turnOnWetSensorsTimeStamp - now() + WATERING_SYSTEM_TURN_ON_DELAY;
+  long remanedDelay = c_turnOnWetSensorsTimeStamp - now() + WATERING_SYSTEM_TURN_ON_DELAY_SEC;
   if (remanedDelay > 0) {
     if (g_useSerialMonitor) {
       showWateringMessage(F("Waiting Wet sensors for "), false);
@@ -248,7 +248,7 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex) {
   }
 
   // Check for force Watering
-  if (currentTimeStamp - SECS_PER_DAY - WATERING_ERROR_DELTA > wsp.lastWateringTimeStamp) {
+  if (currentTimeStamp - SECS_PER_DAY - WATERING_ERROR_DELTA_SEC > wsp.lastWateringTimeStamp) {
 
     // Watering wasn't during last 24 hours, we need start watering right now
     if (g_useSerialMonitor) {
@@ -309,7 +309,7 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex) {
   //  Serial.print("nearestDeltaAbs - WATERING_ERROR_DELTA: ");
   //  Serial.println(nearestDeltaAbs - WATERING_ERROR_DELTA);
 
-  if (nearestDeltaAbs - WATERING_ERROR_DELTA < WATERING_MAX_SCHEDULE_CORRECTION_TIME) {
+  if (nearestDeltaAbs - WATERING_ERROR_DELTA_SEC < WATERING_MAX_SCHEDULE_CORRECTION_TIME_SEC) {
     // Not all OK, but schedule without delta
     c_PumpOnAlarmIDArray[wsIndex] = c_PumpOnAlarm.triggerOnce(nearestNormalScheduleTimeStamp, turnOnWaterPumpOnSchedule);
     //         Serial.println("e");
@@ -318,11 +318,11 @@ void WateringClass::scheduleNextWateringTime(byte wsIndex) {
 
   // decrease delta on WATERING_MAX_SCHEDULE_CORRECTION_TIME but not more
   if (nearestNormalScheduleTimeStamp > calculatedNextTimeStamp) {
-    calculatedNextTimeStamp += WATERING_MAX_SCHEDULE_CORRECTION_TIME;
+    calculatedNextTimeStamp += WATERING_MAX_SCHEDULE_CORRECTION_TIME_SEC;
     //        Serial.println("f");
   }
   else {
-    calculatedNextTimeStamp -= WATERING_MAX_SCHEDULE_CORRECTION_TIME;
+    calculatedNextTimeStamp -= WATERING_MAX_SCHEDULE_CORRECTION_TIME_SEC;
     //     Serial.println("g");
   }
   c_PumpOnAlarmIDArray[wsIndex] = c_PumpOnAlarm.triggerOnce(calculatedNextTimeStamp, turnOnWaterPumpOnSchedule);

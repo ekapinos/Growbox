@@ -153,12 +153,12 @@ void setup() {
   GB_Controller.checkFreeMemory();
 
   // WARNING! Max 6 timer for Alarm instance
-  Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY, updateGrowboxState);
-  Alarm.timerRepeat(UPDATE_CONTROLLER_STATE_DELAY, updateControllerStatus);
-  Alarm.timerRepeat(UPDATE_CONTROLLER_CORE_HARDWARE_STATE_DELAY, updateGrowboxCoreHardwareState);
-  Alarm.timerRepeat(UPDATE_CONTROLLER_AUTO_ADJUST_CLOCK_TIME_DELAY, updateGrowboxAutoAdjustClockTime);
-  Alarm.timerRepeat(UPDATE_TERMOMETER_STATISTICS_DELAY, updateThermometerStatistics);
-  Alarm.timerRepeat(UPDATE_WEB_SERVER_STATUS_DELAY, updateWebServerStatus);
+  Alarm.timerRepeat(UPDATE_GROWBOX_STATE_DELAY_SEC, updateGrowboxState);
+  Alarm.timerRepeat(UPDATE_CONTROLLER_STATE_DELAY_SEC, updateControllerStatus);
+  Alarm.timerRepeat(UPDATE_CONTROLLER_CORE_HARDWARE_STATE_DELAY_SEC, updateGrowboxCoreHardwareState);
+  Alarm.timerRepeat(UPDATE_CONTROLLER_AUTO_ADJUST_CLOCK_TIME_DELAY_SEC, updateGrowboxAutoAdjustClockTime);
+  Alarm.timerRepeat(UPDATE_TERMOMETER_STATISTICS_DELAY_SEC, updateThermometerStatistics);
+  Alarm.timerRepeat(UPDATE_WEB_SERVER_STATUS_DELAY_SEC, updateWebServerStatus);
   GB_Controller.checkFreeMemory();
 
   updateGrowboxState();

@@ -34,7 +34,7 @@ void RAK410_XBeeWifiClass::update() {
 
   // Check is Wi-Fi present
   if (isPresent()) {
-    if ((now() - c_lastWifiActivityTimeStamp) > (3*UPDATE_WEB_SERVER_STATUS_DELAY/4)) { // we skip scheduled check, if Wi-Fi in use now
+    if ((now() - c_lastWifiActivityTimeStamp) > (3*UPDATE_WEB_SERVER_STATUS_DELAY_SEC/4)) { // we skip scheduled check, if Wi-Fi in use now
       if (!checkStartedWifi()) {
         if (!restartWifi()) {
           return;
@@ -62,7 +62,7 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
 
   c_isWifiPresent = false;
 
-  for (byte i = 0; i <= WEB_SERVER_RECONNECT_ATTEMPTS_BEFORE_DEFAULT; i++) { // Sometimes first command returns ERROR. We use two attempts
+  for (byte i = 0; i <= WI_FI_RECONNECT_ATTEMPTS_BEFORE_DEFAULT_PARAMS; i++) { // Sometimes first command returns ERROR. We use two attempts
 
     String input = wifiExecuteRawCommand(F("at+reset=0"), 500); // spec boot time 210   // NOresponse checked wrong
 
@@ -85,7 +85,7 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
       continue;
     }
 
-    boolean useDefaultParameters = (i == WEB_SERVER_RECONNECT_ATTEMPTS_BEFORE_DEFAULT);
+    boolean useDefaultParameters = (i == WI_FI_RECONNECT_ATTEMPTS_BEFORE_DEFAULT_PARAMS);
     if (useDefaultParameters) {
       showWifiMessage(F("Default parameters will be used"));
     }

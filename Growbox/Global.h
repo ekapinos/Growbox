@@ -51,34 +51,33 @@ const byte FAN_SPEED_MAX = RELAY_ON;
 //                             DELAY'S                             //
 /////////////////////////////////////////////////////////////////////
 
-// Minimum Growbox reaction time
-const time_t UPDATE_BREEZE_DELAY = 1;
-const time_t UPDATE_GROWBOX_STATE_DELAY = 5 * 60; // 5 min
-const time_t UPDATE_CONTROLLER_STATE_DELAY = 1;
-const time_t UPDATE_CONTROLLER_CORE_HARDWARE_STATE_DELAY = 60; // 60 sec
-const time_t UPDATE_CONTROLLER_AUTO_ADJUST_CLOCK_TIME_DELAY = SECS_PER_DAY; // 1 day
-const time_t UPDATE_TERMOMETER_STATISTICS_DELAY = 20; //20 sec 
-const time_t UPDATE_WEB_SERVER_STATUS_DELAY = 2 * 60; // 2 min
-
-const int UPDATE_WEB_SERVER_AVERAGE_PAGE_LOAD_DELAY = 3; // 3 sec 
-
-const int WATERING_SYSTEM_TURN_ON_DELAY = 3; // 3 sec 
+const time_t UPDATE_BREEZE_DELAY_SEC = 1;
+const time_t UPDATE_GROWBOX_STATE_DELAY_SEC = 5 * 60; // 5 min
+const time_t UPDATE_CONTROLLER_STATE_DELAY_SEC = 1;
+const time_t UPDATE_CONTROLLER_CORE_HARDWARE_STATE_DELAY_SEC = 60; // 60 sec
+const time_t UPDATE_CONTROLLER_AUTO_ADJUST_CLOCK_TIME_DELAY_SEC = SECS_PER_DAY; // 1 day
+const time_t UPDATE_TERMOMETER_STATISTICS_DELAY_SEC = 20; //20 sec 
+const time_t UPDATE_WEB_SERVER_STATUS_DELAY_SEC = 2 * 60; // 2 min
 
 // error blinks in milliseconds and blink sequences
 const word ERROR_SHORT_SIGNAL_MS = 100;  // -> 0
 const word ERROR_LONG_SIGNAL_MS = 400;   // -> 1
 const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
 
+// Web server
+const int WEB_SERVER_AVERAGE_PAGE_LOAD_TIME_SEC = 3; // 3 sec
+
 // Watering
-const long WATERING_MAX_SCHEDULE_CORRECTION_TIME = 6 * 60 * 60; // hours
-const long WATERING_ERROR_DELTA = 5 * 60; // 6 minutes
+const int WATERING_SYSTEM_TURN_ON_DELAY_SEC = 3; // 3 sec
+const long WATERING_MAX_SCHEDULE_CORRECTION_TIME_SEC = 6 * 60 * 60; // hours
+const long WATERING_ERROR_DELTA_SEC = 5 * 60; // 6 minutes
 
 /////////////////////////////////////////////////////////////////////
 //                          OTHER CONSTS                           //
 /////////////////////////////////////////////////////////////////////
 
 // Wi-Fi
-const byte WEB_SERVER_RECONNECT_ATTEMPTS_BEFORE_DEFAULT = 3;
+const byte WI_FI_RECONNECT_ATTEMPTS_BEFORE_DEFAULT_PARAMS = 3;
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //

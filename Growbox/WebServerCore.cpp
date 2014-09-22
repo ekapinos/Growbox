@@ -382,7 +382,7 @@ void WebServerClass::growboxClockJavaScript(const __FlashStringHelper* growboxTi
   rawData(F("<script type='text/javascript'>"));
   rawData(F("var g_timeFormat={year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'};"));
   rawData(F("var g_gbts=new Date((")); //growbox timestamp
-  rawData(now() + UPDATE_WEB_SERVER_AVERAGE_PAGE_LOAD_DELAY, true);
+  rawData(now() + WEB_SERVER_AVERAGE_PAGE_LOAD_TIME_SEC, true);
   rawData(F("+new Date().getTimezoneOffset()*60)*1000"));
   rawData(F(");"));
 
