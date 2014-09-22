@@ -174,20 +174,11 @@ time_t WateringClass::getNextWateringTimeStampByIndex(byte wsIndex) {
 
   //  Serial.println();
   if (wsIndex >= MAX_WATERING_SYSTEMS_COUNT) {
-    showWateringMessage(F("getNextWateringTimeStampByIndex: wsIndex >= MAX_WATERING_SYSTEMS_COUNT"));
     return 0;
   }
   if (c_PumpOnAlarmIDArray[wsIndex] == dtINVALID_ALARM_ID) {
-    showWateringMessage(F("getNextWateringTimeStampByIndex: c_PumpOnAlarmIDArray[wsIndex] == dtINVALID_ALARM_ID"));
     return 0;
   }
-
-  //  showWateringMessage(F("getNextWateringTimeStampByIndex: c_PumpOnAlarmIDArray[wsIndex]"), false);
-  //  Serial.println(c_PumpOnAlarmIDArray[wsIndex]);
-  //  showWateringMessage(F("getNextWateringTimeStampByIndex: c_PumpOnAlarm.read(c_PumpOnAlarmIDArray[wsIndex])"), false);
-  //  Serial.println( c_PumpOnAlarm.read(c_PumpOnAlarmIDArray[wsIndex]));
-  //  Serial.println(StringUtils::timeStampToString( c_PumpOnAlarm.read(c_PumpOnAlarmIDArray[wsIndex])));
-
   return c_PumpOnAlarm.read(c_PumpOnAlarmIDArray[wsIndex]);
 }
 

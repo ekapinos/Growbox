@@ -53,12 +53,14 @@ const byte FAN_SPEED_MAX = RELAY_ON;
 
 // Main cycle
 const time_t UPDATE_BREEZE_DELAY_SEC = 1;
-const time_t UPDATE_GROWBOX_STATE_DELAY_SEC = 5 * 60; // 5 min
-const time_t UPDATE_CONTROLLER_STATE_DELAY_SEC = 1;
-const time_t UPDATE_CONTROLLER_CORE_HARDWARE_STATE_DELAY_SEC = 60; // 60 sec
-const time_t UPDATE_CONTROLLER_AUTO_ADJUST_CLOCK_TIME_DELAY_SEC = SECS_PER_DAY; // 1 day
-const time_t UPDATE_TERMOMETER_STATISTICS_DELAY_SEC = 20; //20 sec 
-const time_t UPDATE_WEB_SERVER_STATUS_DELAY_SEC = 2 * 60; // 2 min
+
+// Main scheduler (6 items)
+const time_t UPDATE_GROWBOX_STATE_DELAY_SEC = 5 * SECS_PER_MIN; // 5 min
+const time_t UPDATE_CONTROLLER_STATE_DELAY_SEC = 1UL;
+const time_t UPDATE_CONTROLLER_CORE_HARDWARE_STATE_DELAY_SEC = 60UL; // 60 sec
+const time_t UPDATE_TERMOMETER_STATISTICS_DELAY_SEC = 20; // 20 sec
+const time_t UPDATE_WEB_SERVER_STATUS_DELAY_SEC = 2 * SECS_PER_MIN; // 2 min
+const time_t UPDATE_CONTROLLER_AUTO_ADJUST_CLOCK_TIME_SEC = 3 * SECS_PER_HOUR; // Adjust Clock at 3:00 AM
 
 // Error blinks in milliseconds and blink sequences
 const word ERROR_SHORT_SIGNAL_MS = 100;  // -> 0
