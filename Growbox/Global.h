@@ -51,6 +51,7 @@ const byte FAN_SPEED_MAX = RELAY_ON;
 //                             DELAY'S                             //
 /////////////////////////////////////////////////////////////////////
 
+// Main cycle
 const time_t UPDATE_BREEZE_DELAY_SEC = 1;
 const time_t UPDATE_GROWBOX_STATE_DELAY_SEC = 5 * 60; // 5 min
 const time_t UPDATE_CONTROLLER_STATE_DELAY_SEC = 1;
@@ -59,7 +60,7 @@ const time_t UPDATE_CONTROLLER_AUTO_ADJUST_CLOCK_TIME_DELAY_SEC = SECS_PER_DAY; 
 const time_t UPDATE_TERMOMETER_STATISTICS_DELAY_SEC = 20; //20 sec 
 const time_t UPDATE_WEB_SERVER_STATUS_DELAY_SEC = 2 * 60; // 2 min
 
-// error blinks in milliseconds and blink sequences
+// Error blinks in milliseconds and blink sequences
 const word ERROR_SHORT_SIGNAL_MS = 100;  // -> 0
 const word ERROR_LONG_SIGNAL_MS = 400;   // -> 1
 const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
@@ -76,6 +77,13 @@ const long WATERING_ERROR_DELTA_SEC = 5 * 60; // 6 minutes
 //                          OTHER CONSTS                           //
 /////////////////////////////////////////////////////////////////////
 
+// Main cycle
+
+const byte ON_COLD_FAN_TURN_OFF_INTERVAL_MIN = 15;  // On cold  0..15, 20..35, 40..55 - fan turned off
+const byte ON_COLD_FAN_TURN_ON_INTERVAL_MIN = 5;    //         15..20, 35..40, 55..0  - fan turned on,
+                                                    // better to use intervals aliquot to UPDATE_GROWBOX_STATE_DELAY_SEC
+                                                    // and sum aliquot to 60 minutes
+
 // Wi-Fi
 const byte WI_FI_RECONNECT_ATTEMPTS_BEFORE_DEFAULT_PARAMS = 3;
 
@@ -91,21 +99,13 @@ extern boolean g_useSerialMonitor;
 //                         GLOBAL STRINGS                          //
 /////////////////////////////////////////////////////////////////////
 
-const char S_WIFI_DEFAULT_SSID[] PROGMEM = "Growbox"; //WPA2 in AP mode
+const char S_WIFI_DEFAULT_SSID[] PROGMEM = "growbox"; //WPA2 in AP mode
 const char S_WIFI_DEFAULT_PASS[] PROGMEM = "ingodwetrust";
 
-const char S_empty[] PROGMEM = "";
-const char S___[] PROGMEM = "  ";
 const char S_CRLF[] PROGMEM = "\r\n";
 const char S_CRLFCRLF[] PROGMEM = "\r\n\r\n";
 const char S_Connected[] PROGMEM = "Connected";
 const char S_Disconnected[] PROGMEM = "Disconnected";
-const char S_Enabled[] PROGMEM = "Enabled";
-const char S_Disabled[] PROGMEM = "Disabled";
-const char S_Temperature[] PROGMEM = "Temperature";
-const char S_Free_memory[] PROGMEM = "Free memory: ";
-const char S_bytes[] PROGMEM = " bytes";
-const char S_PlusMinus[] PROGMEM = "+/-";
 const char S_Next[] PROGMEM = " > ";
 
 /////////////////////////////////////////////////////////////////////

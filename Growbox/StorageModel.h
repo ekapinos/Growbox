@@ -36,6 +36,7 @@ struct BootRecord{
   byte normalTemperatureNightMin;    // 1
   byte normalTemperatureNightMax;    // 1
   byte criticalTemperatureMax;       // 1
+  byte criticalTemperatureMin;       // 1
 
   struct WateringSystemPreferencies{
 
@@ -46,12 +47,12 @@ struct BootRecord{
       boolean skipNextWatering :1; // used on date/time change
     } boolPreferencies;     // 1
 
-    byte inAirValue; // 1 (inAirValue..1022], [1023] - Not connected  (t >> 2) (10 bit to 8)
+    byte inAirValue;        // 1 (inAirValue..1022], [1023] - Not connected  (t >> 2) (10 bit to 8)
     byte veryDryValue;      // 1 (veryDryValue..notConnectedValue]
     byte dryValue;          // 1 (dryValue..veryDryValue]
     byte normalValue;       // 1 (normalValue..dryValue]
     byte wetValue;          // 1 (wetValue..normalValue]
-    byte veryWetValue; // 1 (veryWetValue..wetValue] [0..veryWetValue] - short circit
+    byte veryWetValue;      // 1 (veryWetValue..wetValue] [0..veryWetValue] - short circit
 
     byte dryWateringDuration;     // 1 // seconds
     byte veryDryWateringDuration; // 1 // seconds
@@ -63,9 +64,8 @@ struct BootRecord{
   } wateringSystemPreferencies[MAX_WATERING_SYSTEMS_COUNT]; // 16*MAX_WATERING_SYSTEMS_COUNT(4) = 64
 
   int16_t autoAdjustClockTimeDelta; // 2
-  byte criticalTemperatureMin;      // 1 // TODO move upper
 
-  byte reserved[70];                //  <----reserved
+  byte reserved[72];                //  <----reserved
   char wifiSSID[WIFI_SSID_LENGTH];  // 32  
   char wifiPass[WIFI_PASS_LENGTH];  // 64
   word last_magic;                  //  2  

@@ -783,7 +783,11 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
         rawData(F("<td>on / off</td>"));
       }
       if (useFan) {
-        rawData(F("<td>5 min on, 15 min off / off</td><"));
+        rawData(F("<td>"));
+        rawData(ON_COLD_FAN_TURN_OFF_INTERVAL_MIN);
+        rawData(F(" min off, "));
+        rawData(ON_COLD_FAN_TURN_ON_INTERVAL_MIN);
+        rawData(F(" min on / off</td>"));
       }
       if (useHeater) {
         rawData(F("<td>on</td>"));
@@ -1098,9 +1102,9 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
   rawData(F("</fieldset>"));
 
   rawData(F("<br/>"));
-  if (c_isWifiResponseError)
+  if (c_isWifiResponseError) {
     return;
-
+  }
   boolean isWifiStationMode = GB_StorageHelper.isWifiStationMode();
   rawData(F("<fieldset><legend>Wi-Fi</legend>"));
   rawData(F("<form action='"));

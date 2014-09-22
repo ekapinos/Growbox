@@ -230,63 +230,66 @@ void updateGrowboxState(boolean checkWetSensors) {
   float temperature = GB_Thermometer.getTemperature();
 
   if (temperature > criticalTemperatueMax) {
+    // Critical Hot
     GB_Controller.turnOffLight();
     GB_Controller.turnOnFan(FAN_SPEED_MAX);
     GB_Controller.turnOffHeater();
   }
   else if (temperature < criticalTemperatueMin) {
-      if (isDayInGrowbox) {
-        GB_Controller.turnOnLight();
-      } else {
-        GB_Controller.turnOffLight();
-      }
-      GB_Controller.turnOffFan();
-      GB_Controller.turnOnHeater();
-  }
-  else if (isDayInGrowbox) {
-    // Day mode
-    GB_Controller.turnOnLight();
-    if (temperature < normalTemperatueDayMin) {
-      // Too cold
-      GB_Controller.turnOnFan(FAN_SPEED_MIN); // no wind, no grow
-      //GB_Controller.turnOffFan();
+    // Critical Cold
+    if (isDayInGrowbox) {
+      GB_Controller.turnOnLight();
+    } else {
+      GB_Controller.turnOffLight();
     }
-    else if (temperature > normalTemperatueDayMax) {
-      // Too hot
-      GB_Controller.turnOnFan(FAN_SPEED_MAX);
-    }
-    else {
-      // Normal, day wind
-      GB_Controller.turnOnFan(FAN_SPEED_MIN);
-    }
-
-    if (temperature < normalTemperatueDayMin) {
-      GB_Controller.turnOnHeater();
-    }
-    else {
-      GB_Controller.turnOffHeater();
-    }
+    GB_Controller.turnOffFan();
+    GB_Controller.turnOnHeater();
   }
   else {
-    // Night mode
-    GB_Controller.turnOffLight();
-    if (temperature < normalTemperatueNightMin) {
-      // Too cold, Nothig to do, no heater
-      GB_Controller.turnOffFan();
-    }
-    else if (temperature > normalTemperatueNightMax) {
-      // Too hot
-      GB_Controller.turnOnFan(FAN_SPEED_MIN);
+    // Not critical
+    if (isDayInGrowbox) {
+      // Day mode
+      GB_Controller.turnOnLight();
+      if (temperature < normalTemperatueDayMin) {
+        // Cold
+        int minuteOnClockNow = minute();
+        minuteOnClockNow %= (ON_COLD_FAN_TURN_OFF_INTERVAL_MIN + ON_COLD_FAN_TURN_ON_INTERVAL_MIN);
+        if (minuteOnClockNow < ON_COLD_FAN_TURN_OFF_INTERVAL_MIN){
+          GB_Controller.turnOffFan();
+        } else {
+          GB_Controller.turnOnFan(FAN_SPEED_MIN);
+        }
+        GB_Controller.turnOnHeater();
+      }
+      else if (temperature > normalTemperatueDayMax) {
+        // Hot
+        GB_Controller.turnOnFan(FAN_SPEED_MAX);
+        GB_Controller.turnOffHeater();
+      }
+      else {
+        // Normal
+        GB_Controller.turnOnFan(FAN_SPEED_MIN);
+        GB_Controller.turnOffHeater();
+      }
     }
     else {
-      // Normal, all devices are turned off
-      GB_Controller.turnOffFan();
-    }
-    if (temperature < normalTemperatueNightMin) {
-      GB_Controller.turnOnHeater();
-    }
-    else {
-      GB_Controller.turnOffHeater();
+      // Night mode
+      GB_Controller.turnOffLight();
+      if (temperature < normalTemperatueNightMin) {
+        // Cold
+        GB_Controller.turnOffFan();
+        GB_Controller.turnOnHeater();
+      }
+      else if (temperature > normalTemperatueNightMax) {
+        // Hot
+        GB_Controller.turnOnFan(FAN_SPEED_MIN);
+        GB_Controller.turnOffHeater();
+      }
+      else {
+        // Normal
+        GB_Controller.turnOffFan();
+        GB_Controller.turnOffHeater();
+      }
     }
   }
 

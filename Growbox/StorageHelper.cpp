@@ -95,6 +95,7 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime) {
     bootRecord.boolPreferencies.useRTC = GB_Controller.isRTCPresent();
     bootRecord.boolPreferencies.useFan = false;
     bootRecord.boolPreferencies.useLight = false;
+    bootRecord.boolPreferencies.useHeater = false;
 
     bootRecord.turnToDayModeAt = 5 * 60; // mode 18:00/06:00
     bootRecord.turnToNightModeAt = 23 * 60;
