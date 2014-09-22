@@ -234,7 +234,7 @@ void updateGrowboxState(boolean checkWetSensors) {
     GB_Controller.turnOnFan(FAN_SPEED_MAX);
     GB_Controller.turnOffHeater();
   }
-  else if (temperature < criticalTemperatueMax) {
+  else if (temperature < criticalTemperatueMin) {
       if (isDayInGrowbox) {
         GB_Controller.turnOnLight();
       } else {
