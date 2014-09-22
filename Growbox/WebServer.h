@@ -9,7 +9,7 @@
 
 const char S_URL_STATUS[] PROGMEM = "/";
 const char S_URL_DAILY_LOG[] PROGMEM = "/log";
-const char S_URL_GENERAL_OPTIONS[] PROGMEM = "/general";
+const char S_URL_GENERAL_OPTIONS[] PROGMEM = "/options";
 const char S_URL_WATERING[] PROGMEM = "/watering";
 const char S_URL_HARDWARE[] PROGMEM = "/hardware";
 const char S_URL_OTHER_PAGE[] PROGMEM = "/other";

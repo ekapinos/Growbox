@@ -749,17 +749,16 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
     boolean useLight  = GB_Controller.isUseLight();
     boolean useFan    = GB_Controller.isUseFan();
     boolean useHeater = GB_Controller.isUseHeater();
-
     if (useLight || useFan || useHeater){
-      rawData(F("<tr><td colspan ='2'><div class='description'>"));
+      rawData(F("<tr><td colspan ='2'><small>"));
       rawData(F("<table class='align_center'>"));
 
       rawData(F("<tr><th>State</th>"));
       if (useLight) {
-        rawData(F("<th>Light<br/>day / night</th>"));
+        rawData(F("<th>Light<br/>day/night</th>"));
       }
       if (useFan) {
-        rawData(F("<th>Fan<br/>day / night</th>"));
+        rawData(F("<th>Fan<br/>day/night</th>"));
       }
       if (useHeater) {
         rawData(F("<th>Heater</th>"));
@@ -831,7 +830,7 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       rawData(F("</tr>"));
 
       rawData(F("</table>"));
-      rawData(F("</div></td></tr>"));
+      rawData(F("</small></td></tr>"));
     }
 
     rawData(F("</table>"));
