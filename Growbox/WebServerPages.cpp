@@ -22,11 +22,12 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
   boolean isGeneralPage = StringUtils::flashStringEquals(url, FS(S_URL_GENERAL_OPTIONS));
   boolean isWateringPage = (wsIndex != 0xFF);
   boolean isHardwarePage = StringUtils::flashStringEquals(url, FS(S_URL_HARDWARE));
+  boolean isOtherPage = StringUtils::flashStringEquals(url, FS(S_URL_OTHER_PAGE));
   boolean isDumpInternal = StringUtils::flashStringEquals(url, FS(S_URL_DUMP_INTERNAL));
   boolean isDumpAT24C32 = StringUtils::flashStringEquals(url, FS(S_URL_DUMP_AT24C32));
-  boolean isOtherPage = StringUtils::flashStringEquals(url, FS(S_URL_OTHER_PAGE));
+  boolean isPinMapPage = StringUtils::flashStringEquals(url, FS(S_URL_PINMAP));
 
-  boolean isConfigurationPage = (isGeneralPage || isWateringPage || isHardwarePage || isDumpInternal || isDumpAT24C32 || isOtherPage);
+  boolean isConfigurationPage = (isGeneralPage || isWateringPage || isHardwarePage || isOtherPage || isDumpInternal || isDumpAT24C32 || isPinMapPage);
 
   boolean isValidPage = (isStatusPage || isLogPage || isConfigurationPage);
   if (!isValidPage) {
@@ -69,6 +70,7 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
   rawData(F("<body>"));
   rawData(F("<h1>Growbox</h1>"));
   if (isCriticalErrorOnStatusPage()){
+    rawData(F("<hr/>"));
     spanTag_RedIfTrue(F("Critical system error"), true);
     if (!isStatusPage) {
       spanTag_RedIfTrue(F(". Check Status page"), true);
@@ -103,6 +105,9 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
       tagOption(FS(S_URL_DUMP_AT24C32), F("Other: AT24C32 dump"), isDumpAT24C32);
     }
   }
+  else if (isPinMapPage) {
+    tagOption(FS(S_URL_PINMAP), F("Other: Pin map"), isPinMapPage);
+  }
   rawData(F("</select>"));
   rawData(F("</form>"));
 
@@ -134,11 +139,14 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
   else if (isHardwarePage) {
     sendHardwareOptionsPage(getParams);
   }
+  else if (isOtherPage) {
+    sendOtherOptionsPage(getParams);
+  }
   else if (isDumpInternal || isDumpAT24C32) {
     sendStorageDumpPage(getParams, isDumpInternal);
   }
-  else if (isOtherPage) {
-    sendOtherOptionsPage(getParams);
+  else if (isPinMapPage) {
+    sendPinMapPage();
   }
 
   rawData(F("</body></html>"));
@@ -1152,9 +1160,18 @@ void WebServerClass::sendOtherOptionsPage(const String& getParams) {
 
   rawData(F("<tr><td colspan ='2'>"));
   rawData(F("<a href='"));
+  rawData(FS(S_URL_PINMAP));
+  rawData(F("'>View pin map</a>"));
+  rawData(F("</td></tr>"));
+
+  rawData(F("<tr><td colspan ='2'><br/></td></tr>"));
+
+  rawData(F("<tr><td colspan ='2'>"));
+  rawData(F("<a href='"));
   rawData(FS(S_URL_DUMP_INTERNAL));
   rawData(F("'>View internal Arduino dump</a>"));
   rawData(F("</td></tr>"));
+
   if (EEPROM_AT24C32.isPresent()) {
     rawData(F("<tr><td colspan ='2'>"));
     rawData(F("<a href='"));
@@ -1292,6 +1309,60 @@ void WebServerClass::sendStorageDumpPage(const String& getParams, boolean isInte
 
   }
   rawData(F("</tr></table>"));
+}
+
+void WebServerClass::sendPinMapPage_TableRow(byte pin, const __FlashStringHelper* description, byte wsIndex){
+  rawData(F("<tr><td>"));
+  if (pin == 0xFF){
+    // Nothing
+  } else if (pin < 54){
+    rawData(pin);
+  } else {
+    rawData('A');
+    rawData(pin - 54);
+  }
+  rawData(F("</td><td>"));
+  rawData(description);
+  if (wsIndex < MAX_WATERING_SYSTEMS_COUNT){
+    rawData(wsIndex+1);
+  }
+  rawData(F("</td>"));
+}
+
+void WebServerClass::sendPinMapPage(){
+  rawData(F("<table class='grab'>"));
+  rawData(F("<tr><th>Pin</th><th>Description</th>"));
+  rawData(F("<tr><td>I<sup>2</sup>C</td><td>Real-time clock, external EEPROM</td>"));
+
+  sendPinMapPage_TableRow(LIGHT_PIN, F("Relay: Light"));
+  sendPinMapPage_TableRow(FAN_PIN, F("Relay: Fan"));
+  sendPinMapPage_TableRow(FAN_SPEED_PIN, F("Relay: Fan speed"));
+  sendPinMapPage_TableRow(HEATER_PIN, F("Relay: Heater"));
+
+  sendPinMapPage_TableRow(0xFF, F("<br/>"));
+
+  sendPinMapPage_TableRow(ERROR_PIN, F("Led or Beeper for detect Errors"));
+  sendPinMapPage_TableRow(ONE_WIRE_PIN, F("1-Wire: Thermometer"));
+  sendPinMapPage_TableRow(BREEZE_PIN, F("Breeze Led (on board)"));
+
+  sendPinMapPage_TableRow(0xFF, F("<br/>"));
+
+  for (int wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
+    sendPinMapPage_TableRow(WATERING_WET_SENSOR_POWER_PINS[wsIndex], F("Wet sensor power #"), wsIndex);
+    sendPinMapPage_TableRow(WATERING_PUMP_PINS[wsIndex], F("Watering pump #"), wsIndex);
+  }
+
+  sendPinMapPage_TableRow(0xFF, F("<br/>"));
+
+  sendPinMapPage_TableRow(HARDWARE_BUTTON_RESET_FIRMWARE_PIN, F("Hardware button: Reset firmware"));
+  sendPinMapPage_TableRow(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN, F("Hardware button: Use serial monitor"));
+
+  sendPinMapPage_TableRow(0xFF, F("<br/>"));
+
+  for (int wsIndex = 0; wsIndex < MAX_WATERING_SYSTEMS_COUNT; wsIndex++){
+    sendPinMapPage_TableRow(WATERING_WET_SENSOR_IN_PINS[wsIndex], F("Wet sensor data #"), wsIndex);
+  }
+  rawData(F("</table>"));
 }
 
 /////////////////////////////////////////////////////////////////////

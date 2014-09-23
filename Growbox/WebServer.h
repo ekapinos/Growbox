@@ -15,6 +15,7 @@ const char S_URL_HARDWARE[] PROGMEM = "/hardware";
 const char S_URL_OTHER_PAGE[] PROGMEM = "/other";
 const char S_URL_DUMP_INTERNAL[] PROGMEM = "/other/dump_internal";
 const char S_URL_DUMP_AT24C32[] PROGMEM = "/other/dump_AT24C32";
+const char S_URL_PINMAP[] PROGMEM = "/other/pinmap";
 
 class WebServerClass{
 private:
@@ -121,6 +122,8 @@ private:
   void sendHardwareOptionsPage(const String& getParams);
   void sendStorageDumpPage(const String& getParams, boolean isInternal);
   void sendOtherOptionsPage(const String& getParams);
+  void sendPinMapPage_TableRow(byte pin, const __FlashStringHelper* description, byte wsIndex = 0xFF);
+  void sendPinMapPage();
 
   /////////////////////////////////////////////////////////////////////
   //                          POST HANDLING                          //

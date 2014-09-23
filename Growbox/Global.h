@@ -84,11 +84,12 @@ const long WATERING_ERROR_DELTA_SEC = 5 * 60; // 6 minutes
 
 // better to use intervals aliquot to UPDATE_GROWBOX_STATE_DELAY_SEC
 // and sum aliquot to 60 minutes
-//     0..15, 20..35, 40..55 - fan turned off
-//    15..20, 35..40, 55..0  - fan turned on
+//    0..10, 15..25, 30..40, 45..55 - fan turned off (66%)
+//    5..15, 25..30, 40..45, 55..0  - fan turned on (33%)
 const byte FAN_INTERVAL_TURN_OFF_FROM_NORMAL_TO_OPTIMAL_MIN = 10;
 const byte FAN_INTERVAL_TURN_ON_FROM_NORMAL_TO_OPTIMAL_MIN = 5;
-
+//     0..15, 20..35, 40..55 - fan turned off (75%)
+//    15..20, 35..40, 55..0  - fan turned on (25%)
 const byte FAN_INTERVAL_TURN_OFF_FROM_CRITICAL_TO_NORMAL_FAN_MIN = 15;
 const byte FAN_INTERVAL_TURN_ON_FROM_CRITICAL_TO_NORMAL_FAN_MIN = 5;
 
