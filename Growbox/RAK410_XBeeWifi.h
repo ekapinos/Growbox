@@ -16,13 +16,14 @@ private:
   static const word WIFI_RESPONSE_DEFAULT_DELAY = 1000; // default delay after "at+" commands 1000ms
 
   boolean c_isWifiPresent;
-  boolean c_restartWifi;
+  boolean c_restartWifiOnNextUpdate;
   unsigned int c_autoSizeFrameSize;
 #ifndef WIFI_USE_FIXED_SIZE_SUB_FAMES_IN_AUTO_SIZE_FRAME
   char c_autoSizeFrameBuffer[WIFI_MAX_SEND_FRAME_SIZE];
 #endif
   boolean c_isWifiPrintCommandStarted;
   time_t c_lastWifiActivityTimeStamp;
+  time_t c_isLastWifiStationMode;
 
 public:
 

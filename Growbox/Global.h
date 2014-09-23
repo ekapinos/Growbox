@@ -113,7 +113,6 @@ const char S_CRLF[] PROGMEM = "\r\n";
 const char S_CRLFCRLF[] PROGMEM = "\r\n\r\n";
 const char S_Connected[] PROGMEM = "Connected";
 const char S_Disconnected[] PROGMEM = "Disconnected";
-const char S_Next[] PROGMEM = " > ";
 
 /////////////////////////////////////////////////////////////////////
 //                            COLLECTIONS                          //

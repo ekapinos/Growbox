@@ -13,7 +13,12 @@ const char S_WIFI_GET_[] PROGMEM = "GET /";
 const char S_WIFI_POST_[] PROGMEM = "POST /";
 
 RAK410_XBeeWifiClass::RAK410_XBeeWifiClass() :
-    c_isWifiPresent(false), c_restartWifi(true), c_isWifiPrintCommandStarted(false), c_autoSizeFrameSize(0), c_lastWifiActivityTimeStamp(0) {
+    c_isWifiPresent(false),
+    c_restartWifiOnNextUpdate(true),
+    c_isWifiPrintCommandStarted(false),
+    c_autoSizeFrameSize(0),
+    c_lastWifiActivityTimeStamp(0),
+    c_isLastWifiStationMode(false) {
 }
 
 boolean RAK410_XBeeWifiClass::isPresent() { // check if the device is present
@@ -36,20 +41,18 @@ void RAK410_XBeeWifiClass::update() {
   if (isPresent()) {
     if ((now() - c_lastWifiActivityTimeStamp) > (3*UPDATE_WEB_SERVER_STATUS_DELAY_SEC/4)) { // we skip scheduled check, if Wi-Fi in use now
       if (!checkStartedWifi()) {
-        if (!restartWifi()) {
-          return;
-        }
+        restartWifi(); // if restartWifi() returns false, we will try to restart on next update()
+        return;
       }
     }
   }
   else {
-    if (!restartWifi()) {
-      return;
-    }
+    restartWifi(); // if restartWifi() returns false, we will try to restart on next update()
+    return;
   }
 
   // Restart, if need and not restarted before
-  if (c_restartWifi) {
+  if (c_restartWifiOnNextUpdate) {
     restartWifi();
   }
 }
@@ -70,7 +73,7 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
       if (g_useSerialMonitor && input.length() > 0) {
         showWifiMessage(F("Not correct welcome message: "), false);
         PrintUtils::printWithoutCRLF(input);
-        Serial.print(FS(S_Next));
+        Serial.print(F(" > "));
         PrintUtils::printHEX(input);
         Serial.println();
       }
@@ -91,16 +94,15 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
     }
 
     String wifiSSID, wifiPass;
-    boolean isWifiStationMode;
     if (useDefaultParameters) {
       wifiSSID = StringUtils::flashStringLoad(FS(S_WIFI_DEFAULT_SSID));
       wifiPass = StringUtils::flashStringLoad(FS(S_WIFI_DEFAULT_PASS));
-      isWifiStationMode = false;
+      c_isLastWifiStationMode = false;
     }
     else {
       wifiSSID = GB_StorageHelper.getWifiSSID();
       wifiPass = GB_StorageHelper.getWifiPass();
-      isWifiStationMode = GB_StorageHelper.isWifiStationMode();
+      c_isLastWifiStationMode = GB_StorageHelper.isWifiStationMode();
     }
 
     if (wifiPass.length() > 0) {
@@ -111,7 +113,7 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
       }
     }
 
-    if (isWifiStationMode) {
+    if (c_isLastWifiStationMode) {
       wifiExecuteCommandPrint(F("at+connect="));
       wifiExecuteCommandPrint(wifiSSID);
       if (!wifiExecuteCommand(NULL, 5000, false)) { // If password wrong, no response from RAK 410
@@ -149,7 +151,7 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
     }
 
     c_isWifiPresent = true;
-    c_restartWifi = false;
+    c_restartWifiOnNextUpdate = false;
     break;
   }
 
@@ -166,18 +168,26 @@ boolean RAK410_XBeeWifiClass::restartWifi() {
 boolean RAK410_XBeeWifiClass::checkStartedWifi() {
 
   showWifiMessage(F("Checking Wi-Fi status (stand by)..."));
+  if (c_isLastWifiStationMode){
+    String input = wifiExecuteRawCommand(F("at+con_status"), 500); // Is Wi-Fi OK?
 
-  String input = wifiExecuteRawCommand(F("at+con_status"), 500); // Is Wi-Fi OK?
+    c_isWifiPresent = StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_OK));
 
-  c_isWifiPresent = StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_OK));
-
-  if (c_isWifiPresent) {
-    showWifiMessage(F("Wi-Fi connection OK"));
+    if (c_isWifiPresent) {
+      showWifiMessage(F("Wi-Fi connection OK"));
+    }
+    else {
+      if (g_useSerialMonitor) {
+        showWifiMessage(F("Wi-Fi connection LOST: "), false);
+        PrintUtils::printWithoutCRLF(input);
+        Serial.print(F(" > "));
+        PrintUtils::printHEX(input);
+        Serial.println();
+      }
+    }
+  } else {
+    showWifiMessage(F("Check skipped in Access Point mode"));
   }
-  else {
-    showWifiMessage(F("Wi-Fi connection LOST"));
-  }
-
   return c_isWifiPresent;
 }
 // public:
@@ -208,7 +218,7 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
     if (g_useSerialMonitor) {
       showWifiMessage(F("Receive unknown data: "), false);
       PrintUtils::printWithoutCRLF(input);
-      Serial.print(FS(S_Next));
+      Serial.print(F(" > "));
       PrintUtils::printHEX(input);
       Serial.println();
     }
@@ -503,7 +513,7 @@ boolean RAK410_XBeeWifiClass::wifiExecuteCommand(const __FlashStringHelper* comm
   }
   else if (input.length() == 0) {
     if (rebootIfNoResponse) {
-      c_restartWifi = true;
+      c_restartWifiOnNextUpdate = true;
     }
 
     if (g_useSerialMonitor) {
@@ -529,9 +539,9 @@ boolean RAK410_XBeeWifiClass::wifiExecuteCommand(const __FlashStringHelper* comm
   }
   else {
     if (g_useSerialMonitor) {
-      showWifiMessage(0, false);
+      showWifiMessage(NULL, false);
       PrintUtils::printWithoutCRLF(input);
-      Serial.print(FS(S_Next));
+      Serial.print(F(" > "));
       PrintUtils::printHEX(input);
       Serial.println();
     }
