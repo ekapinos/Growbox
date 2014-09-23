@@ -69,6 +69,7 @@ const word ERROR_DELAY_BETWEEN_SIGNALS_MS = 150;
 
 // Web server
 const int WEB_SERVER_AVERAGE_PAGE_LOAD_TIME_SEC = 3; // 3 sec
+const time_t WI_FI_AUTO_REBOOT_ON_INACTIVE_DELAY_SEC = 30 * SECS_PER_MIN; // 30 min
 
 // Watering
 const int WATERING_SYSTEM_TURN_ON_DELAY_SEC = 3; // 3 sec
@@ -92,7 +93,7 @@ const byte FAN_INTERVAL_TURN_OFF_FROM_CRITICAL_TO_NORMAL_FAN_MIN = 15;
 const byte FAN_INTERVAL_TURN_ON_FROM_CRITICAL_TO_NORMAL_FAN_MIN = 5;
 
 // Wi-Fi
-const byte WI_FI_RECONNECT_ATTEMPTS_BEFORE_DEFAULT_PARAMS = 3;
+const byte WI_FI_RECONNECT_ATTEMPTS_BEFORE_USE_DEFAULT_PARAMS = 3;
 
 /////////////////////////////////////////////////////////////////////
 //                        GLOBAL VARIABLES                         //
