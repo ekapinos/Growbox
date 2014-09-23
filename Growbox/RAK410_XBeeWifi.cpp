@@ -32,29 +32,29 @@ void RAK410_XBeeWifiClass::init() {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
 
-  restartWifi();
+  restartWifi(F("init"));
 }
 
 void RAK410_XBeeWifiClass::update() {
 
   // Restart, if need and not restarted before
   if (c_restartWifiOnNextUpdate) {
-    restartWifi();
+    restartWifi(F("software error detected"));
   }
   else if (!isPresent()) {
     // check Wi-Fi hot plug to serial port
-    restartWifi(); // if restartWifi() returns false, we will try to restart on next update()
+    restartWifi(F("check hot connect")); // if restartWifi() returns false, we will try to restart on next update()
   }
   else {
     time_t inactiveTime = now() - c_lastWifiActivityTimeStamp;
     if (inactiveTime > WI_FI_AUTO_REBOOT_ON_INACTIVE_DELAY_SEC) {
       // Auto scheduled reboot
-      restartWifi();
+      restartWifi(F("auto, inactive"));
 
     } else if (inactiveTime > (3*UPDATE_WEB_SERVER_STATUS_DELAY_SEC/4)) { // we skip scheduled check, if Wi-Fi in use now
       // Check connection state
       if (!checkStartedWifi()) {
-        restartWifi(); // if restartWifi() returns false, we will try to restart on next update()
+        restartWifi(F("check status failed")); // if restartWifi() returns false, we will try to restart on next update()
       }
     }
   }
@@ -62,10 +62,13 @@ void RAK410_XBeeWifiClass::update() {
 
 // private:
 
-boolean RAK410_XBeeWifiClass::restartWifi() {
+boolean RAK410_XBeeWifiClass::restartWifi(const __FlashStringHelper* description) {
 
-  showWifiMessage(F("Checking Wi-Fi status (restart)..."));
-
+  if (g_useSerialMonitor){
+    showWifiMessage(F("Reboot Wi-Fi ("), false);
+    Serial.print(description);
+    Serial.println(")...");
+  }
   c_isWifiPresent = false;
 
   for (byte i = 0; i <= WI_FI_RECONNECT_ATTEMPTS_BEFORE_USE_DEFAULT_PARAMS; i++) { // Sometimes first command returns ERROR. We use two attempts
@@ -214,7 +217,7 @@ RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &
     Serial_readString(input); // at first we should read, after manipulate  
 
     if (StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_WELLCOME)) || StringUtils::flashStringStartsWith(input, FS(S_WIFI_RESPONSE_ERROR))) {
-      restartWifi();
+      restartWifi(F("hardware"));
       return RAK410_XBEEWIFI_REQUEST_TYPE_NONE;
     }
 

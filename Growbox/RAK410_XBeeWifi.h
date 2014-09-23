@@ -39,7 +39,7 @@ public:
 
 private:
 
-  boolean restartWifi();
+  boolean restartWifi(const __FlashStringHelper* description);
   boolean checkStartedWifi();
 
   /////////////////////////////////////////////////////////////////////
