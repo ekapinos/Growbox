@@ -81,10 +81,15 @@ const long WATERING_ERROR_DELTA_SEC = 5 * 60; // 6 minutes
 
 // Main cycle
 
-const byte ON_COLD_FAN_TURN_OFF_INTERVAL_MIN = 15;  // On cold  0..15, 20..35, 40..55 - fan turned off
-const byte ON_COLD_FAN_TURN_ON_INTERVAL_MIN = 5;    //         15..20, 35..40, 55..0  - fan turned on,
-                                                    // better to use intervals aliquot to UPDATE_GROWBOX_STATE_DELAY_SEC
-                                                    // and sum aliquot to 60 minutes
+// better to use intervals aliquot to UPDATE_GROWBOX_STATE_DELAY_SEC
+// and sum aliquot to 60 minutes
+//     0..15, 20..35, 40..55 - fan turned off
+//    15..20, 35..40, 55..0  - fan turned on
+const byte FAN_INTERVAL_TURN_OFF_FROM_NORMAL_TO_OPTIMAL_MIN = 10;
+const byte FAN_INTERVAL_TURN_ON_FROM_NORMAL_TO_OPTIMAL_MIN = 5;
+
+const byte FAN_INTERVAL_TURN_OFF_FROM_CRITICAL_TO_NORMAL_FAN_MIN = 15;
+const byte FAN_INTERVAL_TURN_ON_FROM_CRITICAL_TO_NORMAL_FAN_MIN = 5;
 
 // Wi-Fi
 const byte WI_FI_RECONNECT_ATTEMPTS_BEFORE_DEFAULT_PARAMS = 3;

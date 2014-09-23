@@ -783,9 +783,9 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       if (useFan) {
         rawData(F("<td>"));
-        rawData(ON_COLD_FAN_TURN_OFF_INTERVAL_MIN);
+        rawData(FAN_INTERVAL_TURN_OFF_FROM_CRITICAL_TO_NORMAL_FAN_MIN);
         rawData(F(" min off, "));
-        rawData(ON_COLD_FAN_TURN_ON_INTERVAL_MIN);
+        rawData(FAN_INTERVAL_TURN_ON_FROM_CRITICAL_TO_NORMAL_FAN_MIN);
         rawData(F(" min on / off</td>"));
       }
       if (useHeater) {
@@ -793,7 +793,23 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       rawData(F("</tr>"));
 
-      rawData(F("<tr><td class='align_left'>Normal</td>"));
+      rawData(F("<tr><td class='align_left'>Less than optimal</td>"));
+      if (useLight) {
+        rawData(F("<td>on / off</td>"));
+      }
+      if (useFan) {
+        rawData(F("<td>"));
+        rawData(FAN_INTERVAL_TURN_OFF_FROM_NORMAL_TO_OPTIMAL_MIN);
+        rawData(F(" min off, "));
+        rawData(FAN_INTERVAL_TURN_ON_FROM_NORMAL_TO_OPTIMAL_MIN);
+        rawData(F(" min on / off</td>"));
+      }
+      if (useHeater) {
+        rawData(F("<td>off</td>"));
+      }
+      rawData(F("</tr>"));
+
+      rawData(F("<tr><td class='align_left'>Greater than optimal</td>"));
       if (useLight) {
         rawData(F("<td>on / off</td>"));
       }
