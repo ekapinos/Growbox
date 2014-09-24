@@ -252,13 +252,7 @@ void updateGrowboxState(boolean checkWetSensors) {
       GB_Controller.turnOnLight();
       if (temperature < normalTemperatueDayMin) {
         // Cold (heat by light)
-        int minuteOnClockNow = minute();
-        minuteOnClockNow %= (FAN_INTERVAL_TURN_OFF_FROM_CRITICAL_TO_NORMAL_FAN_MIN + FAN_INTERVAL_TURN_ON_FROM_CRITICAL_TO_NORMAL_FAN_MIN);
-        if (minuteOnClockNow < FAN_INTERVAL_TURN_OFF_FROM_CRITICAL_TO_NORMAL_FAN_MIN){
-          GB_Controller.turnOffFan();
-        } else {
-          GB_Controller.turnOnFan(FAN_SPEED_MIN);
-        }
+        GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_CRITICAL_TO_NORMAL_NUMERATOR, FAN_FROM_CRITICAL_TO_NORMAL_DENOMINATOR);
         GB_Controller.turnOnHeater();
       }
       else if (temperature > normalTemperatueDayMax) {
@@ -271,13 +265,7 @@ void updateGrowboxState(boolean checkWetSensors) {
         float optimalTemperature = (float) (normalTemperatueDayMin + normalTemperatueDayMax) / 2.0;
         if(temperature < optimalTemperature){
           // Normal, less than optimal (heat by light)
-          int minuteOnClockNow = minute();
-          minuteOnClockNow %= (FAN_INTERVAL_TURN_OFF_FROM_NORMAL_TO_OPTIMAL_MIN + FAN_INTERVAL_TURN_ON_FROM_NORMAL_TO_OPTIMAL_MIN);
-          if (minuteOnClockNow < FAN_INTERVAL_TURN_OFF_FROM_NORMAL_TO_OPTIMAL_MIN){
-            GB_Controller.turnOffFan();
-          } else {
-            GB_Controller.turnOnFan(FAN_SPEED_MIN);
-          }
+          GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_NORMAL_TO_OPTIMAL_NUMERATOR, FAN_FROM_NORMAL_TO_OPTIMAL_DENOMINATOR);
         }
         else {
           // Normal, above than optimal

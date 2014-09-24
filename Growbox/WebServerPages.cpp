@@ -214,8 +214,17 @@ void WebServerClass::sendStatusPage() {
 
   if (GB_Controller.isUseFan()) {
     rawData(F("<dd>Fan: "));
-    boolean isFanEnabled = GB_Controller.isFanTurnedOn();
-    rawData(isFanEnabled ? ((GB_Controller.getFanSpeed() == FAN_SPEED_MIN) ? F("Min speed") : F("Max speed")) : F("Off"));
+    if (GB_Controller.isFanTurnedOn()){
+      rawData(GB_Controller.getFanSpeed() == FAN_SPEED_MAX ? F("Max speed") : F("Min speed"));
+      if (GB_Controller.getFanNumerator() != 0 || GB_Controller.getFanDenominator() != 0){
+        rawData(' ');
+        rawData(GB_Controller.getFanNumerator());
+        rawData('/');
+        rawData(GB_Controller.getFanDenominator());
+      }
+    } else {
+      rawData(F("Off"));
+    }
     rawData(F("</dd>"));
   }
 
@@ -791,11 +800,11 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       if (useFan) {
         rawData(F("<td>"));
-        rawData(FAN_INTERVAL_TURN_OFF_FROM_CRITICAL_TO_NORMAL_FAN_MIN);
-        rawData(F(" min off, "));
-        rawData(FAN_INTERVAL_TURN_ON_FROM_CRITICAL_TO_NORMAL_FAN_MIN);
-        rawData(F(" min on / off</td>"));
-      }
+        rawData(FAN_FROM_CRITICAL_TO_NORMAL_NUMERATOR);
+        rawData('/');
+        rawData(FAN_FROM_CRITICAL_TO_NORMAL_DENOMINATOR);
+        rawData(F(" min speed / off</td>"));
+     }
       if (useHeater) {
         rawData(F("<td>on</td>"));
       }
@@ -807,10 +816,10 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       if (useFan) {
         rawData(F("<td>"));
-        rawData(FAN_INTERVAL_TURN_OFF_FROM_NORMAL_TO_OPTIMAL_MIN);
-        rawData(F(" min off, "));
-        rawData(FAN_INTERVAL_TURN_ON_FROM_NORMAL_TO_OPTIMAL_MIN);
-        rawData(F(" min on / off</td>"));
+        rawData(FAN_FROM_NORMAL_TO_OPTIMAL_NUMERATOR);
+        rawData('/');
+        rawData(FAN_FROM_NORMAL_TO_OPTIMAL_DENOMINATOR);
+        rawData(F(" min speed / off</td>"));
       }
       if (useHeater) {
         rawData(F("<td>off</td>"));
@@ -1110,7 +1119,17 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
 
   tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
   rawData(F("<div class='description'>Current state [<b>"));
-  rawData(GB_Controller.isFanTurnedOn() ? (GB_Controller.getFanSpeed() == FAN_SPEED_MAX ? F("Max speed") : F("Min speed")) : F("Off"));
+  if (GB_Controller.isFanTurnedOn()){
+    rawData(GB_Controller.getFanSpeed() == FAN_SPEED_MAX ? F("Max speed") : F("Min speed"));
+    if (GB_Controller.getFanNumerator() != 0 || GB_Controller.getFanDenominator() != 0){
+      rawData(' ');
+      rawData(GB_Controller.getFanNumerator());
+      rawData('/');
+      rawData(GB_Controller.getFanDenominator());
+    }
+  } else {
+    rawData(F("Off"));
+  }
   rawData(F("</b>], temperature [<b>"));
   printTemperatue(GB_Thermometer.getTemperature());
   rawData(F("</b>]</div>"));

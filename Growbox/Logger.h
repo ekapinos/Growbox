@@ -12,7 +12,7 @@ public:
   //                             APPEND                              //
   /////////////////////////////////////////////////////////////////////
 
-  void logEvent(Event &event);
+  void logEvent(Event &event, byte value = 0);
   void logWateringEvent(byte wsIndex, WateringEvent& wateringEvent, byte value);
 
   void logError(Error &error);

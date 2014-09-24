@@ -10,6 +10,11 @@ class ControllerClass{
   time_t c_lastBreezeTimeStamp;
   boolean c_isDayInGrowbox; // Last updated state
 
+  boolean c_fan_isOn;
+  byte c_fan_speed;
+  byte c_fan_numerator;
+  byte c_fan_denominator;
+
 public:
   ControllerClass();
 
@@ -61,10 +66,13 @@ public:
 
   void setUseFan(boolean flag);
   boolean isUseFan();
-  void turnOnFan(int speed);
+  void turnOnFan(byte speed, byte numerator = 0, byte denominator = 0);
   void turnOffFan();
   boolean isFanTurnedOn();
   byte getFanSpeed();
+  byte getFanNumerator();
+  byte getFanDenominator();
+  void updateFan();
 
   void setUseHeater(boolean flag);
   boolean isUseHeater();

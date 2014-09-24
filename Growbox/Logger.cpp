@@ -9,8 +9,8 @@
 // Normal event uses format [00DDDDDD]
 //   00 - prefix for normal events 
 //   DDDDDD - event identificator
-void LoggerClass::logEvent(Event &event) {
-  LogRecord logRecord(event.index);
+void LoggerClass::logEvent(Event &event, byte value) {
+  LogRecord logRecord(B00000000 | event.index, value);
   boolean isStored = GB_StorageHelper.storeLogRecord(logRecord);
   printLogRecordToSerialMonotior(logRecord, event.description, isStored);
 }
@@ -57,7 +57,7 @@ boolean LoggerClass::stopLogError(Error &error) {
 void LoggerClass::logTemperature(byte temperature) {
   LogRecord logRecord(B11000000 | temperature);
   boolean isStored = GB_StorageHelper.storeLogRecord(logRecord);
-  printLogRecordToSerialMonotior(logRecord, FS(S_Temperature), isStored, temperature);
+  printLogRecordToSerialMonotior(logRecord, F("Temperature"), isStored, temperature);
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -101,7 +101,7 @@ const __FlashStringHelper* LoggerClass::getLogRecordDescription(LogRecord &logRe
     }
   }
   else if (isTemperature(logRecord)) {
-    return FS(S_Temperature);
+    return F("Temperature");
   }
   else if (isError(logRecord)) {
     byte sequence = (data & B00001111);
@@ -125,8 +125,17 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord, bo
   if (logRecord.isEmpty()) {
     return out;
   }
-
-  if (isWateringEvent(logRecord)) {
+  if (isEvent(logRecord)) {
+    if (logRecord.data == EVENT_FAN_ON_MIN.index || logRecord.data == EVENT_FAN_ON_MAX.index){
+      if (logRecord.data1 != 0) {
+        out += StringUtils::flashStringLoad(F(" ["));
+        out += ((B11110000 & logRecord.data1) >> 4);
+        out +='/';
+        out += (B00001111 & logRecord.data1);
+        out += StringUtils::flashStringLoad(F("]"));
+      }
+    }
+  }else if (isWateringEvent(logRecord)) {
     byte wsIndex = ((logRecord.data & B00110000) >> 4);
     out += StringUtils::flashStringLoad(F(" system [#"));
     out += (wsIndex + 1);

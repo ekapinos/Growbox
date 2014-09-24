@@ -11,7 +11,13 @@
 #include "Watering.h"
 
 ControllerClass::ControllerClass() :
-    c_lastFreeMemory(0), c_lastBreezeTimeStamp(0), c_isAutoCalculatedClockTimeUsed(false), c_isDayInGrowbox(-1) {
+    c_lastFreeMemory(0),
+    c_isAutoCalculatedClockTimeUsed(false),
+    c_lastBreezeTimeStamp(0),
+    c_isDayInGrowbox(-1),
+    c_fan_isOn(false),
+    c_fan_numerator(0),
+    c_fan_denominator(0) {
   // We set c_isDayInGrowbox == -1 to force log on startup
 }
 
@@ -29,6 +35,7 @@ void ControllerClass::update() {
   checkInputPinsStatus();
   checkFreeMemory();
 
+  updateFan();
 }
 
 void ControllerClass::updateClockState() {
@@ -360,41 +367,74 @@ boolean ControllerClass::isUseFan() {
   return GB_StorageHelper.isUseFan();
 }
 
-void ControllerClass::turnOnFan(int speed) {
+void ControllerClass::turnOnFan(byte speed, byte numerator, byte denominator) {
   if (!isUseFan()) {
     return;
   }
-  if (digitalRead(FAN_PIN) == RELAY_ON && digitalRead(FAN_SPEED_PIN) == speed) {
+  if (c_fan_isOn && c_fan_speed == speed && numerator == c_fan_numerator && denominator == c_fan_denominator) {
     return;
   }
-  digitalWrite(FAN_SPEED_PIN, speed);
-  digitalWrite(FAN_PIN, RELAY_ON);
+  if (numerator > B1111 || denominator > B1111 || numerator > denominator ){ // Error argument
+    numerator = 0;
+    denominator = 0;
+  }
+  c_fan_isOn = true;
+  c_fan_speed = speed;
+  c_fan_numerator = numerator;
+  c_fan_denominator = denominator;
 
+  byte logData = (c_fan_numerator << 4) | denominator;
   if (speed == FAN_SPEED_MIN) {
-    GB_Logger.logEvent(EVENT_FAN_ON_MIN);
+    GB_Logger.logEvent(EVENT_FAN_ON_MIN, logData);
   }
   else {
-    GB_Logger.logEvent(EVENT_FAN_ON_MAX);
+    GB_Logger.logEvent(EVENT_FAN_ON_MAX, logData);
   }
+
+  updateFan();
 }
 
 void ControllerClass::turnOffFan() {
   if (!isUseFan()) {
     return;
   }
-  if (digitalRead(FAN_PIN) == RELAY_OFF) {
+  if (!c_fan_isOn) {
     return;
   }
-  digitalWrite(FAN_PIN, RELAY_OFF);
-  digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
+  c_fan_isOn = false;
+
   GB_Logger.logEvent(EVENT_FAN_OFF);
+
+  updateFan();
 }
 
 boolean ControllerClass::isFanTurnedOn() {
-  return (digitalRead(FAN_PIN) == RELAY_ON);
+  return c_fan_isOn;
 }
 byte ControllerClass::getFanSpeed() {
-  return digitalRead(FAN_SPEED_PIN);
+  return c_fan_speed;
+}
+byte ControllerClass::getFanNumerator() {
+  return c_fan_numerator;
+}
+byte ControllerClass::getFanDenominator() {
+  return c_fan_denominator;
+}
+void ControllerClass::updateFan() {
+  boolean isFanOnNow = c_fan_isOn;
+  if (c_fan_isOn && c_fan_numerator != 0 && c_fan_denominator != 0){
+    int secondsOnClockNow = minute() * SECS_PER_MIN + second(); // seconds now
+    secondsOnClockNow %= c_fan_denominator * UPDATE_GROWBOX_STATE_DELAY_SEC;
+    isFanOnNow = (secondsOnClockNow < (c_fan_numerator * UPDATE_GROWBOX_STATE_DELAY_SEC));
+  }
+  if (isFanOnNow){
+    digitalWrite(FAN_SPEED_PIN, c_fan_speed);
+    digitalWrite(FAN_PIN, RELAY_ON);
+  }
+  else {
+    digitalWrite(FAN_PIN, RELAY_OFF);
+    digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
+  }
 }
 
 // Heater
