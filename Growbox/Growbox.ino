@@ -64,27 +64,28 @@ void setup() {
   pinMode(HARDWARE_BUTTON_USE_SERIAL_MONOTOR_PIN, INPUT_PULLUP);
   pinMode(HARDWARE_BUTTON_RESET_FIRMWARE_PIN, INPUT_PULLUP);
 
+  // Configure relay pins (before set OUTPUT!)
+  digitalWrite(LIGHT_PIN, RELAY_OFF);
+  digitalWrite(FAN_PIN, RELAY_OFF);
+  digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
+  digitalWrite(HEATER_PIN, RELAY_OFF);
+
   // Relay pins
   pinMode(LIGHT_PIN, OUTPUT);
   pinMode(FAN_PIN, OUTPUT);
   pinMode(FAN_SPEED_PIN, OUTPUT);
   pinMode(HEATER_PIN, OUTPUT);
 
-  // Configure relay pins
-  digitalWrite(LIGHT_PIN, RELAY_OFF);
-  digitalWrite(FAN_PIN, RELAY_OFF);
-  digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
-  digitalWrite(HEATER_PIN, RELAY_OFF);
-
   // Watering pins
   for (int i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
     pinMode(WATERING_WET_SENSOR_IN_PINS[i], INPUT_PULLUP);
 
-    pinMode(WATERING_WET_SENSOR_POWER_PINS[i], OUTPUT);
-    pinMode(WATERING_PUMP_PINS[i], OUTPUT);
-
+    // Configure relay pins (before set OUTPUT!)
     digitalWrite(WATERING_WET_SENSOR_POWER_PINS[i], HIGH);
     digitalWrite(WATERING_PUMP_PINS[i], RELAY_OFF);
+
+    pinMode(WATERING_WET_SENSOR_POWER_PINS[i], OUTPUT);
+    pinMode(WATERING_PUMP_PINS[i], OUTPUT);
   }
   unsigned long startupMillis = millis();
 
@@ -252,7 +253,7 @@ void updateGrowboxState(boolean checkWetSensors) {
       GB_Controller.turnOnLight();
       if (temperature < normalTemperatueDayMin) {
         // Cold (heat by light)
-        GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_CRITICAL_TO_NORMAL_NUMERATOR, FAN_FROM_CRITICAL_TO_NORMAL_DENOMINATOR);
+        GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
         GB_Controller.turnOnHeater();
       }
       else if (temperature > normalTemperatueDayMax) {
@@ -265,7 +266,7 @@ void updateGrowboxState(boolean checkWetSensors) {
         float optimalTemperature = (float) (normalTemperatueDayMin + normalTemperatueDayMax) / 2.0;
         if(temperature < optimalTemperature){
           // Normal, less than optimal (heat by light)
-          GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_NORMAL_TO_OPTIMAL_NUMERATOR, FAN_FROM_NORMAL_TO_OPTIMAL_DENOMINATOR);
+          GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
         }
         else {
           // Normal, above than optimal
@@ -279,7 +280,7 @@ void updateGrowboxState(boolean checkWetSensors) {
       GB_Controller.turnOffLight();
       if (temperature < normalTemperatueNightMin) {
         // Cold
-        GB_Controller.turnOffFan();
+        GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_1_TO_6_NUMERATOR, FAN_FROM_1_TO_6_DENOMINATOR);
         GB_Controller.turnOnHeater();
       }
       else if (temperature > normalTemperatueNightMax) {
@@ -289,7 +290,13 @@ void updateGrowboxState(boolean checkWetSensors) {
       }
       else {
         // Normal
-        GB_Controller.turnOffFan();
+        float optimalTemperature = (float) (normalTemperatueNightMin + normalTemperatueNightMax) / 2.0;
+        if (temperature < optimalTemperature){
+          GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
+        }
+        else {
+          GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
+        }
         GB_Controller.turnOffHeater();
       }
     }

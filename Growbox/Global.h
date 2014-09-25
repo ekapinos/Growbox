@@ -52,10 +52,12 @@ const byte FAN_SPEED_MAX = RELAY_ON;
 /////////////////////////////////////////////////////////////////////
 
 // Main cycle
-const time_t UPDATE_BREEZE_DELAY_SEC = 1;
+const unsigned long UPDATE_BREEZE_DELAY_SEC = 1;
+
+const byte UPDATE_GROWBOX_STATE_DELAY_MINUTES = 5; // 5 min
 
 // Main scheduler (6 items)
-const time_t UPDATE_GROWBOX_STATE_DELAY_SEC = 5 * SECS_PER_MIN; // 5 min
+const time_t UPDATE_GROWBOX_STATE_DELAY_SEC = UPDATE_GROWBOX_STATE_DELAY_MINUTES * SECS_PER_MIN;
 const time_t UPDATE_CONTROLLER_STATE_DELAY_SEC = 1UL;
 const time_t UPDATE_CONTROLLER_CORE_HARDWARE_STATE_DELAY_SEC = 60UL; // 60 sec
 const time_t UPDATE_TERMOMETER_STATISTICS_DELAY_SEC = 20; // 20 sec
@@ -84,14 +86,21 @@ const long WATERING_ERROR_DELTA_SEC = 5 * 60; // 6 minutes
 
 // better to use intervals aliquot to UPDATE_GROWBOX_STATE_DELAY_SEC
 // and sum aliquot to 60 minutes
+//  every 5/15 min
 //  0..5, 15..20, 30..35, 45..50 - fan turned on (33%)
 // 5..15, 20..30, 35..45, 50..0  - fan turned off (66%)
-const byte FAN_FROM_NORMAL_TO_OPTIMAL_NUMERATOR = 1;
-const byte FAN_FROM_NORMAL_TO_OPTIMAL_DENOMINATOR = 3;
+const byte FAN_FROM_1_TO_3_NUMERATOR = 1;
+const byte FAN_FROM_1_TO_3_DENOMINATOR = 3;
+
+// repeat every 5/20 min
 //  0..5, 20..25, 40..45 - fan turned on (25%)
 // 5..20, 25..40, 45..0  - fan turned off (75%)
-const byte FAN_FROM_CRITICAL_TO_NORMAL_NUMERATOR = 1;
-const byte FAN_FROM_CRITICAL_TO_NORMAL_DENOMINATOR = 4;
+const byte FAN_FROM_1_TO_4_NUMERATOR = 1;
+const byte FAN_FROM_1_TO_4_DENOMINATOR = 4;
+
+// repeat every 5/30 min
+const byte FAN_FROM_1_TO_6_NUMERATOR = 1;
+const byte FAN_FROM_1_TO_6_DENOMINATOR = 6;
 
 // Wi-Fi
 const byte WI_FI_RECONNECT_ATTEMPTS_BEFORE_USE_DEFAULT_PARAMS = 3;

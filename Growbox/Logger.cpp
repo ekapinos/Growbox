@@ -129,9 +129,9 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord, bo
     if (logRecord.data == EVENT_FAN_ON_MIN.index || logRecord.data == EVENT_FAN_ON_MAX.index){
       if (logRecord.data1 != 0) {
         out += StringUtils::flashStringLoad(F(" ["));
-        out += ((B11110000 & logRecord.data1) >> 4);
+        out += ((B11110000 & logRecord.data1) >> 4) * UPDATE_GROWBOX_STATE_DELAY_MINUTES;
         out +='/';
-        out += (B00001111 & logRecord.data1);
+        out += (B00001111 & logRecord.data1) * UPDATE_GROWBOX_STATE_DELAY_MINUTES;
         out += StringUtils::flashStringLoad(F("]"));
       }
     }

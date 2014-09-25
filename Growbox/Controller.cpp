@@ -423,7 +423,7 @@ byte ControllerClass::getFanDenominator() {
 void ControllerClass::updateFan() {
   boolean isFanOnNow = c_fan_isOn;
   if (c_fan_isOn && c_fan_numerator != 0 && c_fan_denominator != 0){
-    int secondsOnClockNow = minute() * SECS_PER_MIN + second(); // seconds now
+    unsigned int secondsOnClockNow = minute() * SECS_PER_MIN + second(); // seconds now
     secondsOnClockNow %= c_fan_denominator * UPDATE_GROWBOX_STATE_DELAY_SEC;
     isFanOnNow = (secondsOnClockNow < (c_fan_numerator * UPDATE_GROWBOX_STATE_DELAY_SEC));
   }
