@@ -1,0 +1,14 @@
+http://arduino-info.wikispaces.com/ArduinoPower#OI
+http://yourduino.com/sunshop2/index.php?l=product_detail&p=156
+
+NOTES:  If you want complete optical isolation, connect "Vcc" to Arduino +5 volts but do NOT connect Arduino Ground.  Remove the Vcc to JD-Vcc jumper. Connect a separate +5 supply to "JD-Vcc" and board Gnd. This will supply power to the transistor drivers and relay coils. 
+
+NOTE: Each relay draws about .08A (80 Ma) when on, so if all 8 relays are actuated the board needs about 8*80 or 640 Ma (.64 amps). In this case a separate power supply for the relay board is required. Connect as in preceeding paragraph. A 5 Volt 1 A supply such as THIS  would be good.
+
+If relay isolation is enough for your application, AND you will not actuate more than 3 or 4 relays at once, connect Arduino +5 and Gnd, and leave Vcc to JD-Vcc jumper in place.
+
+NOTE: It is sometimes possible to use these relay boards with 3.3V signals, IF the JD-VCC(RelayPower) is provided from a +5V supply and the VCC to JD-VCC jumper is removed. . That 5V relay supply could be totally isolated from the 3.3V device, or have a common ground IF opto-isolation is not needed.  If used with isolated 3.3V signals, VCC (To the input of the opto-isolator, next to the IN pins) should be connected to the 3.3V device's +3.3V supply. NOTE: Some RaspberryPi users have found that some relays are reliable and others do not actuate sometimes. It may be necessary to change the value of R1 from 1000 ohms to something like 220 ohms, or supply +5V to the VCC connection.
+
+NOTE: The digital inputs from Arduino are Active LOW: The relay actuates and an LED lights whe the input pin is LOW, and turns off on HIGH. See the Wiki article for how-to assure relays do not activate at power-on time.
+
+Schematic Diagram of one channel:
