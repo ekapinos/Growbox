@@ -233,7 +233,7 @@ void updateGrowboxState(boolean checkWetSensors) {
   if (temperature > criticalTemperatueMax) {
     // Critical Hot
     GB_Controller.turnOffLight();
-    GB_Controller.turnOnFan(FAN_SPEED_MAX);
+    GB_Controller.turnOnFan(FAN_SPEED_HIGH);
     GB_Controller.turnOffHeater();
   }
   else if (temperature < criticalTemperatueMin) {
@@ -253,12 +253,12 @@ void updateGrowboxState(boolean checkWetSensors) {
       GB_Controller.turnOnLight();
       if (temperature < normalTemperatueDayMin) {
         // Cold (heat by light)
-        GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
+        GB_Controller.turnOnFan(FAN_SPEED_LOW, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
         GB_Controller.turnOnHeater();
       }
       else if (temperature > normalTemperatueDayMax) {
         // Hot
-        GB_Controller.turnOnFan(FAN_SPEED_MAX);
+        GB_Controller.turnOnFan(FAN_SPEED_HIGH);
         GB_Controller.turnOffHeater();
       }
       else {
@@ -266,11 +266,11 @@ void updateGrowboxState(boolean checkWetSensors) {
         float optimalTemperature = (float) (normalTemperatueDayMin + normalTemperatueDayMax) / 2.0;
         if(temperature < optimalTemperature){
           // Normal, less than optimal (heat by light)
-          GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
+          GB_Controller.turnOnFan(FAN_SPEED_LOW, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
         }
         else {
           // Normal, above than optimal
-          GB_Controller.turnOnFan(FAN_SPEED_MIN);
+          GB_Controller.turnOnFan(FAN_SPEED_LOW);
         }
         GB_Controller.turnOffHeater();
       }
@@ -280,22 +280,22 @@ void updateGrowboxState(boolean checkWetSensors) {
       GB_Controller.turnOffLight();
       if (temperature < normalTemperatueNightMin) {
         // Cold
-        GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_1_TO_6_NUMERATOR, FAN_FROM_1_TO_6_DENOMINATOR);
+        GB_Controller.turnOnFan(FAN_SPEED_LOW, FAN_FROM_1_TO_6_NUMERATOR, FAN_FROM_1_TO_6_DENOMINATOR);
         GB_Controller.turnOnHeater();
       }
       else if (temperature > normalTemperatueNightMax) {
         // Hot
-        GB_Controller.turnOnFan(FAN_SPEED_MIN);
+        GB_Controller.turnOnFan(FAN_SPEED_LOW);
         GB_Controller.turnOffHeater();
       }
       else {
         // Normal
         float optimalTemperature = (float) (normalTemperatueNightMin + normalTemperatueNightMax) / 2.0;
         if (temperature < optimalTemperature){
-          GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
+          GB_Controller.turnOnFan(FAN_SPEED_LOW, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
         }
         else {
-          GB_Controller.turnOnFan(FAN_SPEED_MIN, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
+          GB_Controller.turnOnFan(FAN_SPEED_LOW, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
         }
         GB_Controller.turnOffHeater();
       }

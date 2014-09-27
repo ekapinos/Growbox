@@ -187,7 +187,7 @@ void WebServerClass::sendStatusPage() {
   word dayPeriod = getWordTimePeriodinDay(upTime, downTime); // Can be 24:00
   word nightPeriod = 24 * 60 - dayPeriod; // Can be 00:00
   rawData(F("<dd>Mode: "));
-  rawData(isDayInGrowbox ? F("Day") : F("Night"));
+  rawData(isDayInGrowbox ? F("day") : F("night"));
   rawData(F(", "));
   if (isDayInGrowbox) {
     rawData(F("<b>"));
@@ -208,7 +208,7 @@ void WebServerClass::sendStatusPage() {
 
   if (GB_Controller.isUseLight()) {
     rawData(F("<dd>Light: "));
-    rawData(GB_Controller.isLightTurnedOn() ? F("On") : F("Off"));
+    rawData(GB_Controller.isLightTurnedOn() ? F("on") : F("off"));
     rawData(F("</dd>"));
   }
 
@@ -217,30 +217,30 @@ void WebServerClass::sendStatusPage() {
     if (GB_Controller.isFanTurnedOn()){
       printFanSpeed(GB_Controller.getFanSpeed(), GB_Controller.getFanNumerator(), GB_Controller.getFanDenominator());
     } else {
-      rawData(F("Off"));
+      rawData(F("off"));
     }
     rawData(F("</dd>"));
   }
 
   if (GB_Controller.isUseHeater()) {
     rawData(F("<dd>Heater: "));
-    rawData(GB_Controller.isHeaterTurnedOn() ? F("On") : F("Off"));
+    rawData(GB_Controller.isHeaterTurnedOn() ? F("on") : F("off"));
     rawData(F("</dd>"));
   }
 
   if (GB_Controller.isUseRTC()) {
     if (!GB_Controller.isRTCPresent()) {
       rawData(F("<dd>Real-time clock: "));
-      spanTag_RedIfTrue(F("Not connected"), true);
+      spanTag_RedIfTrue(F("not connected"), true);
       rawData(F("</dd>"));
     }
     else if (GB_Controller.isClockNeedsSync() || GB_Controller.isClockNotSet()) {
       rawData(F("<dd>Clock: "));
       if (GB_Controller.isClockNotSet()) {
-        spanTag_RedIfTrue(F("Not set"), true);
+        spanTag_RedIfTrue(F("not set"), true);
       }
       if (GB_Controller.isClockNeedsSync()) {
-        spanTag_RedIfTrue(F("Needs sync"), true);
+        spanTag_RedIfTrue(F("needs sync"), true);
       }
       rawData(F("</dd>"));
     }
@@ -268,7 +268,7 @@ void WebServerClass::sendStatusPage() {
   rawData(F("<dt>Logger</dt>"));
   if (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) {
     rawData(F("<dd>External AT24C32 EEPROM: "));
-    spanTag_RedIfTrue(F("Not connected"), true);
+    spanTag_RedIfTrue(F("not connected"), true);
     rawData(F("</dd>"));
   }
   if (!GB_StorageHelper.isStoreLogRecordsEnabled()) {
@@ -340,9 +340,8 @@ void WebServerClass::sendStatusPage() {
 
       byte value = GB_Watering.getCurrentWetSensorValue(wsIndex);
       if (!GB_Watering.isWetSensorValueReserved(value)) {
-        rawData(F(", value ["));
+        rawData(F(", value "));
         rawData(value);
-        rawData(F("]"));
       }
       rawData(F("</dd>"));
     }
@@ -794,9 +793,9 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       if (useFan) {
         rawData(F("<td>"));
-        printFanSpeed(FAN_SPEED_MIN, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
+        printFanSpeed(FAN_SPEED_LOW, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
         rawData(F(" / "));
-        printFanSpeed(FAN_SPEED_MIN, FAN_FROM_1_TO_6_NUMERATOR, FAN_FROM_1_TO_6_DENOMINATOR);
+        printFanSpeed(FAN_SPEED_LOW, FAN_FROM_1_TO_6_NUMERATOR, FAN_FROM_1_TO_6_DENOMINATOR);
         rawData(F("</td>"));
      }
       if (useHeater) {
@@ -810,9 +809,9 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       if (useFan) {
         rawData(F("<td>"));
-        printFanSpeed(FAN_SPEED_MIN, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
+        printFanSpeed(FAN_SPEED_LOW, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
         rawData(F(" / "));
-        printFanSpeed(FAN_SPEED_MIN, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
+        printFanSpeed(FAN_SPEED_LOW, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
         rawData(F("</td>"));
       }
       if (useHeater) {
@@ -826,9 +825,9 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       if (useFan) {
         rawData(F("<td>"));
-        printFanSpeed(FAN_SPEED_MIN);
+        printFanSpeed(FAN_SPEED_LOW);
         rawData(F(" / "));
-        printFanSpeed(FAN_SPEED_MIN, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
+        printFanSpeed(FAN_SPEED_LOW, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
         rawData(F("</td>"));
       }
       if (useHeater) {
@@ -842,9 +841,9 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       if (useFan) {
         rawData(F("<td>"));
-        printFanSpeed(FAN_SPEED_MAX);
+        printFanSpeed(FAN_SPEED_HIGH);
         rawData(F(" / "));
-        printFanSpeed(FAN_SPEED_MIN);
+        printFanSpeed(FAN_SPEED_LOW);
         rawData(F("</td>"));
       }
       if (useHeater) {
@@ -858,7 +857,7 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       if (useFan) {
         rawData(F("<td>"));
-        printFanSpeed(FAN_SPEED_MAX);
+        printFanSpeed(FAN_SPEED_HIGH);
         rawData(F("</td>"));
       }
       if (useHeater) {
@@ -1087,19 +1086,19 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
   tagCheckbox(F("useRTC"), F("Use Real-time clock DS1307"), GB_Controller.isUseRTC());
   rawData(F("<div class='description'>Current state [<b>"));
   spanTag_RedIfTrue(
-      GB_Controller.isRTCPresent() ? F("Connected") : F("Not connected"), GB_Controller.isUseRTC() && !GB_Controller.isRTCPresent());
+      GB_Controller.isRTCPresent() ? F("connected") : F("not connected"), GB_Controller.isUseRTC() && !GB_Controller.isRTCPresent());
   rawData(F("</b>]</div>"));
 
   tagCheckbox(F("isEEPROM_AT24C32_Connected"), F("Use external AT24C32 EEPROM"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32());
   rawData(F("<div class='description'>Current state [<b>"));
   spanTag_RedIfTrue(
-      EEPROM_AT24C32.isPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent());
+      EEPROM_AT24C32.isPresent() ? F("connected") : F("not connected"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent());
   rawData(F("</b>]<br/>On change stored records maybe will lost</div>"));
 
   tagCheckbox(F("useThermometer"), F("Use Thermometer DS18B20, DS18S20 or DS1822"), GB_StorageHelper.isUseThermometer());
   rawData(F("<div class='description'>Current state [<b>"));
   spanTag_RedIfTrue(
-      GB_Thermometer.isPresent() ? F("Connected") : F("Not connected"), GB_StorageHelper.isUseThermometer() && !GB_Thermometer.isPresent());
+      GB_Thermometer.isPresent() ? F("connected") : F("not connected"), GB_StorageHelper.isUseThermometer() && !GB_Thermometer.isPresent());
   rawData(F("</b>]</div>"));
 
   rawData(F("<input type='submit' value='Save'>"));
@@ -1116,24 +1115,17 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
 
   tagCheckbox(F("useLight"), F("Use Light"), GB_Controller.isUseLight());
   rawData(F("<div class='description'>Current state [<b>"));
-  rawData(GB_Controller.isLightTurnedOn() ? F("On") : F("Off"));
+  rawData(GB_Controller.isLightTurnedOn() ? F("on") : F("off"));
   rawData(F("</b>], mode [<b>"));
-  rawData(GB_Controller.isDayInGrowbox() ? F("Day") : F("Night"));
+  rawData(GB_Controller.isDayInGrowbox() ? F("day") : F("night"));
   rawData(F("</b>]</div>"));
 
   tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
   rawData(F("<div class='description'>Current state [<b>"));
   if (GB_Controller.isFanTurnedOn()){
-    rawData(GB_Controller.getFanSpeed() == FAN_SPEED_MAX ? F("Max speed") : F("Min speed"));
-    if (GB_Controller.getFanNumerator() != 0 || GB_Controller.getFanDenominator() != 0){
-      rawData(F(" "));
-      rawData(GB_Controller.getFanNumerator() * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-      rawData('/');
-      rawData(GB_Controller.getFanDenominator() * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-      rawData(F(" min"));
-    }
+    printFanSpeed(GB_Controller.getFanSpeed(), GB_Controller.getFanNumerator(), GB_Controller.getFanDenominator());
   } else {
-    rawData(F("Off"));
+    rawData(F("off"));
   }
   rawData(F("</b>], temperature [<b>"));
   printTemperatue(GB_Thermometer.getTemperature());
@@ -1141,7 +1133,7 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
 
   tagCheckbox(F("useHeater"), F("Use Heater"), GB_Controller.isUseHeater());
   rawData(F("<div class='description'>Current state [<b>"));
-  rawData(GB_Controller.isHeaterTurnedOn() ? F("On") : F("Off"));
+  rawData(GB_Controller.isHeaterTurnedOn() ? F("on") : F("off"));
   rawData(F("</b>]</div>"));
 
   rawData(F("<input type='submit' value='Save'>"));
@@ -1175,7 +1167,6 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
   rawData(F("<input type='submit' value='Save'> <small>and reboot Wi-Fi manually</small>"));
   rawData(F("</form>"));
   rawData(F("</fieldset>"));
-
 }
 
 void WebServerClass::sendOtherOptionsPage(const String& getParams) {

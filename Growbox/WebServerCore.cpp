@@ -543,7 +543,7 @@ void WebServerClass::printTemperatueRange(float t1, float t2) {
 }
 
 void WebServerClass::printFanSpeed(byte speed, byte numerator, byte denominator) {
-  rawData(speed == FAN_SPEED_MAX ? F("max speed") : F("min speed"));
+  rawData(speed == FAN_SPEED_HIGH ? F("high speed") : F("low speed"));
   if (numerator != 0 || denominator != 0){
     rawData(F(", "));
     rawData(numerator * UPDATE_GROWBOX_STATE_DELAY_MINUTES);

@@ -384,11 +384,11 @@ void ControllerClass::turnOnFan(byte speed, byte numerator, byte denominator) {
   c_fan_denominator = denominator;
 
   byte logData = (c_fan_numerator << 4) | denominator;
-  if (speed == FAN_SPEED_MIN) {
-    GB_Logger.logEvent(EVENT_FAN_ON_MIN, logData);
+  if (speed == FAN_SPEED_LOW) {
+    GB_Logger.logEvent(EVENT_FAN_ON_LOW, logData);
   }
   else {
-    GB_Logger.logEvent(EVENT_FAN_ON_MAX, logData);
+    GB_Logger.logEvent(EVENT_FAN_ON_HIGH, logData);
   }
 
   updateFan();

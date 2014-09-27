@@ -123,7 +123,7 @@ Error ERROR_CLOCK_NOT_SET, ERROR_CLOCK_NEEDS_SYNC,
 
 Event EVENT_FIRST_START_UP, EVENT_RESTART, EVENT_MODE_DAY, EVENT_MODE_NIGHT,
     EVENT_LIGHT_OFF, EVENT_LIGHT_ON, EVENT_LIGHT_ENABLED, EVENT_LIGHT_DISABLED,
-    EVENT_FAN_OFF, EVENT_FAN_ON_MIN, EVENT_FAN_ON_MAX, EVENT_FAN_ENABLED,
+    EVENT_FAN_OFF, EVENT_FAN_ON_LOW, EVENT_FAN_ON_HIGH, EVENT_FAN_ENABLED,
     EVENT_FAN_DISABLED, EVENT_LOGGER_ENABLED, EVENT_LOGGER_DISABLED,
     EVENT_CLOCK_AUTO_ADJUST, EVENT_HEATER_OFF, EVENT_HEATER_ON, EVENT_HEATER_ENABLED, EVENT_HEATER_DISABLED;
 
@@ -153,15 +153,15 @@ void initLoggerModel() {
   // Zero index used for Empty Log Records, do not use it for Events
   EVENT_FIRST_START_UP.init(1, F("First startup"));
   EVENT_RESTART.init(2, F("Restart"));
-  EVENT_MODE_DAY.init(3, F("Day mode"));
-  EVENT_MODE_NIGHT.init(4, F("Night mode"));
+  EVENT_MODE_DAY.init(3, F("Mode day"));
+  EVENT_MODE_NIGHT.init(4, F("Mode night"));
   EVENT_LIGHT_OFF.init(5, F("Light off"));
   EVENT_LIGHT_ON.init(6, F("Light on"));
   EVENT_LIGHT_ENABLED.init(7, F("Light enabled"));
   EVENT_LIGHT_DISABLED.init(8, F("Light disabled"));
   EVENT_FAN_OFF.init(9, F("Fan off"));
-  EVENT_FAN_ON_MIN.init(10, F("Fan min speed"));
-  EVENT_FAN_ON_MAX.init(11, F("Fan max speed"));
+  EVENT_FAN_ON_LOW.init(10, F("Fan low speed"));
+  EVENT_FAN_ON_HIGH.init(11, F("Fan high speed"));
   EVENT_FAN_ENABLED.init(12, F("Fan enabled"));
   EVENT_FAN_DISABLED.init(13, F("Fan disabled"));
   EVENT_LOGGER_ENABLED.init(14, F("Logger enabled"));
@@ -183,11 +183,11 @@ void initLoggerModel() {
   WATERING_EVENT_WET_SENSOR_UNSTABLE.init(8, F("Wet sensor [Unstable]"), F("Unstable"), false, false);
   WATERING_EVENT_WET_SENSOR_DISABLED.init(9, F("Wet sensor [Disabled]"), F("Disabled"), false, false);
 
-  WATERING_EVENT_WATER_PUMP_ON_DRY.init(10, F("Pump ON [Sensor ok, Dry watering]"), F("Sensor ok, Dry watering"), false, true);
-  WATERING_EVENT_WATER_PUMP_ON_VERY_DRY.init(11, F("Pump ON [Sensor ok, Very Dry watering]"), F("Sensor ok, Very Dry watering"), false, true);
-  WATERING_EVENT_WATER_PUMP_ON_NO_SENSOR_DRY.init(12, F("Pump ON [Sensor not ready, Dry watering]"), F("Sensor not ready, Dry watering"), false, true);
-  WATERING_EVENT_WATER_PUMP_ON_MANUAL_DRY.init(13, F("Pump ON [Manual, Dry watering]"), F("Manual, Dry watering"), false, true);
-  WATERING_EVENT_WATER_PUMP_ON_AUTO_DRY.init(14, F("Pump ON [Dry watering]"), F("Dry watering"), false, true);
-  WATERING_EVENT_WATER_PUMP_OFF.init(15, F("Pump OFF"), F("Stop watering"), false, false);
+  WATERING_EVENT_WATER_PUMP_ON_DRY.init(10, F("Pump on [Sensor ok, Dry watering]"), F("Sensor ok, Dry watering"), false, true);
+  WATERING_EVENT_WATER_PUMP_ON_VERY_DRY.init(11, F("Pump on [Sensor ok, Very Dry watering]"), F("Sensor ok, Very Dry watering"), false, true);
+  WATERING_EVENT_WATER_PUMP_ON_NO_SENSOR_DRY.init(12, F("Pump on [Sensor not ready, Dry watering]"), F("Sensor not ready, Dry watering"), false, true);
+  WATERING_EVENT_WATER_PUMP_ON_MANUAL_DRY.init(13, F("Pump on [Manual, Dry watering]"), F("Manual, Dry watering"), false, true);
+  WATERING_EVENT_WATER_PUMP_ON_AUTO_DRY.init(14, F("Pump on [Dry watering]"), F("Dry watering"), false, true);
+  WATERING_EVENT_WATER_PUMP_OFF.init(15, F("Pump off"), F("Stop watering"), false, false);
 }
 

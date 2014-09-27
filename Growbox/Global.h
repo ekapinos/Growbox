@@ -44,8 +44,8 @@ const byte RELAY_ON = LOW, RELAY_OFF = HIGH;
 const byte HARDWARE_BUTTON_OFF = HIGH, HARDWARE_BUTTON_ON = LOW;
 
 // Fun speed
-const byte FAN_SPEED_MIN = RELAY_OFF;
-const byte FAN_SPEED_MAX = RELAY_ON;
+const byte FAN_SPEED_LOW = RELAY_OFF;
+const byte FAN_SPEED_HIGH = RELAY_ON;
 
 /////////////////////////////////////////////////////////////////////
 //                             DELAY'S                             //

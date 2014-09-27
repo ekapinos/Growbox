@@ -126,7 +126,7 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord, bo
     return out;
   }
   if (isEvent(logRecord)) {
-    if (logRecord.data == EVENT_FAN_ON_MIN.index || logRecord.data == EVENT_FAN_ON_MAX.index){
+    if (logRecord.data == EVENT_FAN_ON_LOW.index || logRecord.data == EVENT_FAN_ON_HIGH.index){
       if (logRecord.data1 != 0) {
         out += StringUtils::flashStringLoad(F(", "));
         out += ((B11110000 & logRecord.data1) >> 4) * UPDATE_GROWBOX_STATE_DELAY_MINUTES;
@@ -145,9 +145,8 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord, bo
 
     if (foundItemPtr != NULL) {
       if (foundItemPtr->isData2Value) {
-        out += StringUtils::flashStringLoad(F(" value ["));
+        out += StringUtils::flashStringLoad(F(", value "));
         out += logRecord.data1;
-        out += StringUtils::flashStringLoad(F("]"));
       }
       else if (foundItemPtr->isData2Duration) {
         out += StringUtils::flashStringLoad(F(" during "));
