@@ -102,8 +102,8 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime) {
 
     bootRecord.normalTemperatureDayMin = 22;
     bootRecord.normalTemperatureDayMax = 27;
-    bootRecord.normalTemperatureNightMin = 16;
-    bootRecord.normalTemperatureNightMax = 21;
+    bootRecord.normalTemperatureNightMin = 18;
+    bootRecord.normalTemperatureNightMax = 24;
     bootRecord.criticalTemperatureMin = 16;
     bootRecord.criticalTemperatureMax = 35;
 

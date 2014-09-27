@@ -128,18 +128,17 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord, bo
   if (isEvent(logRecord)) {
     if (logRecord.data == EVENT_FAN_ON_MIN.index || logRecord.data == EVENT_FAN_ON_MAX.index){
       if (logRecord.data1 != 0) {
-        out += StringUtils::flashStringLoad(F(" ["));
+        out += StringUtils::flashStringLoad(F(", "));
         out += ((B11110000 & logRecord.data1) >> 4) * UPDATE_GROWBOX_STATE_DELAY_MINUTES;
         out +='/';
         out += (B00001111 & logRecord.data1) * UPDATE_GROWBOX_STATE_DELAY_MINUTES;
-        out += StringUtils::flashStringLoad(F("]"));
+        out += StringUtils::flashStringLoad(F(" min"));
       }
     }
   }else if (isWateringEvent(logRecord)) {
     byte wsIndex = ((logRecord.data & B00110000) >> 4);
-    out += StringUtils::flashStringLoad(F(" system [#"));
+    out += StringUtils::flashStringLoad(F(" system #"));
     out += (wsIndex + 1);
-    out += StringUtils::flashStringLoad(F("]"));
 
     byte wateringEventIndex = (logRecord.data & B00001111);
     WateringEvent* foundItemPtr = WateringEvent::findByKey(wateringEventIndex);
@@ -159,12 +158,11 @@ String LoggerClass::getLogRecordDescriptionSuffix(const LogRecord &logRecord, bo
   }
   else if (isTemperature(logRecord)) {
     byte temperature = (logRecord.data & B00111111);
-    out += StringUtils::flashStringLoad(F(" ["));
+    out += StringUtils::flashStringLoad(F(" "));
     out += temperature;
     if (formatForHtml) {
       out += StringUtils::flashStringLoad(F("&deg;C"));
     }
-    out += StringUtils::flashStringLoad(F("]"));
   }
 
   return out;

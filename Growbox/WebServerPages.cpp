@@ -215,14 +215,7 @@ void WebServerClass::sendStatusPage() {
   if (GB_Controller.isUseFan()) {
     rawData(F("<dd>Fan: "));
     if (GB_Controller.isFanTurnedOn()){
-      rawData(GB_Controller.getFanSpeed() == FAN_SPEED_MAX ? F("Max speed") : F("Min speed"));
-      if (GB_Controller.getFanNumerator() != 0 || GB_Controller.getFanDenominator() != 0){
-        rawData(F(" ["));
-        rawData(GB_Controller.getFanNumerator() * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData('/');
-        rawData(GB_Controller.getFanDenominator() * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData(F(" min]"));
-      }
+      printFanSpeed(GB_Controller.getFanSpeed(), GB_Controller.getFanNumerator(), GB_Controller.getFanDenominator());
     } else {
       rawData(F("Off"));
     }
@@ -737,9 +730,9 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
     rawData(F("<fieldset><legend>Thermometer</legend>"));
     rawData(F("<form action='"));
     rawData(FS(S_URL_GENERAL_OPTIONS));
-    rawData(F("' method='post' onSubmit='if (document.getElementById(\"normalTemperatueDayMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
-    rawData(F("|| document.getElementById(\"normalTemperatueNightMin\").value >= document.getElementById(\"normalTemperatueDayMax\").value "));
-    rawData(F("|| document.getElementById(\"criticalTemperatueMin\").value >= document.getElementById(\"criticalTemperatueMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
+    rawData(F("' method='post' onSubmit='if (document.getElementById(\"tempDayMin\").value >= document.getElementById(\"tempDayMax\").value "));
+    rawData(F("|| document.getElementById(\"tempNightMin\").value >= document.getElementById(\"tempNightMax\").value "));
+    rawData(F("|| document.getElementById(\"critTempMin\").value >= document.getElementById(\"critTempMax\").value) { alert(\"Temperature ranges are incorrect\"); return false;}'>"));
     rawData(F("<table>"));
 
     rawData(F("<tr><td>Day temperature</td><td>"));
@@ -801,15 +794,10 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       if (useFan) {
         rawData(F("<td>"));
-        rawData(F("min speed ["));
-        rawData(FAN_FROM_1_TO_4_NUMERATOR * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData('/');
-        rawData((byte)FAN_FROM_1_TO_4_DENOMINATOR * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData(F("] / min speed ["));
-        rawData(FAN_FROM_1_TO_6_NUMERATOR * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData('/');
-        rawData(FAN_FROM_1_TO_6_DENOMINATOR * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData(F("]</td>"));
+        printFanSpeed(FAN_SPEED_MIN, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
+        rawData(F(" / "));
+        printFanSpeed(FAN_SPEED_MIN, FAN_FROM_1_TO_6_NUMERATOR, FAN_FROM_1_TO_6_DENOMINATOR);
+        rawData(F("</td>"));
      }
       if (useHeater) {
         rawData(F("<td>on</td>"));
@@ -822,15 +810,10 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
       }
       if (useFan) {
         rawData(F("<td>"));
-        rawData(F("min speed ["));
-        rawData(FAN_FROM_1_TO_3_NUMERATOR * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData('/');
-        rawData(FAN_FROM_1_TO_3_DENOMINATOR * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData(F("] / min speed ["));
-        rawData(FAN_FROM_1_TO_4_NUMERATOR * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData('/');
-        rawData(FAN_FROM_1_TO_4_DENOMINATOR * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData(F("]</td>"));
+        printFanSpeed(FAN_SPEED_MIN, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
+        rawData(F(" / "));
+        printFanSpeed(FAN_SPEED_MIN, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
+        rawData(F("</td>"));
       }
       if (useHeater) {
         rawData(F("<td>off</td>"));
@@ -842,11 +825,11 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
         rawData(F("<td>on / off</td>"));
       }
       if (useFan) {
-        rawData(F("<td>min speed / min speed ["));
-        rawData(FAN_FROM_1_TO_3_NUMERATOR * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData('/');
-        rawData(FAN_FROM_1_TO_3_DENOMINATOR * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-        rawData(F("]</td>"));
+        rawData(F("<td>"));
+        printFanSpeed(FAN_SPEED_MIN);
+        rawData(F(" / "));
+        printFanSpeed(FAN_SPEED_MIN, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
+        rawData(F("</td>"));
       }
       if (useHeater) {
         rawData(F("<td>off</td>"));
@@ -858,7 +841,11 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
         rawData(F("<td>on / off</td>"));
       }
       if (useFan) {
-        rawData(F("<td>max speed / min speed</td>"));
+        rawData(F("<td>"));
+        printFanSpeed(FAN_SPEED_MAX);
+        rawData(F(" / "));
+        printFanSpeed(FAN_SPEED_MIN);
+        rawData(F("</td>"));
       }
       if (useHeater) {
         rawData(F("<td>off</td>"));
@@ -870,7 +857,9 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
         rawData(F("<td>off</td>"));
       }
       if (useFan) {
-        rawData(F("<td>max speed</td>"));
+        rawData(F("<td>"));
+        printFanSpeed(FAN_SPEED_MAX);
+        rawData(F("</td>"));
       }
       if (useHeater) {
         rawData(F("<td>off</td>"));

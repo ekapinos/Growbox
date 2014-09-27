@@ -80,6 +80,7 @@ private:
   void spanTag_RedIfTrue(const __FlashStringHelper* text, boolean isRed);
   void printTemperatue(float t);
   void printTemperatueRange(float t1, float t2);
+  void printFanSpeed(byte sped, byte numerator = 0, byte denominator = 0);
 
   /////////////////////////////////////////////////////////////////////
   //                      COMMON FOR ALL PAGES                       //
