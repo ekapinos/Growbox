@@ -65,13 +65,22 @@ public:
   boolean isLightTurnedOn();
 
   void setUseFan(boolean flag);
-  boolean isUseFan();
+  boolean isUseFan();\
+
+  void getNumeratorDenominatorByIndex(byte fanSpeedValue, byte& numerator, byte& denominator);
+  byte numeratorDenominatorCombinationsCount();
+  byte findNuneratorDenominatorCombinationIndex(byte numerator, byte denominator);
+
+  byte packFanSpeedValue(boolean isOn, byte speed = 0, byte numerator = 0, byte denominator = 0);
+  void unpackFanSpeedValue(byte fanSpeedValue, boolean& isOn, byte& speed, byte& numerator, byte& denominator);
+
+  void turnOnOffFanBySpeedValue(byte fanSpeedValue);
+  byte getFanSpeedValue();
+
   void turnOnFan(byte speed, byte numerator = 0, byte denominator = 0);
   void turnOffFan();
   boolean isFanTurnedOn();
   byte getFanSpeed();
-  byte getFanNumerator();
-  byte getFanDenominator();
   void updateFan();
 
   void setUseHeater(boolean flag);

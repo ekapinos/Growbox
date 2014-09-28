@@ -65,7 +65,14 @@ struct BootRecord{
 
   int16_t autoAdjustClockTimeDelta; // 2
 
-  byte reserved[72];                //  <----reserved
+  byte fanSpeedDayColdTemperature;     // 1 // TODO move up
+  byte fanSpeedDayNormalTemperature;   // 1
+  byte fanSpeedDayHotTemperature;      // 1
+  byte fanSpeedNightColdTemperature;   // 1
+  byte fanSpeedNightNormalTemperature; // 1
+  byte fanSpeedNightHotTemperature;    // 1
+
+  byte reserved[66];                //  <----reserved
   char wifiSSID[WIFI_SSID_LENGTH];  // 32  
   char wifiPass[WIFI_PASS_LENGTH];  // 64
   word last_magic;                  //  2  

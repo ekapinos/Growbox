@@ -132,6 +132,7 @@ void setup() {
   if (MAX_WATERING_SYSTEMS_COUNT != sizeof(WATERING_PUMP_PINS)) {
     stopOnFatalError(F("wrong WATERING_PUMP_PINS size"));
   }
+  GB_Controller.numeratorDenominatorCombinationsCount(); // We should not trap into infinite loop
   GB_Controller.checkFreeMemory();
 
   // On this point system pass all fatal checks
@@ -227,6 +228,12 @@ void updateGrowboxState(boolean checkWetSensors) {
     normalTemperatueNightMin, normalTemperatueNightMax,
     criticalTemperatueMin, criticalTemperatueMax);
 
+  byte fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+       fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature,fanSpeedNightHotTemperature;
+  GB_StorageHelper.getFanParameters(
+      fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+      fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
+
   // WARNING! May return NaN. Compare NaN with other numbers always 'false'
   float temperature = GB_Thermometer.getTemperature();
 
@@ -252,26 +259,18 @@ void updateGrowboxState(boolean checkWetSensors) {
       // Day mode
       GB_Controller.turnOnLight();
       if (temperature < normalTemperatueDayMin) {
-        // Cold (heat by light)
-        GB_Controller.turnOnFan(FAN_SPEED_LOW, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
+        // Cold (may heat by light)
+        GB_Controller.turnOnOffFanBySpeedValue(fanSpeedDayColdTemperature);
         GB_Controller.turnOnHeater();
       }
       else if (temperature > normalTemperatueDayMax) {
         // Hot
-        GB_Controller.turnOnFan(FAN_SPEED_HIGH);
+        GB_Controller.turnOnOffFanBySpeedValue(fanSpeedDayHotTemperature);
         GB_Controller.turnOffHeater();
       }
       else {
         // Normal
-        float optimalTemperature = (float) (normalTemperatueDayMin + normalTemperatueDayMax) / 2.0;
-        if(temperature < optimalTemperature){
-          // Normal, less than optimal (heat by light)
-          GB_Controller.turnOnFan(FAN_SPEED_LOW, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
-        }
-        else {
-          // Normal, above than optimal
-          GB_Controller.turnOnFan(FAN_SPEED_LOW);
-        }
+        GB_Controller.turnOnOffFanBySpeedValue(fanSpeedDayNormalTemperature);
         GB_Controller.turnOffHeater();
       }
     }
@@ -280,23 +279,17 @@ void updateGrowboxState(boolean checkWetSensors) {
       GB_Controller.turnOffLight();
       if (temperature < normalTemperatueNightMin) {
         // Cold
-        GB_Controller.turnOnFan(FAN_SPEED_LOW, FAN_FROM_1_TO_6_NUMERATOR, FAN_FROM_1_TO_6_DENOMINATOR);
+        GB_Controller.turnOnOffFanBySpeedValue(fanSpeedNightColdTemperature);
         GB_Controller.turnOnHeater();
       }
       else if (temperature > normalTemperatueNightMax) {
         // Hot
-        GB_Controller.turnOnFan(FAN_SPEED_LOW);
+        GB_Controller.turnOnOffFanBySpeedValue(fanSpeedNightHotTemperature);
         GB_Controller.turnOffHeater();
       }
       else {
         // Normal
-        float optimalTemperature = (float) (normalTemperatueNightMin + normalTemperatueNightMax) / 2.0;
-        if (temperature < optimalTemperature){
-          GB_Controller.turnOnFan(FAN_SPEED_LOW, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
-        }
-        else {
-          GB_Controller.turnOnFan(FAN_SPEED_LOW, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
-        }
+        GB_Controller.turnOnOffFanBySpeedValue(fanSpeedNightNormalTemperature);
         GB_Controller.turnOffHeater();
       }
     }

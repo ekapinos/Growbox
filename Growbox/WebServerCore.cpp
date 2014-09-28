@@ -2,6 +2,7 @@
 
 #include "RAK410_XBeeWifi.h"
 #include "StorageHelper.h"
+#include "Controller.h"
 #include "StringUtils.h"
 
 void WebServerClass::init() {
@@ -542,14 +543,23 @@ void WebServerClass::printTemperatueRange(float t1, float t2) {
   printTemperatue(t2);
 }
 
-void WebServerClass::printFanSpeed(byte speed, byte numerator, byte denominator) {
-  rawData(speed == FAN_SPEED_HIGH ? F("high speed") : F("low speed"));
-  if (numerator != 0 || denominator != 0){
-    rawData(F(", "));
-    rawData(numerator * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-    rawData('/');
-    rawData(denominator * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
-    rawData(F(" min"));
+void WebServerClass::printFanSpeed(byte fanSpeedValue) {
+  boolean isOn;
+  byte speed, numerator, denominator;
+  GB_Controller.unpackFanSpeedValue(fanSpeedValue, isOn, speed, numerator, denominator);
+
+  if (isOn) {
+    rawData(speed == FAN_SPEED_HIGH ? F("high speed") : F("low speed"));
+    if (numerator != 0 || denominator != 0){
+      rawData(F(", "));
+      rawData(numerator * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
+      rawData('/');
+      rawData(denominator * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
+      rawData(F(" min"));
+    }
+  }
+  else {
+    rawData(F("off"));
   }
 }
 

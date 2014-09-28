@@ -214,11 +214,7 @@ void WebServerClass::sendStatusPage() {
 
   if (GB_Controller.isUseFan()) {
     rawData(F("<dd>Fan: "));
-    if (GB_Controller.isFanTurnedOn()){
-      printFanSpeed(GB_Controller.getFanSpeed(), GB_Controller.getFanNumerator(), GB_Controller.getFanDenominator());
-    } else {
-      rawData(F("off"));
-    }
+    printFanSpeed(GB_Controller.getFanSpeedValue());
     rawData(F("</dd>"));
   }
 
@@ -638,6 +634,154 @@ void WebServerClass::sendLogPage(const String& getParams) {
 //                         GENERAL PAGE                           //
 /////////////////////////////////////////////////////////////////////
 
+void WebServerClass::sendGeneralOptionsSummaryPage(){ // TODO extra page
+  // TODO use Thermoneter
+
+  byte fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+      fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature;
+  GB_StorageHelper.getFanParameters(
+      fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+      fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
+
+  boolean useLight  = GB_Controller.isUseLight();
+  boolean useFan    = GB_Controller.isUseFan();
+  boolean useHeater = GB_Controller.isUseHeater();
+  if (useLight || useFan || useHeater){
+    rawData(F("<tr><td colspan ='2'><small>"));
+    rawData(F("<table class='align_center'>"));
+
+    rawData(F("<tr><th>State</th>"));
+    if (useLight) {
+      rawData(F("<th>Light<br/>day/night</th>"));
+    }
+    if (useFan) {
+      rawData(F("<th>Fan<br/>day/night</th>"));
+    }
+    if (useHeater) {
+      rawData(F("<th>Heater</th>"));
+    }
+    rawData(F("</tr>"));
+
+    rawData(F("<tr><td class='align_left'>Critical cold</td>"));
+    if (useLight) {
+      rawData(F("<td>on / off</td>"));
+    }
+    if (useFan) {
+      rawData(F("<td>off</td>"));
+    }
+    if (useHeater) {
+      rawData(F("<td>on</td>"));
+    }
+    rawData(F("</tr>"));
+
+    rawData(F("<tr><td class='align_left'>Cold</td>"));
+    if (useLight) {
+      rawData(F("<td>on / off</td>"));
+    }
+    if (useFan) {
+      rawData(F("<td>"));
+      printFanSpeed(fanSpeedDayColdTemperature);
+      rawData(F(" / "));
+      printFanSpeed(fanSpeedNightColdTemperature);
+      rawData(F("</td>"));
+   }
+    if (useHeater) {
+      rawData(F("<td>on</td>"));
+    }
+    rawData(F("</tr>"));
+
+    rawData(F("<tr><td class='align_left'>Normal</td>"));
+    if (useLight) {
+      rawData(F("<td>on / off</td>"));
+    }
+    if (useFan) {
+      rawData(F("<td>"));
+      printFanSpeed(fanSpeedDayNormalTemperature);
+      rawData(F(" / "));
+      printFanSpeed(fanSpeedNightNormalTemperature);
+      rawData(F("</td>"));
+    }
+    if (useHeater) {
+      rawData(F("<td>off</td>"));
+    }
+    rawData(F("</tr>"));
+
+    rawData(F("<tr><td class='align_left'>Hot</td>"));
+    if (useLight) {
+      rawData(F("<td>on / off</td>"));
+    }
+    if (useFan) {
+      rawData(F("<td>"));
+      printFanSpeed(fanSpeedDayHotTemperature);
+      rawData(F(" / "));
+      printFanSpeed(fanSpeedNightHotTemperature);
+      rawData(F("</td>"));
+    }
+    if (useHeater) {
+      rawData(F("<td>off</td>"));
+    }
+    rawData(F("</tr>"));
+
+    rawData(F("<tr><td class='align_left'>Critical hot</td>"));
+    if (useLight) {
+      rawData(F("<td>off</td>"));
+    }
+    if (useFan) {
+      rawData(F("<td>"));
+      printFanSpeed(FAN_SPEED_HIGH);
+      rawData(F("</td>"));
+    }
+    if (useHeater) {
+      rawData(F("<td>off</td>"));
+    }
+    rawData(F("</tr>"));
+
+    rawData(F("</table>"));
+    rawData(F("</small></td></tr>"));
+  }
+}
+
+void WebServerClass::sendGeneralOptionsPage_FanParameterRow(const __FlashStringHelper* mode, const __FlashStringHelper* temperature, const __FlashStringHelper* controlNamePrefix, byte fanSpeedValue){
+
+  boolean isOn;
+  byte speed, numerator, denominator;
+  GB_Controller.unpackFanSpeedValue(fanSpeedValue, isOn, speed, numerator, denominator);
+
+  rawData(F("<tr><td>"));
+  rawData(mode);
+  rawData(F("</td><td>"));
+  rawData(temperature);
+  rawData(F("</td><td>"));
+
+  rawData(F("<select name='"));
+  rawData(controlNamePrefix);
+  rawData(F("Speed'>"));
+  tagOption(F("off"), F("Off"), isOn == false);
+  tagOption(F("low"), F("Low"), isOn == true && speed == FAN_SPEED_LOW);
+  tagOption(F("high"), F("High"),  isOn == true && speed == FAN_SPEED_HIGH);
+  rawData(F("</select>"));
+
+  rawData(F("</td><td>"));
+
+  rawData(F("<select name='"));
+  rawData(controlNamePrefix);
+  rawData(F("Ratio'>"));
+  tagOption(F("0"),  F("No ratio"),  numerator == 0 && denominator == 0);
+  for (byte index = 1; index < GB_Controller.numeratorDenominatorCombinationsCount(); index++){
+    byte l_numerator, l_denominator;
+    GB_Controller.getNumeratorDenominatorByIndex(index, l_numerator, l_denominator);
+
+    String value(index);
+    String valueDescription (l_numerator * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
+    valueDescription += '/';
+    valueDescription += l_denominator * UPDATE_GROWBOX_STATE_DELAY_MINUTES;
+    tagOption(value, valueDescription, l_numerator == numerator && l_denominator == denominator);
+  }
+  rawData(F("</select>"));
+
+  rawData(F("</td><td></td></tr>"));
+}
+
 void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
 
   word upTime, downTime;
@@ -674,8 +818,9 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
   rawData(F("</fieldset>"));
 
   rawData(F("<br/>"));
-  if (c_isWifiResponseError)
+  if (c_isWifiResponseError) {
     return;
+  }
 
   rawData(F("<fieldset><legend>Logger</legend>"));
 
@@ -713,7 +858,6 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
   rawData(F("</fieldset>"));
 
   if (GB_StorageHelper.isUseThermometer()) {
-
     rawData(F("<br/>"));
     if (c_isWifiResponseError)
       return;
@@ -756,123 +900,55 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
     rawData(F("<input type='submit' value='Save'>"));
     rawData(F("</td></tr>"));
 
-    boolean useLight  = GB_Controller.isUseLight();
-    boolean useFan    = GB_Controller.isUseFan();
-    boolean useHeater = GB_Controller.isUseHeater();
-    if (useLight || useFan || useHeater){
-      rawData(F("<tr><td colspan ='2'><small>"));
-      rawData(F("<table class='align_center'>"));
+    rawData(F("</table>"));
+    rawData(F("</form>"));
+    rawData(F("</fieldset>"));
+  }
 
-      rawData(F("<tr><th>State</th>"));
-      if (useLight) {
-        rawData(F("<th>Light<br/>day/night</th>"));
-      }
-      if (useFan) {
-        rawData(F("<th>Fan<br/>day/night</th>"));
-      }
-      if (useHeater) {
-        rawData(F("<th>Heater</th>"));
-      }
-      rawData(F("</tr>"));
+  if (GB_Controller.isUseFan()){
 
-      rawData(F("<tr><td class='align_left'>Critical cold</td>"));
-      if (useLight) {
-        rawData(F("<td>on / off</td>"));
-      }
-      if (useFan) {
-        rawData(F("<td>off</td>"));
-      }
-      if (useHeater) {
-        rawData(F("<td>on</td>"));
-      }
-      rawData(F("</tr>"));
+    rawData(F("<br/>"));
 
-      rawData(F("<tr><td class='align_left'>Cold</td>"));
-      if (useLight) {
-        rawData(F("<td>on / off</td>"));
-      }
-      if (useFan) {
-        rawData(F("<td>"));
-        printFanSpeed(FAN_SPEED_LOW, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
-        rawData(F(" / "));
-        printFanSpeed(FAN_SPEED_LOW, FAN_FROM_1_TO_6_NUMERATOR, FAN_FROM_1_TO_6_DENOMINATOR);
-        rawData(F("</td>"));
-     }
-      if (useHeater) {
-        rawData(F("<td>on</td>"));
-      }
-      rawData(F("</tr>"));
+    byte fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+        fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature;
+    GB_StorageHelper.getFanParameters(
+        fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+        fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
 
-      rawData(F("<tr><td class='align_left'>Less than optimal</td>"));
-      if (useLight) {
-        rawData(F("<td>on / off</td>"));
-      }
-      if (useFan) {
-        rawData(F("<td>"));
-        printFanSpeed(FAN_SPEED_LOW, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
-        rawData(F(" / "));
-        printFanSpeed(FAN_SPEED_LOW, FAN_FROM_1_TO_4_NUMERATOR, FAN_FROM_1_TO_4_DENOMINATOR);
-        rawData(F("</td>"));
-      }
-      if (useHeater) {
-        rawData(F("<td>off</td>"));
-      }
-      rawData(F("</tr>"));
+    rawData(F("<fieldset><legend>Fan</legend>"));
+    rawData(F("<form action='"));
+    rawData(FS(S_URL_GENERAL_OPTIONS));
+    rawData(F("' method='post'>"));
+    rawData(F("<table>"));
 
-      rawData(F("<tr><td class='align_left'>Greater than optimal</td>"));
-      if (useLight) {
-        rawData(F("<td>on / off</td>"));
-      }
-      if (useFan) {
-        rawData(F("<td>"));
-        printFanSpeed(FAN_SPEED_LOW);
-        rawData(F(" / "));
-        printFanSpeed(FAN_SPEED_LOW, FAN_FROM_1_TO_3_NUMERATOR, FAN_FROM_1_TO_3_DENOMINATOR);
-        rawData(F("</td>"));
-      }
-      if (useHeater) {
-        rawData(F("<td>off</td>"));
-      }
-      rawData(F("</tr>"));
+    if (GB_StorageHelper.isUseThermometer()) {
+      rawData(F("<tr><th>Mode</th><th>Temperature</th><th>Speed</th><th>Ratio</th></tr>"));
 
-      rawData(F("<tr><td class='align_left'>Hot</td>"));
-      if (useLight) {
-        rawData(F("<td>on / off</td>"));
-      }
-      if (useFan) {
-        rawData(F("<td>"));
-        printFanSpeed(FAN_SPEED_HIGH);
-        rawData(F(" / "));
-        printFanSpeed(FAN_SPEED_LOW);
-        rawData(F("</td>"));
-      }
-      if (useHeater) {
-        rawData(F("<td>off</td>"));
-      }
-      rawData(F("</tr>"));
+      sendGeneralOptionsPage_FanParameterRow(F("Day"), F("Cold"), F("dayCold"), fanSpeedDayColdTemperature);
+      sendGeneralOptionsPage_FanParameterRow(F(""), F("Normal"), F("dayNormal"), fanSpeedDayNormalTemperature);
+      sendGeneralOptionsPage_FanParameterRow(F(""), F("Hot"), F("dayHot"), fanSpeedDayHotTemperature);
 
-      rawData(F("<tr><td class='align_left'>Critical hot</td>"));
-      if (useLight) {
-        rawData(F("<td>off</td>"));
-      }
-      if (useFan) {
-        rawData(F("<td>"));
-        printFanSpeed(FAN_SPEED_HIGH);
-        rawData(F("</td>"));
-      }
-      if (useHeater) {
-        rawData(F("<td>off</td>"));
-      }
-      rawData(F("</tr>"));
+      rawData(F("<tr><td colspan='3'><br/></td></tr>"));
 
-      rawData(F("</table>"));
-      rawData(F("</small></td></tr>"));
+      sendGeneralOptionsPage_FanParameterRow(F("Night"), F("Cold"), F("nightCold"), fanSpeedNightColdTemperature);
+      sendGeneralOptionsPage_FanParameterRow(F(""), F("Normal"), F("nightNormal"), fanSpeedNightNormalTemperature);
+      sendGeneralOptionsPage_FanParameterRow(F(""), F("Hot"), F("nightHot"), fanSpeedNightHotTemperature);
     }
+    else {
+      rawData(F("<tr><th>Mode</th><th></th><th>Speed</th><th>Ratio</th></tr>"));
+      sendGeneralOptionsPage_FanParameterRow(F("Day"), F(""), F("dayNormal"), fanSpeedDayNormalTemperature);
+      sendGeneralOptionsPage_FanParameterRow(F("Night"), F(""), F("nightNormal"), fanSpeedNightNormalTemperature);
+
+    }
+    rawData(F("<tr><td colspan='3'>"));
+    rawData(F("<input type='submit' value='Save'>"));
+    rawData(F("</td></tr>"));
 
     rawData(F("</table>"));
     rawData(F("</form>"));
     rawData(F("</fieldset>"));
   }
+
 
   updateDayNightPeriodJavaScript();
 }
@@ -1122,11 +1198,7 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
 
   tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
   rawData(F("<div class='description'>Current state [<b>"));
-  if (GB_Controller.isFanTurnedOn()){
-    printFanSpeed(GB_Controller.getFanSpeed(), GB_Controller.getFanNumerator(), GB_Controller.getFanDenominator());
-  } else {
-    rawData(F("off"));
-  }
+  printFanSpeed(GB_Controller.getFanSpeedValue());
   rawData(F("</b>], temperature [<b>"));
   printTemperatue(GB_Thermometer.getTemperature());
   rawData(F("</b>]</div>"));
@@ -1700,6 +1772,166 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
     boolean boolValue = (value[0] == '1');
     GB_Controller.setUseHeater(boolValue);
 
+    c_isWifiForceUpdateGrowboxState = true;
+
+  }
+  else if (StringUtils::flashStringEquals(name, F("dayColdSpeed")) ||
+      StringUtils::flashStringEquals(name, F("dayNormalSpeed")) ||
+      StringUtils::flashStringEquals(name, F("dayHotSpeed")) ||
+      StringUtils::flashStringEquals(name, F("nightColdSpeed")) ||
+      StringUtils::flashStringEquals(name, F("nightNormalSpeed")) ||
+      StringUtils::flashStringEquals(name, F("nightHotSpeed"))) {
+    byte isOn, speed;
+    if (StringUtils::flashStringEquals(value, F("off"))) {
+      isOn = false;
+      speed = RELAY_OFF;  // Compiler warning
+    }
+    else if (StringUtils::flashStringEquals(value, F("low"))) {
+      isOn = true;
+      speed = FAN_SPEED_LOW;
+    }
+    else if (StringUtils::flashStringEquals(value, F("high"))) {
+      isOn = true;
+      speed = FAN_SPEED_HIGH;
+    }
+    else  {
+      return false;
+    }
+
+    byte fanSpeedValue;
+    byte fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+         fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature,fanSpeedNightHotTemperature;
+    GB_StorageHelper.getFanParameters(
+        fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+        fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
+
+    if (StringUtils::flashStringEquals(name, F("dayColdSpeed"))) {
+      fanSpeedValue = fanSpeedDayColdTemperature;
+    }
+    else if (StringUtils::flashStringEquals(name, F("dayNormalSpeed"))){
+      fanSpeedValue = fanSpeedDayNormalTemperature;
+    }
+    else if (StringUtils::flashStringEquals(name, F("dayHotSpeed"))){
+      fanSpeedValue = fanSpeedDayHotTemperature;
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightColdSpeed"))){
+      fanSpeedValue = fanSpeedNightColdTemperature;
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightNormalSpeed"))){
+      fanSpeedValue = fanSpeedNightNormalTemperature;
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightHotSpeed"))){
+      fanSpeedValue = fanSpeedNightHotTemperature;
+    }
+    else {
+      return false;
+    }
+
+    boolean isOn_temp; byte speed_temp;
+    byte numerator, denominator;
+    GB_Controller.unpackFanSpeedValue(fanSpeedValue, isOn_temp, speed_temp, numerator, denominator);
+    fanSpeedValue = GB_Controller.packFanSpeedValue(isOn, speed, numerator, denominator);
+
+    if (StringUtils::flashStringEquals(name, F("dayColdSpeed"))) {
+      GB_StorageHelper.setFanSpeedDayColdTemperature(fanSpeedValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("dayNormalSpeed"))){
+      GB_StorageHelper.setFanSpeedDayNormalTemperature(fanSpeedValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("dayHotSpeed"))){
+      GB_StorageHelper.setFanSpeedDayHotTemperature(fanSpeedValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightColdSpeed"))){
+      GB_StorageHelper.setFanSpeedNightColdTemperature(fanSpeedValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightNormalSpeed"))){
+      GB_StorageHelper.setFanSpeedNightNormalTemperature(fanSpeedValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightHotSpeed"))){
+      GB_StorageHelper.setFanSpeedNightHotTemperature(fanSpeedValue);
+    }
+    else {
+      return false;
+    }
+    c_isWifiForceUpdateGrowboxState = true;
+  }
+  else if (StringUtils::flashStringEquals(name, F("dayColdRatio")) ||
+      StringUtils::flashStringEquals(name, F("dayNormalRatio")) ||
+      StringUtils::flashStringEquals(name, F("dayHotRatio")) ||
+      StringUtils::flashStringEquals(name, F("nightColdRatio")) ||
+      StringUtils::flashStringEquals(name, F("nightNormalRatio")) ||
+      StringUtils::flashStringEquals(name, F("nightHotRatio"))) {
+    if (value.length() == 0) {
+      return false;
+    }
+    boolean isZero = false;
+    if (value.length() == 1) {
+      if (value[0] == '0') {
+        isZero = true;
+      }
+    }
+    int16_t intValue = value.toInt();
+    if (intValue == 0 && !isZero) {
+      return false;
+    }
+    byte numerator, denominator;
+    GB_Controller.getNumeratorDenominatorByIndex(intValue, numerator, denominator);
+
+    byte fanSpeedValue;
+    byte fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+         fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature,fanSpeedNightHotTemperature;
+    GB_StorageHelper.getFanParameters(
+        fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+        fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
+
+    if (StringUtils::flashStringEquals(name, F("dayColdRatio"))) {
+      fanSpeedValue = fanSpeedDayColdTemperature;
+    }
+    else if (StringUtils::flashStringEquals(name, F("dayNormalRatio"))){
+      fanSpeedValue = fanSpeedDayNormalTemperature;
+    }
+    else if (StringUtils::flashStringEquals(name, F("dayHotRatio"))){
+      fanSpeedValue = fanSpeedDayHotTemperature;
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightColdRatio"))){
+      fanSpeedValue = fanSpeedNightColdTemperature;
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightNormalRatio"))){
+      fanSpeedValue = fanSpeedNightNormalTemperature;
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightHotRatio"))){
+      fanSpeedValue = fanSpeedNightHotTemperature;
+    }
+    else {
+      return false;
+    }
+
+    boolean isOn; byte speed;
+    byte numerator_temp, denominator_temp;
+    GB_Controller.unpackFanSpeedValue(fanSpeedValue, isOn, speed, numerator_temp, denominator_temp);
+    fanSpeedValue = GB_Controller.packFanSpeedValue(isOn, speed, numerator, denominator);
+
+    if (StringUtils::flashStringEquals(name, F("dayColdRatio"))) {
+      GB_StorageHelper.setFanSpeedDayColdTemperature(fanSpeedValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("dayNormalRatio"))){
+      GB_StorageHelper.setFanSpeedDayNormalTemperature(fanSpeedValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("dayHotRatio"))){
+      GB_StorageHelper.setFanSpeedDayHotTemperature(fanSpeedValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightColdRatio"))){
+      GB_StorageHelper.setFanSpeedNightColdTemperature(fanSpeedValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightNormalRatio"))){
+      GB_StorageHelper.setFanSpeedNightNormalTemperature(fanSpeedValue);
+    }
+    else if (StringUtils::flashStringEquals(name, F("nightHotRatio"))){
+      GB_StorageHelper.setFanSpeedNightHotTemperature(fanSpeedValue);
+    }
+    else {
+      return false;
+    }
     c_isWifiForceUpdateGrowboxState = true;
   }
   else {

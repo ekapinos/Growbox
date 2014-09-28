@@ -82,26 +82,6 @@ const long WATERING_ERROR_DELTA_SEC = 5 * 60; // 6 minutes
 //                          OTHER CONSTS                           //
 /////////////////////////////////////////////////////////////////////
 
-// Main cycle
-
-// better to use intervals aliquot to UPDATE_GROWBOX_STATE_DELAY_SEC
-// and sum aliquot to 60 minutes
-//  every 5/15 min
-//  0..5, 15..20, 30..35, 45..50 - fan turned on (33%)
-// 5..15, 20..30, 35..45, 50..0  - fan turned off (66%)
-const byte FAN_FROM_1_TO_3_NUMERATOR = 1;
-const byte FAN_FROM_1_TO_3_DENOMINATOR = 3;
-
-// repeat every 5/20 min
-//  0..5, 20..25, 40..45 - fan turned on (25%)
-// 5..20, 25..40, 45..0  - fan turned off (75%)
-const byte FAN_FROM_1_TO_4_NUMERATOR = 1;
-const byte FAN_FROM_1_TO_4_DENOMINATOR = 4;
-
-// repeat every 5/30 min
-const byte FAN_FROM_1_TO_6_NUMERATOR = 1;
-const byte FAN_FROM_1_TO_6_DENOMINATOR = 6;
-
 // Wi-Fi
 const byte WI_FI_RECONNECT_ATTEMPTS_BEFORE_USE_DEFAULT_PARAMS = 3;
 

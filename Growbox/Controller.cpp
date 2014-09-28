@@ -16,6 +16,7 @@ ControllerClass::ControllerClass() :
     c_lastBreezeTimeStamp(0),
     c_isDayInGrowbox(-1),
     c_fan_isOn(false),
+    c_fan_speed(RELAY_OFF),
     c_fan_numerator(0),
     c_fan_denominator(0) {
   // We set c_isDayInGrowbox == -1 to force log on startup
@@ -363,8 +364,119 @@ void ControllerClass::setUseFan(boolean flag) {
   GB_StorageHelper.setUseFan(flag);
   GB_Logger.logEvent(flag ? EVENT_FAN_ENABLED : EVENT_FAN_DISABLED);
 }
+
 boolean ControllerClass::isUseFan() {
   return GB_StorageHelper.isUseFan();
+}
+
+
+void ControllerClass::getNumeratorDenominatorByIndex (byte index, byte& numerator, byte& denominator) {
+  if (index == 0){ // full time
+    numerator = 0; denominator = 0;
+  } else if (index == 1){ // 5/10
+    numerator = 1; denominator = 2;
+  }
+  else if (index == 2){ // 5/15
+    numerator = 1; denominator = 3;
+  }
+  else if (index == 3){ // 5/20
+    numerator = 1; denominator = 4;
+  }
+  else if (index == 4){ // 5/30
+    numerator = 1; denominator = 6;
+  }
+  else if (index == 5){ // 5/60
+    numerator = 1; denominator = 12;
+  }
+  else if (index == 6){ // 10/15
+    numerator = 2; denominator = 3;
+  }
+  else if (index == 7){ // 10/20
+    numerator = 2; denominator = 4;
+  }
+  else if (index == 8){ // 10/30
+    numerator = 2; denominator = 6;
+  }
+  else if (index == 9){ // 10/60
+    numerator = 2; denominator = 12;
+  }
+  else if (index == 10){ // 15/20
+    numerator = 3; denominator = 4;
+  }
+  else if (index == 11){ // 15/30
+    numerator = 3; denominator = 6;
+  }
+  else if (index == 12){ // 15/60
+    numerator = 3; denominator = 12;
+  }
+  else if (index == 13){ // 20/30
+    numerator = 4; denominator =6 ;
+  }
+  else if (index == 14){ // 20/60
+    numerator = 4; denominator = 12;
+  }
+  else if (index == 15){ // 30/60
+    numerator = 6; denominator = 12;
+  } else {
+    numerator = 0; denominator = 0; // stop marker
+  }
+}
+
+byte ControllerClass::numeratorDenominatorCombinationsCount(){
+  byte index = 1;
+  byte numerator, denominator;
+  getNumeratorDenominatorByIndex(index, numerator, denominator);
+  while (numerator != 0 && denominator!= 0){ // look for stop marker
+    index++;
+    getNumeratorDenominatorByIndex(index, numerator, denominator);
+  }
+  return index;
+}
+
+byte ControllerClass::findNuneratorDenominatorCombinationIndex(byte numerator, byte denominator){
+  byte l_numerator, l_denominator;
+  for (byte index = 0; index < numeratorDenominatorCombinationsCount(); index++){
+    getNumeratorDenominatorByIndex(index, l_numerator, l_denominator);
+    if (l_numerator == numerator  && l_denominator == denominator){
+      return index;
+    }
+  }
+  return 0; // full time
+}
+
+byte ControllerClass::packFanSpeedValue(boolean isOn, byte speed, byte numerator, byte denominator) {
+  if (isOn){
+    return B10000000 |
+        (speed == FAN_SPEED_HIGH ? B01000000 : 0) |
+        (B00111111 & findNuneratorDenominatorCombinationIndex(numerator, denominator));
+  } else {
+    return 0;
+  }
+}
+
+void ControllerClass::unpackFanSpeedValue(byte fanSpeedValue, boolean& isOn, byte& speed, byte& numerator, byte& denominator) {
+  isOn = (fanSpeedValue & B10000000) > 0;
+  speed = (fanSpeedValue & B01000000) > 0 ? FAN_SPEED_HIGH : FAN_SPEED_LOW;
+
+  byte numeratorDenominatorIndex = (fanSpeedValue & B00111111);
+  getNumeratorDenominatorByIndex(numeratorDenominatorIndex, numerator, denominator);
+}
+
+void ControllerClass::turnOnOffFanBySpeedValue(byte fanSpeedValue){
+
+  boolean isOn; byte speed, numerator, denominator;
+  unpackFanSpeedValue(fanSpeedValue, isOn, speed, numerator, denominator);
+
+  if (isOn){
+    turnOnFan(speed, numerator, denominator);
+  }
+  else {
+    turnOffFan();
+  }
+}
+
+byte ControllerClass::getFanSpeedValue() {
+  return packFanSpeedValue(c_fan_isOn, c_fan_speed, c_fan_numerator, c_fan_denominator);
 }
 
 void ControllerClass::turnOnFan(byte speed, byte numerator, byte denominator) {
@@ -413,12 +525,6 @@ boolean ControllerClass::isFanTurnedOn() {
 }
 byte ControllerClass::getFanSpeed() {
   return c_fan_speed;
-}
-byte ControllerClass::getFanNumerator() {
-  return c_fan_numerator;
-}
-byte ControllerClass::getFanDenominator() {
-  return c_fan_denominator;
 }
 void ControllerClass::updateFan() {
   boolean isFanOnNow = c_fan_isOn;

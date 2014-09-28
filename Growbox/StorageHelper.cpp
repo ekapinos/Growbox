@@ -107,6 +107,13 @@ boolean StorageHelperClass::init_loadConfiguration(time_t currentTime) {
     bootRecord.criticalTemperatureMin = 16;
     bootRecord.criticalTemperatureMax = 35;
 
+    bootRecord.fanSpeedDayColdTemperature     = GB_Controller.packFanSpeedValue(true, FAN_SPEED_LOW, 1, 3);
+    bootRecord.fanSpeedDayNormalTemperature   = GB_Controller.packFanSpeedValue(true, FAN_SPEED_LOW);
+    bootRecord.fanSpeedDayHotTemperature      = GB_Controller.packFanSpeedValue(true, FAN_SPEED_HIGH);
+    bootRecord.fanSpeedNightColdTemperature   = GB_Controller.packFanSpeedValue(true, FAN_SPEED_LOW, 1, 4);
+    bootRecord.fanSpeedNightNormalTemperature = GB_Controller.packFanSpeedValue(true, FAN_SPEED_LOW, 1, 3);
+    bootRecord.fanSpeedNightHotTemperature    = GB_Controller.packFanSpeedValue(true, FAN_SPEED_LOW);
+
     for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
 
       BootRecord::WateringSystemPreferencies& wsp = bootRecord.wateringSystemPreferencies[i];
@@ -282,12 +289,12 @@ void StorageHelperClass::getTemperatureParameters(
     byte& normalTemperatueDayMin, byte& normalTemperatueDayMax,
     byte& normalTemperatueNightMin, byte& normalTemperatueNightMax,
     byte& criticalTemperatueMin, byte& criticalTemperatueMax) {
-  normalTemperatueDayMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatureDayMin));
-  normalTemperatueDayMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatureDayMax));
+  normalTemperatueDayMin   = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatureDayMin));
+  normalTemperatueDayMax   = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatureDayMax));
   normalTemperatueNightMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatureNightMin));
   normalTemperatueNightMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, normalTemperatureNightMax));
-  criticalTemperatueMin = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, criticalTemperatureMin));
-  criticalTemperatueMax = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, criticalTemperatureMax));
+  criticalTemperatueMin    = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, criticalTemperatureMin));
+  criticalTemperatueMax    = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, criticalTemperatureMax));
 }
 
 void StorageHelperClass::setNormalTemperatueDayMin(const byte normalTemperatueDayMin) {
@@ -309,6 +316,35 @@ void StorageHelperClass::setCriticalTemperatueMax(const byte criticalTemperatueM
   EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, criticalTemperatureMax), criticalTemperatueMax);
 }
 
+void StorageHelperClass::getFanParameters(
+    byte& fanSpeedDayColdTemperature, byte& fanSpeedDayNormalTemperature, byte& fanSpeedDayHotTemperature,
+    byte& fanSpeedNightColdTemperature, byte& fanSpeedNightNormalTemperature, byte& fanSpeedNightHotTemperature) {
+  fanSpeedDayColdTemperature     = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, fanSpeedDayColdTemperature));
+  fanSpeedDayNormalTemperature   = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, fanSpeedDayNormalTemperature));
+  fanSpeedDayHotTemperature      = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, fanSpeedDayHotTemperature));
+  fanSpeedNightColdTemperature   = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, fanSpeedNightColdTemperature));
+  fanSpeedNightNormalTemperature = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, fanSpeedNightNormalTemperature));
+  fanSpeedNightHotTemperature    = EEPROM.readBlock<byte>(OFFSETOF(BootRecord, fanSpeedNightHotTemperature));
+}
+
+void StorageHelperClass::setFanSpeedDayColdTemperature(const byte fanSpeedDayColdTemperature) {
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, fanSpeedDayColdTemperature), fanSpeedDayColdTemperature);
+}
+void StorageHelperClass::setFanSpeedDayNormalTemperature(const byte fanSpeedDayNormalTemperature) {
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, fanSpeedDayNormalTemperature), fanSpeedDayNormalTemperature);
+}
+void StorageHelperClass::setFanSpeedDayHotTemperature(const byte fanSpeedDayHotTemperature) {
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, fanSpeedDayHotTemperature), fanSpeedDayHotTemperature);
+}
+void StorageHelperClass::setFanSpeedNightColdTemperature(const byte fanSpeedNightColdTemperature) {
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, fanSpeedNightColdTemperature), fanSpeedNightColdTemperature);
+}
+void StorageHelperClass::setFanSpeedNightNormalTemperature(const byte fanSpeedNightNormalTemperature) {
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, fanSpeedNightNormalTemperature), fanSpeedNightNormalTemperature);
+}
+void StorageHelperClass::setFanSpeedNightHotTemperature(const byte fanSpeedNightHotTemperature) {
+  EEPROM.writeBlock<byte>(OFFSETOF(BootRecord, fanSpeedNightHotTemperature), fanSpeedNightHotTemperature);
+}
 
 /////////////////////////////////////////////////////////////////////
 //                           OTHER DEVICES                         //

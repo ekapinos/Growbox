@@ -62,13 +62,27 @@ public:
   void setUseThermometer(boolean flag);
   boolean isUseThermometer();
 
-  void getTemperatureParameters(byte& normalTemperatueDayMin, byte& normalTemperatueDayMax, byte& normalTemperatueNightMin, byte& normalTemperatueNightMax, byte& criticalTemperatueMin, byte& criticalTemperatueMax);
+  void getTemperatureParameters(
+      byte& normalTemperatueDayMin, byte& normalTemperatueDayMax,
+      byte& normalTemperatueNightMin, byte& normalTemperatueNightMax,
+      byte& criticalTemperatueMin, byte& criticalTemperatueMax);
   void setNormalTemperatueDayMin(const byte normalTemperatueDayMin);
   void setNormalTemperatueDayMax(const byte normalTemperatueDayMax);
   void setNormalTemperatueNightMin(const byte normalTemperatueNightMin);
   void setNormalTemperatueNightMax(const byte normalTemperatueNightMax);
   void setCriticalTemperatueMin(const byte criticalTemperatueMin);
   void setCriticalTemperatueMax(const byte criticalTemperatueMax);
+
+
+  void getFanParameters(
+      byte& fanSpeedDayColdTemperature, byte& fanSpeedDayNormalTemperature, byte& fanSpeedDayHotTemperature,
+      byte& fanSpeedNightColdTemperature, byte& fanSpeedNightNormalTemperature, byte& fanSpeedNightHotTemperature);
+  void setFanSpeedDayColdTemperature(const byte fanSpeedDayColdTemperature);
+  void setFanSpeedDayNormalTemperature(const byte fanSpeedDayNormalTemperature);
+  void setFanSpeedDayHotTemperature(const byte fanSpeedDayHotTemperature);
+  void setFanSpeedNightColdTemperature(const byte fanSpeedNightColdTemperature);
+  void setFanSpeedNightNormalTemperature(const byte fanSpeedNightNormalTemperature);
+  void setFanSpeedNightHotTemperature(const byte fanSpeedNightHotTemperature);
 
   /////////////////////////////////////////////////////////////////////
   //                           OTHER DEVICES                         //
