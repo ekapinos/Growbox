@@ -10,7 +10,7 @@
 const char S_URL_STATUS[] PROGMEM = "/";
 const char S_URL_DAILY_LOG[] PROGMEM = "/log";
 const char S_URL_GENERAL_OPTIONS[] PROGMEM = "/options";
-const char S_URL_GENERAL_OPTIONS_SUMMARY[] PROGMEM = "/options/summary"; // TODO
+const char S_URL_GENERAL_OPTIONS_SUMMARY[] PROGMEM = "/options/summary";
 const char S_URL_WATERING[] PROGMEM = "/watering";
 const char S_URL_HARDWARE[] PROGMEM = "/hardware";
 const char S_URL_OTHER_PAGE[] PROGMEM = "/other";
@@ -108,9 +108,10 @@ private:
   /////////////////////////////////////////////////////////////////////
 
   void updateDayNightPeriodJavaScript();
-  void sendGeneralOptionsSummaryPage();
   void sendGeneralOptionsPage_FanParameterRow(const __FlashStringHelper* mode, const __FlashStringHelper* temperature, const __FlashStringHelper* controlNamePrefix, byte fanSpeedValue);
   void sendGeneralOptionsPage(const String& getParams);
+
+  void sendGeneralOptions_SummaryPage();
 
   /////////////////////////////////////////////////////////////////////
   //                         WATERING PAGE                           //

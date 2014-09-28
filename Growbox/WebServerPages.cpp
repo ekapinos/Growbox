@@ -19,7 +19,8 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
   boolean isStatusPage = StringUtils::flashStringEquals(url, FS(S_URL_STATUS));
   boolean isLogPage = StringUtils::flashStringEquals(url, FS(S_URL_DAILY_LOG));
 
-  boolean isGeneralPage = StringUtils::flashStringEquals(url, FS(S_URL_GENERAL_OPTIONS));
+  boolean isGeneralOptionsPage = StringUtils::flashStringEquals(url, FS(S_URL_GENERAL_OPTIONS));
+  boolean isGeneralOptionsSummaryPage = StringUtils::flashStringEquals(url, FS(S_URL_GENERAL_OPTIONS_SUMMARY));
   boolean isWateringPage = (wsIndex != 0xFF);
   boolean isHardwarePage = StringUtils::flashStringEquals(url, FS(S_URL_HARDWARE));
   boolean isOtherPage = StringUtils::flashStringEquals(url, FS(S_URL_OTHER_PAGE));
@@ -27,7 +28,7 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
   boolean isDumpAT24C32 = StringUtils::flashStringEquals(url, FS(S_URL_DUMP_AT24C32));
   boolean isPinMapPage = StringUtils::flashStringEquals(url, FS(S_URL_PINMAP));
 
-  boolean isConfigurationPage = (isGeneralPage || isWateringPage || isHardwarePage || isOtherPage || isDumpInternal || isDumpAT24C32 || isPinMapPage);
+  boolean isConfigurationPage = (isGeneralOptionsPage || isGeneralOptionsSummaryPage || isWateringPage || isHardwarePage || isOtherPage || isDumpInternal || isDumpAT24C32 || isPinMapPage);
 
   boolean isValidPage = (isStatusPage || isLogPage || isConfigurationPage);
   if (!isValidPage) {
@@ -85,7 +86,10 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
   }
   rawData('>');
   tagOption(F(""), F("Select options page"), !isConfigurationPage, true);
-  tagOption(FS(S_URL_GENERAL_OPTIONS), F("General options"), isGeneralPage);
+  tagOption(FS(S_URL_GENERAL_OPTIONS), F("General options"), isGeneralOptionsPage);
+  if (isGeneralOptionsSummaryPage){
+    tagOption(FS(S_URL_GENERAL_OPTIONS_SUMMARY), F("General options: Summary"), isGeneralOptionsSummaryPage);
+  }
   for (byte i = 0; i < MAX_WATERING_SYSTEMS_COUNT; i++) {
     String url = StringUtils::flashStringLoad(FS(S_URL_WATERING));
     if (i > 0) {
@@ -130,8 +134,11 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
   else if (isLogPage) {
     sendLogPage(getParams);
   }
-  else if (isGeneralPage) {
+  else if (isGeneralOptionsPage) {
     sendGeneralOptionsPage(getParams);
+  }
+  else if (isGeneralOptionsSummaryPage) {
+    sendGeneralOptions_SummaryPage();
   }
   else if (isWateringPage) {
     sendWateringOptionsPage(url, wsIndex);
@@ -261,30 +268,6 @@ void WebServerClass::sendStatusPage() {
     return;
   }
 
-  rawData(F("<dt>Logger</dt>"));
-  if (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) {
-    rawData(F("<dd>External AT24C32 EEPROM: "));
-    spanTag_RedIfTrue(F("not connected"), true);
-    rawData(F("</dd>"));
-  }
-  if (!GB_StorageHelper.isStoreLogRecordsEnabled()) {
-    rawData(F("<dd>"));
-    spanTag_RedIfTrue(F("Disabled"), true);
-    rawData(F("</dd>"));
-  }
-  rawData(F("<dd>Stored records: "));
-  rawData(GB_StorageHelper.getLogRecordsCount());
-  rawData('/');
-  rawData(GB_StorageHelper.getLogRecordsCapacity());
-  if (GB_StorageHelper.isLogOverflow()) {
-    rawData(F(", overflow"));
-  }
-  rawData(F("</dd>"));
-
-  if (c_isWifiResponseError) {
-    return;
-  }
-
   if (GB_StorageHelper.isUseThermometer()) {
     float lastTemperature, statisticsTemperature;
     int statisticsCount;
@@ -330,7 +313,7 @@ void WebServerClass::sendStatusPage() {
     rawData(F("</dt>"));
 
     if (wsp.boolPreferencies.isWetSensorConnected) {
-      rawData(F("<dd>Wet sensor: "));
+      rawData(F("<dd>Wet: "));
       WateringEvent* currentStatus = GB_Watering.getCurrentWetSensorStatus(wsIndex);
       spanTag_RedIfTrue(currentStatus->shortDescription, currentStatus != &WATERING_EVENT_WET_SENSOR_NORMAL);
 
@@ -353,29 +336,28 @@ void WebServerClass::sendStatusPage() {
     }
   }
 
-  rawData(F("<dt>Configuration</dt>"));
-  rawData(F("<dd>Day mode at: "));
-  rawData(StringUtils::wordTimeToString(upTime));
-  rawData(F("</dd><dd>Night mode at: "));
-  rawData(StringUtils::wordTimeToString(downTime));
+  rawData(F("<dt>Logger</dt>"));
+  if (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) {
+    rawData(F("<dd>External AT24C32 EEPROM: "));
+    spanTag_RedIfTrue(F("not connected"), true);
+    rawData(F("</dd>"));
+  }
+  if (!GB_StorageHelper.isStoreLogRecordsEnabled()) {
+    rawData(F("<dd>"));
+    spanTag_RedIfTrue(F("Disabled"), true);
+    rawData(F("</dd>"));
+  }
+  rawData(F("<dd>Stored records: "));
+  rawData(GB_StorageHelper.getLogRecordsCount());
+  rawData('/');
+  rawData(GB_StorageHelper.getLogRecordsCapacity());
+  if (GB_StorageHelper.isLogOverflow()) {
+    rawData(F(", overflow"));
+  }
   rawData(F("</dd>"));
 
-  if (GB_StorageHelper.isUseThermometer()) {
-    byte normalTemperatueDayMin, normalTemperatueDayMax,
-        normalTemperatueNightMin, normalTemperatueNightMax,
-        criticalTemperatueMin, criticalTemperatueMax;
-    GB_StorageHelper.getTemperatureParameters(
-        normalTemperatueDayMin, normalTemperatueDayMax,
-        normalTemperatueNightMin, normalTemperatueNightMax,
-        criticalTemperatueMin, criticalTemperatueMax);
-
-    rawData(F("<dd>Day temperature: "));
-    printTemperatueRange((float)normalTemperatueDayMin, (float)normalTemperatueDayMax);
-    rawData(F("</dd><dd>Night temperature: "));
-    printTemperatueRange((float)normalTemperatueNightMin, (float)normalTemperatueNightMax);
-    rawData(F("</dd><dd>Critical temperature: "));
-    printTemperatueRange((float)criticalTemperatueMin, (float)criticalTemperatueMax);
-    rawData(F("</dd>"));
+  if (c_isWifiResponseError) {
+    return;
   }
 
   rawData(F("<dt>Other</dt>"));
@@ -384,6 +366,12 @@ void WebServerClass::sendStatusPage() {
   rawData(F(" bytes</dd>"));
   rawData(F("<dd>First startup: "));
   rawData(GB_StorageHelper.getFirstStartupTimeStamp(), false, true);
+  rawData(F("</dd>"));
+
+  rawData(F("<dd>"));
+  rawData(F("<a href='"));
+  rawData(FS(S_URL_GENERAL_OPTIONS_SUMMARY));
+  rawData(F("'>View Options Summary</a>"));
   rawData(F("</dd>"));
 
   rawData(F("</dl>"));
@@ -634,113 +622,6 @@ void WebServerClass::sendLogPage(const String& getParams) {
 //                         GENERAL PAGE                           //
 /////////////////////////////////////////////////////////////////////
 
-void WebServerClass::sendGeneralOptionsSummaryPage(){ // TODO extra page
-  // TODO use Thermoneter
-
-  byte fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
-      fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature;
-  GB_StorageHelper.getFanParameters(
-      fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
-      fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
-
-  boolean useLight  = GB_Controller.isUseLight();
-  boolean useFan    = GB_Controller.isUseFan();
-  boolean useHeater = GB_Controller.isUseHeater();
-  if (useLight || useFan || useHeater){
-    rawData(F("<tr><td colspan ='2'><small>"));
-    rawData(F("<table class='align_center'>"));
-
-    rawData(F("<tr><th>State</th>"));
-    if (useLight) {
-      rawData(F("<th>Light<br/>day/night</th>"));
-    }
-    if (useFan) {
-      rawData(F("<th>Fan<br/>day/night</th>"));
-    }
-    if (useHeater) {
-      rawData(F("<th>Heater</th>"));
-    }
-    rawData(F("</tr>"));
-
-    rawData(F("<tr><td class='align_left'>Critical cold</td>"));
-    if (useLight) {
-      rawData(F("<td>on / off</td>"));
-    }
-    if (useFan) {
-      rawData(F("<td>off</td>"));
-    }
-    if (useHeater) {
-      rawData(F("<td>on</td>"));
-    }
-    rawData(F("</tr>"));
-
-    rawData(F("<tr><td class='align_left'>Cold</td>"));
-    if (useLight) {
-      rawData(F("<td>on / off</td>"));
-    }
-    if (useFan) {
-      rawData(F("<td>"));
-      printFanSpeed(fanSpeedDayColdTemperature);
-      rawData(F(" / "));
-      printFanSpeed(fanSpeedNightColdTemperature);
-      rawData(F("</td>"));
-   }
-    if (useHeater) {
-      rawData(F("<td>on</td>"));
-    }
-    rawData(F("</tr>"));
-
-    rawData(F("<tr><td class='align_left'>Normal</td>"));
-    if (useLight) {
-      rawData(F("<td>on / off</td>"));
-    }
-    if (useFan) {
-      rawData(F("<td>"));
-      printFanSpeed(fanSpeedDayNormalTemperature);
-      rawData(F(" / "));
-      printFanSpeed(fanSpeedNightNormalTemperature);
-      rawData(F("</td>"));
-    }
-    if (useHeater) {
-      rawData(F("<td>off</td>"));
-    }
-    rawData(F("</tr>"));
-
-    rawData(F("<tr><td class='align_left'>Hot</td>"));
-    if (useLight) {
-      rawData(F("<td>on / off</td>"));
-    }
-    if (useFan) {
-      rawData(F("<td>"));
-      printFanSpeed(fanSpeedDayHotTemperature);
-      rawData(F(" / "));
-      printFanSpeed(fanSpeedNightHotTemperature);
-      rawData(F("</td>"));
-    }
-    if (useHeater) {
-      rawData(F("<td>off</td>"));
-    }
-    rawData(F("</tr>"));
-
-    rawData(F("<tr><td class='align_left'>Critical hot</td>"));
-    if (useLight) {
-      rawData(F("<td>off</td>"));
-    }
-    if (useFan) {
-      rawData(F("<td>"));
-      printFanSpeed(FAN_SPEED_HIGH);
-      rawData(F("</td>"));
-    }
-    if (useHeater) {
-      rawData(F("<td>off</td>"));
-    }
-    rawData(F("</tr>"));
-
-    rawData(F("</table>"));
-    rawData(F("</small></td></tr>"));
-  }
-}
-
 void WebServerClass::sendGeneralOptionsPage_FanParameterRow(const __FlashStringHelper* mode, const __FlashStringHelper* temperature, const __FlashStringHelper* controlNamePrefix, byte fanSpeedValue){
 
   boolean isOn;
@@ -814,46 +695,6 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
 
   rawData(F("</table>"));
   rawData(F("<input type='submit' value='Save'>"));
-  rawData(F("</form>"));
-  rawData(F("</fieldset>"));
-
-  rawData(F("<br/>"));
-  if (c_isWifiResponseError) {
-    return;
-  }
-
-  rawData(F("<fieldset><legend>Logger</legend>"));
-
-  rawData(F("<form action='"));
-  rawData(FS(S_URL_GENERAL_OPTIONS));
-  rawData(F("' method='post' id='resetLogForm' onSubmit='return confirm(\"Delete all stored records?\")'>"));
-  rawData(F("<input type='hidden' name='resetStoredLog'/>"));
-  rawData(F("</form>"));
-
-  rawData(F("<form action='"));
-  rawData(FS(S_URL_GENERAL_OPTIONS));
-  rawData(F("' method='post'>"));
-
-  rawData(F("<table class='grab'>"));
-  rawData(F("<tr><td colspan='2'>"));
-  tagCheckbox(F("isStoreLogRecordsEnabled"), F("Enable logger"), GB_StorageHelper.isStoreLogRecordsEnabled());
-  rawData(F("<div class='description'>Stored records [<b>"));
-  rawData(GB_StorageHelper.getLogRecordsCount());
-  rawData('/');
-  rawData(GB_StorageHelper.getLogRecordsCapacity());
-  if (GB_StorageHelper.isLogOverflow()) {
-    rawData(F(", overflow"));
-  }
-  rawData(F("</b>]"));
-  rawData(F("</div></td></tr>"));
-
-  rawData(F("<tr><td>"));
-  rawData(F("<input type='submit' value='Save'>"));
-  rawData(F("</td><td class='align_right'>"));
-  rawData(F("<input form='resetLogForm' type='submit' value='Clear all stored records'/>"));
-  rawData(F("</td></tr>"));
-  rawData(F("</table>"));
-
   rawData(F("</form>"));
   rawData(F("</fieldset>"));
 
@@ -949,8 +790,318 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
     rawData(F("</fieldset>"));
   }
 
+  rawData(F("<br/>"));
+  if (c_isWifiResponseError) {
+    return;
+  }
+
+  rawData(F("<fieldset><legend>Logger</legend>"));
+
+  rawData(F("<form action='"));
+  rawData(FS(S_URL_GENERAL_OPTIONS));
+  rawData(F("' method='post' id='resetLogForm' onSubmit='return confirm(\"Delete all stored records?\")'>"));
+  rawData(F("<input type='hidden' name='resetStoredLog'/>"));
+  rawData(F("</form>"));
+
+  rawData(F("<form action='"));
+  rawData(FS(S_URL_GENERAL_OPTIONS));
+  rawData(F("' method='post'>"));
+
+  rawData(F("<table class='grab'>"));
+  rawData(F("<tr><td colspan='2'>"));
+  tagCheckbox(F("isStoreLogRecordsEnabled"), F("Enable logger"), GB_StorageHelper.isStoreLogRecordsEnabled());
+  rawData(F("<div class='description'>Stored records [<b>"));
+  rawData(GB_StorageHelper.getLogRecordsCount());
+  rawData('/');
+  rawData(GB_StorageHelper.getLogRecordsCapacity());
+  if (GB_StorageHelper.isLogOverflow()) {
+    rawData(F(", overflow"));
+  }
+  rawData(F("</b>]"));
+  rawData(F("</div></td></tr>"));
+
+  rawData(F("<tr><td>"));
+  rawData(F("<input type='submit' value='Save'>"));
+  rawData(F("</td><td class='align_right'>"));
+  rawData(F("<input form='resetLogForm' type='submit' value='Clear all stored records'/>"));
+  rawData(F("</td></tr>"));
+  rawData(F("</table>"));
+
+  rawData(F("</form>"));
+  rawData(F("</fieldset>"));
+
+  rawData(F("<br/>"));
+  rawData(F("<a href='"));
+  rawData(FS(S_URL_GENERAL_OPTIONS_SUMMARY));
+  rawData(F("'>View Options Summary</a>"));
 
   updateDayNightPeriodJavaScript();
+}
+
+void WebServerClass::sendGeneralOptions_SummaryPage() {
+
+  word upTime, downTime;
+  GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
+
+  byte normalTemperatueDayMin, normalTemperatueDayMax,
+      normalTemperatueNightMin, normalTemperatueNightMax,
+      criticalTemperatueMin, criticalTemperatueMax;
+  GB_StorageHelper.getTemperatureParameters(
+      normalTemperatueDayMin, normalTemperatueDayMax,
+      normalTemperatueNightMin, normalTemperatueNightMax,
+      criticalTemperatueMin, criticalTemperatueMax);
+
+  byte fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+      fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature;
+  GB_StorageHelper.getFanParameters(
+      fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
+      fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
+
+  //boolean useThermometer = GB_StorageHelper.isUseThermometer(); // TODO use it
+  boolean useLight  = GB_Controller.isUseLight();
+  boolean useFan    = GB_Controller.isUseFan();
+  boolean useHeater = GB_Controller.isUseHeater();
+
+  rawData(F("<table class='align_center'>"));
+
+  // Header
+  rawData(F("<tr><th>Mode</th>"));
+  rawData(F("<th>Temperature</th>"));
+  rawData(F("<th>Range</th>"));
+  if (useLight) {
+    rawData(F("<th>Light</th>"));
+  }
+  if (useFan) {
+    rawData(F("<th>Fan</th>"));
+  }
+  if (useHeater) {
+    rawData(F("<th>Heater</th>"));
+  }
+  rawData(F("</tr>"));
+
+  // Day
+  rawData(F("<tr><td class='align_left'>Day</td><td></td>"));
+  rawData(F("<td><i>"));
+  rawData(StringUtils::wordTimeToString(upTime));
+  rawData(F(".."));
+  rawData(StringUtils::wordTimeToString(downTime));
+  rawData(F("</i></td>"));
+  if (useLight) {
+    rawData(F("<td></td>"));
+  }
+  if (useFan) {
+    rawData(F("<td></td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td></td>"));
+  }
+  rawData(F("</tr>"));
+
+  // Day - Critical cold
+  rawData(F("<tr><td></td><td class='align_left'>Critical cold</td>"));
+  rawData(F("<td>-&infin;.."));
+  printTemperatue((float)criticalTemperatueMin);
+  rawData(F("</td>"));
+  if (useLight) {
+    rawData(F("<td>on</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(GB_Controller.packFanSpeedValue(false));
+    rawData(F("</td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td>on</td>"));
+  }
+  rawData(F("</tr>"));
+
+  rawData(F("<tr><td></td><td class='align_left'>Cold</td>"));
+  rawData(F("<td>"));
+  printTemperatueRange((float)criticalTemperatueMin, (float)normalTemperatueDayMin);
+  rawData(F("</td>"));
+  if (useLight) {
+    rawData(F("<td>on</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(fanSpeedDayColdTemperature);
+    rawData(F("</td>"));
+ }
+  if (useHeater) {
+    rawData(F("<td>on</td>"));
+  }
+  rawData(F("</tr>"));
+
+  rawData(F("<tr><td></td><td class='align_left'>Normal</td>"));
+  rawData(F("<td>"));
+  printTemperatueRange((float)normalTemperatueDayMin, (float)normalTemperatueDayMax);
+  rawData(F("</td>"));
+  if (useLight) {
+    rawData(F("<td>on</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(fanSpeedDayNormalTemperature);
+    rawData(F("</td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td>off</td>"));
+  }
+  rawData(F("</tr>"));
+
+  rawData(F("<tr><td></td><td class='align_left'>Hot</td>"));
+  rawData(F("<td>"));
+  printTemperatueRange((float)normalTemperatueDayMax, (float)criticalTemperatueMax);
+  rawData(F("</td>"));
+  if (useLight) {
+    rawData(F("<td>on</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(fanSpeedDayHotTemperature);
+    rawData(F("</td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td>off</td>"));
+  }
+  rawData(F("</tr>"));
+
+  rawData(F("<tr><td></td><td class='align_left'>Critical hot</td>"));
+  rawData(F("<td>"));
+  printTemperatue((float)criticalTemperatueMax);
+  rawData(F("..&infin;</td>"));
+  if (useLight) {
+    rawData(F("<td>off</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(GB_Controller.packFanSpeedValue(true, FAN_SPEED_HIGH));
+    rawData(F("</td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td>off</td>"));
+  }
+  rawData(F("</tr>"));
+
+
+
+  rawData(F("<tr><td colspan='3'><br/></td>"));
+  if (useLight) {
+    rawData(F("<td></td>"));
+  }
+  if (useFan) {
+    rawData(F("<td></td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td></td>"));
+  }
+  rawData(F("</tr>"));
+
+  // Night
+  rawData(F("<tr><td class='align_left'>Night</td><td></td>"));
+  rawData(F("<td><i>"));
+  rawData(StringUtils::wordTimeToString(downTime));
+  rawData(F(".."));
+  rawData(StringUtils::wordTimeToString(upTime));
+  rawData(F("</i></td>"));
+  if (useLight) {
+    rawData(F("<td></td>"));
+  }
+  if (useFan) {
+    rawData(F("<td></td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td></td>"));
+  }
+  rawData(F("</tr>"));
+
+  // Night - Critical cold
+  rawData(F("<tr><td></td><td class='align_left'>Critical cold</td>"));
+  rawData(F("<td>-&infin;.."));
+  printTemperatue((float)criticalTemperatueMin);
+  rawData(F("</td>"));
+  if (useLight) {
+    rawData(F("<td>off</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(GB_Controller.packFanSpeedValue(false));
+    rawData(F("</td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td>on</td>"));
+  }
+  rawData(F("</tr>"));
+
+  rawData(F("<tr><td></td><td class='align_left'>Cold</td>"));
+  rawData(F("<td>"));
+  printTemperatueRange((float)criticalTemperatueMin, (float)normalTemperatueNightMin);
+  rawData(F("</td>"));
+  if (useLight) {
+    rawData(F("<td>off</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(fanSpeedNightColdTemperature);
+    rawData(F("</td>"));
+ }
+  if (useHeater) {
+    rawData(F("<td>on</td>"));
+  }
+  rawData(F("</tr>"));
+
+  rawData(F("<tr><td></td><td class='align_left'>Normal</td>"));
+  rawData(F("<td>"));
+  printTemperatueRange((float)normalTemperatueNightMin, (float)normalTemperatueNightMax);
+  rawData(F("</td>"));
+  if (useLight) {
+    rawData(F("<td>off</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(fanSpeedNightNormalTemperature);
+    rawData(F("</td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td>off</td>"));
+  }
+  rawData(F("</tr>"));
+
+  rawData(F("<tr><td></td><td class='align_left'>Hot</td>"));
+  rawData(F("<td>"));
+  printTemperatueRange((float)normalTemperatueNightMax, (float)criticalTemperatueMax);
+  rawData(F("</td>"));
+  if (useLight) {
+    rawData(F("<td>off</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(fanSpeedNightHotTemperature);
+    rawData(F("</td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td>off</td>"));
+  }
+  rawData(F("</tr>"));
+
+  rawData(F("<tr><td></td><td class='align_left'>Critical hot</td>"));
+  rawData(F("<td>"));
+  printTemperatue((float)criticalTemperatueMax);
+  rawData(F("..&infin;</td>"));
+  if (useLight) {
+    rawData(F("<td>off</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(GB_Controller.packFanSpeedValue(true, FAN_SPEED_HIGH));
+    rawData(F("</td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td>off</td>"));
+  }
+  rawData(F("</tr>"));
+
+  rawData(F("</table>"));
 }
 
 /////////////////////////////////////////////////////////////////////
