@@ -221,7 +221,12 @@ void WebServerClass::sendStatusPage() {
 
   if (GB_Controller.isUseFan()) {
     rawData(F("<dd>Fan: "));
-    printFanSpeed(GB_Controller.getFanSpeedValue());
+    rawData(GB_Controller.isFanHardwareTurnedOn() ? F("on") : F("off"));
+    if (GB_Controller.isFanTurnedOn()){
+      rawData(F(" ("));
+      printFanSpeed(GB_Controller.getCurrentFanSpeedValue());
+      rawData(F(")"));
+    }
     rawData(F("</dd>"));
   }
 
@@ -1279,7 +1284,12 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
 
   tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
   rawData(F("<div class='description'>Current state [<b>"));
-  printFanSpeed(GB_Controller.getFanSpeedValue());
+  rawData(GB_Controller.isFanHardwareTurnedOn() ? F("on") : F("off"));
+  if (GB_Controller.isFanTurnedOn()){
+    rawData(F(" ("));
+    printFanSpeed(GB_Controller.getCurrentFanSpeedValue());
+    rawData(F(")"));
+  }
   rawData(F("</b>], temperature [<b>"));
   printTemperatue(GB_Thermometer.getHardwareTemperature());
   rawData(F("</b>]</div>"));

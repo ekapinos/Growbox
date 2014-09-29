@@ -475,7 +475,7 @@ void ControllerClass::turnOnOffFanBySpeedValue(byte fanSpeedValue){
   }
 }
 
-byte ControllerClass::getFanSpeedValue() {
+byte ControllerClass::getCurrentFanSpeedValue() {
   return packFanSpeedValue(c_fan_isOn, c_fan_speed, c_fan_numerator, c_fan_denominator);
 }
 
@@ -520,12 +520,18 @@ void ControllerClass::turnOffFan() {
   updateFan();
 }
 
+boolean ControllerClass::isFanHardwareTurnedOn() {
+  return (digitalRead(FAN_PIN) == RELAY_ON);
+}
+
 boolean ControllerClass::isFanTurnedOn() {
   return c_fan_isOn;
 }
+
 byte ControllerClass::getFanSpeed() {
   return c_fan_speed;
 }
+
 void ControllerClass::updateFan() {
   boolean isFanOnNow = c_fan_isOn;
   if (c_fan_isOn && c_fan_numerator != 0 && c_fan_denominator != 0){
