@@ -138,7 +138,7 @@ void WebServerClass::httpProcessGet(const String& url, const String& getParams) 
     sendGeneralOptionsPage(getParams);
   }
   else if (isGeneralOptionsSummaryPage) {
-    sendGeneralOptions_SummaryPage();
+    sendGeneralOptionsSummaryPage();
   }
   else if (isWateringPage) {
     sendWateringOptionsPage(url, wsIndex);
@@ -838,7 +838,94 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
   updateDayNightPeriodJavaScript();
 }
 
-void WebServerClass::sendGeneralOptions_SummaryPage() {
+void WebServerClass::sendGeneralOptionsSummaryPage_InfoRow(const __FlashStringHelper* mode, word startTime, word stopTime){
+
+  boolean useThermometer = GB_StorageHelper.isUseThermometer();
+  boolean useLight  = GB_Controller.isUseLight();
+  boolean useFan    = GB_Controller.isUseFan();
+  boolean useHeater = GB_Controller.isUseHeater();
+
+  rawData(F("<tr><td class='align_left'>"));
+  rawData(mode);
+  rawData(F("</td>"));
+  if (useThermometer) {
+    rawData(F("<td></td>"));
+  }
+  rawData(F("<td>"));
+  if (startTime != 0xFFFF || stopTime != 0xFFFF) {
+    rawData(F("<i>"));
+    rawData(StringUtils::wordTimeToString(startTime));
+    rawData(F(".."));
+    rawData(StringUtils::wordTimeToString(stopTime));
+    rawData(F("</i>"));
+  }
+  rawData(F("</td>"));
+  if (useLight) {
+    rawData(F("<td></td>"));
+  }
+  if (useFan) {
+    rawData(F("<td></td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td></td>"));
+  }
+  rawData(F("</tr>"));
+
+}
+
+void WebServerClass::sendGeneralOptionsSummaryPage_DataRow(
+    const __FlashStringHelper* temperatureRange,
+    byte themperatureMin, word themperatureMax,
+    boolean isLightOn, byte fanSpeedValue, boolean isHeaterOn){
+
+  boolean useThermometer = GB_StorageHelper.isUseThermometer();
+  boolean useLight  = GB_Controller.isUseLight();
+  boolean useFan    = GB_Controller.isUseFan();
+  boolean useHeater = GB_Controller.isUseHeater();
+
+  rawData(F("<tr><td></td>"));
+  if (useThermometer) {
+    rawData(F("<td class='align_left'>"));
+    rawData(temperatureRange);
+    rawData(F("</td>"));
+  }
+
+  rawData(F("<td>"));
+  if (themperatureMin != 0xFF || themperatureMax != 0xFF) {
+    if (themperatureMin == 0xFF){
+      rawData(F("-&infin;"));
+    } else {
+      rawData((float)themperatureMin);
+    }
+    rawData(F(".."));
+    if (themperatureMax == 0xFF) {
+      rawData(F("&infin;"));
+    } else {
+      rawData((float)themperatureMax);
+    }
+    rawData(F("&deg;C"));
+  }
+  rawData(F("</td>"));
+
+  if (useLight) {
+    rawData(F("<td>"));
+    rawData(isLightOn ? F("on") : F("off"));
+    rawData(F("</td>"));
+  }
+  if (useFan) {
+    rawData(F("<td>"));
+    printFanSpeed(fanSpeedValue);
+    rawData(F("</td>"));
+  }
+  if (useHeater) {
+    rawData(F("<td>"));
+    rawData(isHeaterOn ? F("on") : F("off"));
+    rawData(F("</td>"));
+  }
+  rawData(F("</tr>"));
+}
+
+void WebServerClass::sendGeneralOptionsSummaryPage() {
 
   word upTime, downTime;
   GB_StorageHelper.getTurnToDayAndNightTime(upTime, downTime);
@@ -857,7 +944,7 @@ void WebServerClass::sendGeneralOptions_SummaryPage() {
       fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
       fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
 
-  //boolean useThermometer = GB_StorageHelper.isUseThermometer(); // TODO use it
+  boolean useThermometer = GB_StorageHelper.isUseThermometer();
   boolean useLight  = GB_Controller.isUseLight();
   boolean useFan    = GB_Controller.isUseFan();
   boolean useHeater = GB_Controller.isUseHeater();
@@ -866,7 +953,9 @@ void WebServerClass::sendGeneralOptions_SummaryPage() {
 
   // Header
   rawData(F("<tr><th>Mode</th>"));
-  rawData(F("<th>Temperature</th>"));
+  if (useThermometer) {
+    rawData(F("<th>Temperature</th>"));
+  }
   rawData(F("<th>Range</th>"));
   if (useLight) {
     rawData(F("<th>Light</th>"));
@@ -880,226 +969,64 @@ void WebServerClass::sendGeneralOptions_SummaryPage() {
   rawData(F("</tr>"));
 
   // Day
-  rawData(F("<tr><td class='align_left'>Day</td><td></td>"));
-  rawData(F("<td><i>"));
-  rawData(StringUtils::wordTimeToString(upTime));
-  rawData(F(".."));
-  rawData(StringUtils::wordTimeToString(downTime));
-  rawData(F("</i></td>"));
-  if (useLight) {
-    rawData(F("<td></td>"));
-  }
-  if (useFan) {
-    rawData(F("<td></td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td></td>"));
-  }
-  rawData(F("</tr>"));
+  sendGeneralOptionsSummaryPage_InfoRow(F("Day"), upTime, downTime);
 
-  // Day - Critical cold
-  rawData(F("<tr><td></td><td class='align_left'>Critical cold</td>"));
-  rawData(F("<td>-&infin;.."));
-  printTemperatue((float)criticalTemperatueMin);
-  rawData(F("</td>"));
-  if (useLight) {
-    rawData(F("<td>on</td>"));
-  }
-  if (useFan) {
-    rawData(F("<td>"));
-    printFanSpeed(GB_Controller.packFanSpeedValue(false));
-    rawData(F("</td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td>on</td>"));
-  }
-  rawData(F("</tr>"));
+  if (useThermometer) {
+    sendGeneralOptionsSummaryPage_DataRow(
+        F("Critical cold"), 0xFF, criticalTemperatueMin,
+        true, GB_Controller.packFanSpeedValue(false), true);
 
-  rawData(F("<tr><td></td><td class='align_left'>Cold</td>"));
-  rawData(F("<td>"));
-  printTemperatueRange((float)criticalTemperatueMin, (float)normalTemperatueDayMin);
-  rawData(F("</td>"));
-  if (useLight) {
-    rawData(F("<td>on</td>"));
-  }
-  if (useFan) {
-    rawData(F("<td>"));
-    printFanSpeed(fanSpeedDayColdTemperature);
-    rawData(F("</td>"));
- }
-  if (useHeater) {
-    rawData(F("<td>on</td>"));
-  }
-  rawData(F("</tr>"));
+    sendGeneralOptionsSummaryPage_DataRow(
+        F("Cold"), criticalTemperatueMin, normalTemperatueDayMin,
+        true, fanSpeedDayColdTemperature, true);
 
-  rawData(F("<tr><td></td><td class='align_left'>Normal</td>"));
-  rawData(F("<td>"));
-  printTemperatueRange((float)normalTemperatueDayMin, (float)normalTemperatueDayMax);
-  rawData(F("</td>"));
-  if (useLight) {
-    rawData(F("<td>on</td>"));
-  }
-  if (useFan) {
-    rawData(F("<td>"));
-    printFanSpeed(fanSpeedDayNormalTemperature);
-    rawData(F("</td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td>off</td>"));
-  }
-  rawData(F("</tr>"));
+    sendGeneralOptionsSummaryPage_DataRow(
+        F("Normal"), normalTemperatueDayMin, normalTemperatueDayMax,
+        true, fanSpeedDayNormalTemperature, false);
 
-  rawData(F("<tr><td></td><td class='align_left'>Hot</td>"));
-  rawData(F("<td>"));
-  printTemperatueRange((float)normalTemperatueDayMax, (float)criticalTemperatueMax);
-  rawData(F("</td>"));
-  if (useLight) {
-    rawData(F("<td>on</td>"));
-  }
-  if (useFan) {
-    rawData(F("<td>"));
-    printFanSpeed(fanSpeedDayHotTemperature);
-    rawData(F("</td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td>off</td>"));
-  }
-  rawData(F("</tr>"));
+    sendGeneralOptionsSummaryPage_DataRow(
+        F("Hot"), normalTemperatueDayMax, criticalTemperatueMax,
+        true, fanSpeedDayHotTemperature, false);
 
-  rawData(F("<tr><td></td><td class='align_left'>Critical hot</td>"));
-  rawData(F("<td>"));
-  printTemperatue((float)criticalTemperatueMax);
-  rawData(F("..&infin;</td>"));
-  if (useLight) {
-    rawData(F("<td>off</td>"));
+    sendGeneralOptionsSummaryPage_DataRow(
+        F("Critical hot"), criticalTemperatueMax, 0xFF,
+        false, GB_Controller.packFanSpeedValue(true, FAN_SPEED_HIGH), false);
+  } else {
+      sendGeneralOptionsSummaryPage_DataRow(
+          NULL, 0xFF, 0xFF,
+          true, fanSpeedDayNormalTemperature, false);
   }
-  if (useFan) {
-    rawData(F("<td>"));
-    printFanSpeed(GB_Controller.packFanSpeedValue(true, FAN_SPEED_HIGH));
-    rawData(F("</td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td>off</td>"));
-  }
-  rawData(F("</tr>"));
+  // Splitter
+  sendGeneralOptionsSummaryPage_InfoRow(F("<br/>"));
 
-
-
-  rawData(F("<tr><td colspan='3'><br/></td>"));
-  if (useLight) {
-    rawData(F("<td></td>"));
-  }
-  if (useFan) {
-    rawData(F("<td></td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td></td>"));
-  }
-  rawData(F("</tr>"));
 
   // Night
-  rawData(F("<tr><td class='align_left'>Night</td><td></td>"));
-  rawData(F("<td><i>"));
-  rawData(StringUtils::wordTimeToString(downTime));
-  rawData(F(".."));
-  rawData(StringUtils::wordTimeToString(upTime));
-  rawData(F("</i></td>"));
-  if (useLight) {
-    rawData(F("<td></td>"));
-  }
-  if (useFan) {
-    rawData(F("<td></td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td></td>"));
-  }
-  rawData(F("</tr>"));
+  sendGeneralOptionsSummaryPage_InfoRow(F("Night"), downTime, upTime);
+  if (useThermometer) {
+    sendGeneralOptionsSummaryPage_DataRow(
+        F("Critical cold"), 0xFF, criticalTemperatueMin,
+        false, GB_Controller.packFanSpeedValue(false), true);
 
-  // Night - Critical cold
-  rawData(F("<tr><td></td><td class='align_left'>Critical cold</td>"));
-  rawData(F("<td>-&infin;.."));
-  printTemperatue((float)criticalTemperatueMin);
-  rawData(F("</td>"));
-  if (useLight) {
-    rawData(F("<td>off</td>"));
-  }
-  if (useFan) {
-    rawData(F("<td>"));
-    printFanSpeed(GB_Controller.packFanSpeedValue(false));
-    rawData(F("</td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td>on</td>"));
-  }
-  rawData(F("</tr>"));
+    sendGeneralOptionsSummaryPage_DataRow(
+        F("Cold"), criticalTemperatueMin, normalTemperatueNightMin,
+        false, fanSpeedNightColdTemperature, true);
 
-  rawData(F("<tr><td></td><td class='align_left'>Cold</td>"));
-  rawData(F("<td>"));
-  printTemperatueRange((float)criticalTemperatueMin, (float)normalTemperatueNightMin);
-  rawData(F("</td>"));
-  if (useLight) {
-    rawData(F("<td>off</td>"));
-  }
-  if (useFan) {
-    rawData(F("<td>"));
-    printFanSpeed(fanSpeedNightColdTemperature);
-    rawData(F("</td>"));
- }
-  if (useHeater) {
-    rawData(F("<td>on</td>"));
-  }
-  rawData(F("</tr>"));
+    sendGeneralOptionsSummaryPage_DataRow(
+        F("Normal"), normalTemperatueNightMin, normalTemperatueNightMax,
+        false, fanSpeedNightNormalTemperature, false);
 
-  rawData(F("<tr><td></td><td class='align_left'>Normal</td>"));
-  rawData(F("<td>"));
-  printTemperatueRange((float)normalTemperatueNightMin, (float)normalTemperatueNightMax);
-  rawData(F("</td>"));
-  if (useLight) {
-    rawData(F("<td>off</td>"));
-  }
-  if (useFan) {
-    rawData(F("<td>"));
-    printFanSpeed(fanSpeedNightNormalTemperature);
-    rawData(F("</td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td>off</td>"));
-  }
-  rawData(F("</tr>"));
+    sendGeneralOptionsSummaryPage_DataRow(
+        F("Hot"), normalTemperatueNightMax, criticalTemperatueMax,
+        false, fanSpeedNightHotTemperature, false);
 
-  rawData(F("<tr><td></td><td class='align_left'>Hot</td>"));
-  rawData(F("<td>"));
-  printTemperatueRange((float)normalTemperatueNightMax, (float)criticalTemperatueMax);
-  rawData(F("</td>"));
-  if (useLight) {
-    rawData(F("<td>off</td>"));
+    sendGeneralOptionsSummaryPage_DataRow(
+        F("Critical hot"), criticalTemperatueMax, 0xFF,
+        false, GB_Controller.packFanSpeedValue(true, FAN_SPEED_HIGH), false);
+  } else {
+    sendGeneralOptionsSummaryPage_DataRow(
+        NULL, 0xFF, 0xFF,
+        false, fanSpeedNightNormalTemperature, false);
   }
-  if (useFan) {
-    rawData(F("<td>"));
-    printFanSpeed(fanSpeedNightHotTemperature);
-    rawData(F("</td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td>off</td>"));
-  }
-  rawData(F("</tr>"));
-
-  rawData(F("<tr><td></td><td class='align_left'>Critical hot</td>"));
-  rawData(F("<td>"));
-  printTemperatue((float)criticalTemperatueMax);
-  rawData(F("..&infin;</td>"));
-  if (useLight) {
-    rawData(F("<td>off</td>"));
-  }
-  if (useFan) {
-    rawData(F("<td>"));
-    printFanSpeed(GB_Controller.packFanSpeedValue(true, FAN_SPEED_HIGH));
-    rawData(F("</td>"));
-  }
-  if (useHeater) {
-    rawData(F("<td>off</td>"));
-  }
-  rawData(F("</tr>"));
 
   rawData(F("</table>"));
 }
