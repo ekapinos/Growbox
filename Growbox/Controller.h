@@ -66,6 +66,8 @@ public:
 
   void setUseFan(boolean flag);
   boolean isUseFan();
+  boolean isFanTurnedOn();
+  boolean isFanHardwareTurnedOn();
 
   void getNumeratorDenominatorByIndex(byte fanSpeedValue, byte& numerator, byte& denominator);
   byte numeratorDenominatorCombinationsCount();
@@ -79,9 +81,6 @@ public:
 
   void turnOnFan(byte speed, byte numerator = 0, byte denominator = 0);
   void turnOffFan();
-  boolean isFanHardwareTurnedOn();
-  boolean isFanTurnedOn();
-  byte getFanSpeed();
   void updateFan();
 
   void setUseHeater(boolean flag);

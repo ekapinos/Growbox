@@ -369,6 +369,13 @@ boolean ControllerClass::isUseFan() {
   return GB_StorageHelper.isUseFan();
 }
 
+boolean ControllerClass::isFanTurnedOn() {
+  return c_fan_isOn;
+}
+
+boolean ControllerClass::isFanHardwareTurnedOn() {
+  return (digitalRead(FAN_PIN) == RELAY_ON);
+}
 
 void ControllerClass::getNumeratorDenominatorByIndex (byte index, byte& numerator, byte& denominator) {
   if (index == 0){ // full time
@@ -518,18 +525,6 @@ void ControllerClass::turnOffFan() {
   GB_Logger.logEvent(EVENT_FAN_OFF);
 
   updateFan();
-}
-
-boolean ControllerClass::isFanHardwareTurnedOn() {
-  return (digitalRead(FAN_PIN) == RELAY_ON);
-}
-
-boolean ControllerClass::isFanTurnedOn() {
-  return c_fan_isOn;
-}
-
-byte ControllerClass::getFanSpeed() {
-  return c_fan_speed;
 }
 
 void ControllerClass::updateFan() {
