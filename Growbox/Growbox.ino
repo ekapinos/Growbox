@@ -235,7 +235,7 @@ void updateGrowboxState(boolean checkWetSensors) {
       fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
 
   // WARNING! May return NaN. Compare NaN with other numbers always 'false'
-  float temperature = GB_Thermometer.getTemperature();
+  float temperature = GB_Thermometer.getTemperatureAndClearStatistics();
 
   if (temperature > criticalTemperatueMax) {
     // Critical Hot

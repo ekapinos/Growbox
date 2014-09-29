@@ -24,9 +24,11 @@ public:
   boolean isUseThermometer();
 
   void updateStatistics();
-  float getTemperature(); // may be NAN
-  void getStatistics(float &_workingTemperature, float &_statisticsTemperature, int &_statisticsTemperatureCount);
+  float getTemperatureAndClearStatistics(); // may be NAN
 
+  float getLastTemperature();
+  float getForecastTemperature();
+  int getForecastMeasurementCount();
 };
 
 extern ThermometerClass GB_Thermometer;

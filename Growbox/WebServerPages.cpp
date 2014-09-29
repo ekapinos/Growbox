@@ -274,26 +274,22 @@ void WebServerClass::sendStatusPage() {
   }
 
   if (GB_Thermometer.isUseThermometer()) {
-    float lastTemperature, statisticsTemperature;
-    int statisticsCount;
-    GB_Thermometer.getStatistics(lastTemperature, statisticsTemperature, statisticsCount);
-
     rawData(F("<dt>Thermometer</dt>"));
     if (!GB_Thermometer.isPresent()) {
       spanTag_RedIfTrue(F("<dd>Not connected</dd>"), true);
     }
     rawData(F("<dd>Last check: "));
-    printTemperatue(lastTemperature);
+    printTemperatue(GB_Thermometer.getLastTemperature());
     rawData(F("</dd>"));
     rawData(F("<dd>Current: "));
     printTemperatue(GB_Thermometer.getHardwareTemperature());
     rawData(F("</dd>"));
     rawData(F("<dd>Forecast: "));
-    printTemperatue(statisticsTemperature);
+    printTemperatue(GB_Thermometer.getForecastTemperature());
     rawData(F(" ("));
-    rawData(statisticsCount);
+    rawData(GB_Thermometer.getForecastMeasurementCount());
     rawData(F(" measurement"));
-    if (statisticsCount > 1) {
+    if (GB_Thermometer.getForecastMeasurementCount() > 1) {
       rawData('s');
     }
     rawData(F(")</dd>"));

@@ -83,12 +83,12 @@ void ThermometerClass::updateStatistics() {
 
   boolean forceLog = GB_Logger.stopLogError(ERROR_TERMOMETER_ZERO_VALUE) | GB_Logger.stopLogError(ERROR_TERMOMETER_DISCONNECTED);
 
-  if (forceLog || c_statisticsTemperatureCount > 50) { // prevents overflow
-    getTemperature();
+  if (forceLog || c_statisticsTemperatureCount > 200) { // prevents overflow (3 times per minute max fan period 60 minutes)
+    getTemperatureAndClearStatistics();
   }
 }
 
-float ThermometerClass::getTemperature() {
+float ThermometerClass::getTemperatureAndClearStatistics() {
   if (!isUseThermometer()) {
     return NAN; // Used as normal value
   }
@@ -112,16 +112,21 @@ float ThermometerClass::getTemperature() {
   return freshTemperature;
 }
 
-void ThermometerClass::getStatistics(float &_lastTemperature, float &_statisticsTemperature, int &_statisticsTemperatureCount) {
-  _lastTemperature = c_lastTemperature;
+float ThermometerClass::getLastTemperature() {
+  return c_lastTemperature;
+}
 
+float ThermometerClass::getForecastTemperature() {
   if (c_statisticsTemperatureCount != 0) {
-    _statisticsTemperature = c_statisticsTemperatureSumm / c_statisticsTemperatureCount;
+    return c_statisticsTemperatureSumm / c_statisticsTemperatureCount;
   }
   else {
-    _statisticsTemperature = c_lastTemperature;
+    return c_lastTemperature;
   }
-  _statisticsTemperatureCount = c_statisticsTemperatureCount;
+}
+
+int ThermometerClass::getForecastMeasurementCount() {
+  return c_statisticsTemperatureCount;
 }
 
 // Pass our oneWire reference to Dallas Temperature.
