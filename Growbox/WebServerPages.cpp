@@ -171,7 +171,7 @@ boolean WebServerClass::isCriticalErrorOnStatusPage(){
       (GB_Controller.isBreezeFatalError()) ||
       (GB_Controller.isUseRTC() && (!GB_Controller.isRTCPresent() || GB_Controller.isClockNeedsSync() || GB_Controller.isClockNotSet())) ||
       (GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent()) ||
-      (GB_StorageHelper.isUseThermometer() && !GB_Thermometer.isPresent())
+      (GB_Thermometer.isUseThermometer() && !GB_Thermometer.isPresent())
   );
 }
 
@@ -268,7 +268,7 @@ void WebServerClass::sendStatusPage() {
     return;
   }
 
-  if (GB_StorageHelper.isUseThermometer()) {
+  if (GB_Thermometer.isUseThermometer()) {
     float lastTemperature, statisticsTemperature;
     int statisticsCount;
     GB_Thermometer.getStatistics(lastTemperature, statisticsTemperature, statisticsCount);
@@ -698,7 +698,7 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
   rawData(F("</form>"));
   rawData(F("</fieldset>"));
 
-  if (GB_StorageHelper.isUseThermometer()) {
+  if (GB_Thermometer.isUseThermometer()) {
     rawData(F("<br/>"));
     if (c_isWifiResponseError)
       return;
@@ -762,7 +762,7 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
     rawData(F("' method='post'>"));
     rawData(F("<table>"));
 
-    if (GB_StorageHelper.isUseThermometer()) {
+    if (GB_Thermometer.isUseThermometer()) {
       rawData(F("<tr><th>Mode</th><th>Temperature</th><th>Speed</th><th>Ratio</th></tr>"));
 
       sendGeneralOptionsPage_FanParameterRow(F("Day"), F("Cold"), F("dayCold"), fanSpeedDayColdTemperature);
@@ -840,7 +840,7 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
 
 void WebServerClass::sendGeneralOptionsSummaryPage_ModeRow(const __FlashStringHelper* mode, word startTime, word stopTime){
 
-  boolean useThermometer = GB_StorageHelper.isUseThermometer();
+  boolean useThermometer = GB_Thermometer.isUseThermometer();
   boolean useLight  = GB_Controller.isUseLight();
   boolean useFan    = GB_Controller.isUseFan();
   boolean useHeater = GB_Controller.isUseHeater();
@@ -878,7 +878,7 @@ void WebServerClass::sendGeneralOptionsSummaryPage_DataRow(
     byte themperatureMin, word themperatureMax,
     boolean isLightOn, byte fanSpeedValue, boolean isHeaterOn){
 
-  boolean useThermometer = GB_StorageHelper.isUseThermometer();
+  boolean useThermometer = GB_Thermometer.isUseThermometer();
   boolean useLight  = GB_Controller.isUseLight();
   boolean useFan    = GB_Controller.isUseFan();
   boolean useHeater = GB_Controller.isUseHeater();
@@ -944,7 +944,7 @@ void WebServerClass::sendGeneralOptionsSummaryPage() {
       fanSpeedDayColdTemperature, fanSpeedDayNormalTemperature, fanSpeedDayHotTemperature,
       fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
 
-  boolean useThermometer = GB_StorageHelper.isUseThermometer();
+  boolean useThermometer = GB_Thermometer.isUseThermometer();
   boolean useLight  = GB_Controller.isUseLight();
   boolean useFan    = GB_Controller.isUseFan();
   boolean useHeater = GB_Controller.isUseHeater();
@@ -1249,10 +1249,10 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
       EEPROM_AT24C32.isPresent() ? F("connected") : F("not connected"), GB_StorageHelper.isUseExternal_EEPROM_AT24C32() && !EEPROM_AT24C32.isPresent());
   rawData(F("</b>]<br/>On change stored records maybe will lost</div>"));
 
-  tagCheckbox(F("useThermometer"), F("Use Thermometer DS18B20, DS18S20 or DS1822"), GB_StorageHelper.isUseThermometer());
+  tagCheckbox(F("useThermometer"), F("Use Thermometer DS18B20, DS18S20 or DS1822"), GB_Thermometer.isUseThermometer());
   rawData(F("<div class='description'>Current state [<b>"));
   spanTag_RedIfTrue(
-      GB_Thermometer.isPresent() ? F("connected") : F("not connected"), GB_StorageHelper.isUseThermometer() && !GB_Thermometer.isPresent());
+      GB_Thermometer.isPresent() ? F("connected") : F("not connected"), GB_Thermometer.isUseThermometer() && !GB_Thermometer.isPresent());
   rawData(F("</b>]</div>"));
 
   rawData(F("<input type='submit' value='Save'>"));
@@ -1821,7 +1821,7 @@ boolean WebServerClass::applyPostParam(const String& url, const String& name, co
       return false;
     }
     boolean boolValue = (value[0] == '1');
-    GB_StorageHelper.setUseThermometer(boolValue);
+    GB_Thermometer.setUseThermometer(boolValue);
 
     c_isWifiForceUpdateGrowboxState = true;
   }

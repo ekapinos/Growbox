@@ -21,6 +21,10 @@ private:
 
 public:
   boolean isPresent();
+
+  void setUseThermometer(boolean flag);
+  boolean isUseThermometer();
+
   void updateStatistics();
   float getTemperature(); // may be NAN
   void getStatistics(float &_workingTemperature, float &_statisticsTemperature, int &_statisticsTemperatureCount);

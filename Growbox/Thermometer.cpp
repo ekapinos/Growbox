@@ -5,7 +5,8 @@
 // public:
 
 ThermometerClass::ThermometerClass(OneWire* oneWirePin) :
-    c_dallasTemperature(oneWirePin), c_lastTemperature(NAN), c_statisticsTemperatureSumm(0.0), c_statisticsTemperatureCount(0) {
+    c_dallasTemperature(oneWirePin), c_lastTemperature(NAN),
+    c_statisticsTemperatureSumm(0.0), c_statisticsTemperatureCount(0) {
 }
 
 // private :
@@ -55,10 +56,22 @@ boolean ThermometerClass::isPresent() {
   return !isnan(getHardwareTemperature(false));
 }
 
+
+void ThermometerClass::setUseThermometer(boolean flag){
+  if (flag == isUseThermometer()){
+    return;
+  }
+  GB_StorageHelper.setUseThermometer(flag);
+  c_lastTemperature = NAN;
+  c_statisticsTemperatureSumm = 0.0;
+  c_statisticsTemperatureCount = 0;
+}
+boolean ThermometerClass::isUseThermometer(){
+  return GB_StorageHelper.isUseThermometer();
+}
+
 void ThermometerClass::updateStatistics() {
-  if (!GB_StorageHelper.isUseThermometer()) {
-    c_statisticsTemperatureSumm = 0.0; // TODO move to void setUseThermometer(boolean flag);boolean isUseThermometer();
-    c_statisticsTemperatureCount = 0;
+  if (!isUseThermometer()) {
     return;
   }
   float freshTemperature = getHardwareTemperature(true);
@@ -77,8 +90,7 @@ void ThermometerClass::updateStatistics() {
 }
 
 float ThermometerClass::getTemperature() {
-  if (!GB_StorageHelper.isUseThermometer()) {
-    c_lastTemperature = NAN;
+  if (!isUseThermometer()) {
     return NAN; // Used as normal value
   }
   float freshTemperature;

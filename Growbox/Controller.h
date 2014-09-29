@@ -65,7 +65,7 @@ public:
   boolean isLightTurnedOn();
 
   void setUseFan(boolean flag);
-  boolean isUseFan();\
+  boolean isUseFan();
 
   void getNumeratorDenominatorByIndex(byte fanSpeedValue, byte& numerator, byte& denominator);
   byte numeratorDenominatorCombinationsCount();
