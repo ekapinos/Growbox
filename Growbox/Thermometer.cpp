@@ -57,7 +57,7 @@ boolean ThermometerClass::isPresent() {
 
 void ThermometerClass::updateStatistics() {
   if (!GB_StorageHelper.isUseThermometer()) {
-    c_statisticsTemperatureSumm = 0.0;
+    c_statisticsTemperatureSumm = 0.0; // TODO move to void setUseThermometer(boolean flag);boolean isUseThermometer();
     c_statisticsTemperatureCount = 0;
     return;
   }

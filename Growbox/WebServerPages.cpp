@@ -838,7 +838,7 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
   updateDayNightPeriodJavaScript();
 }
 
-void WebServerClass::sendGeneralOptionsSummaryPage_InfoRow(const __FlashStringHelper* mode, word startTime, word stopTime){
+void WebServerClass::sendGeneralOptionsSummaryPage_ModeRow(const __FlashStringHelper* mode, word startTime, word stopTime){
 
   boolean useThermometer = GB_StorageHelper.isUseThermometer();
   boolean useLight  = GB_Controller.isUseLight();
@@ -969,7 +969,7 @@ void WebServerClass::sendGeneralOptionsSummaryPage() {
   rawData(F("</tr>"));
 
   // Day
-  sendGeneralOptionsSummaryPage_InfoRow(F("Day"), upTime, downTime);
+  sendGeneralOptionsSummaryPage_ModeRow(F("Day"), upTime, downTime);
 
   if (useThermometer) {
     sendGeneralOptionsSummaryPage_DataRow(
@@ -997,11 +997,11 @@ void WebServerClass::sendGeneralOptionsSummaryPage() {
           true, fanSpeedDayNormalTemperature, false);
   }
   // Splitter
-  sendGeneralOptionsSummaryPage_InfoRow(F("<br/>"));
+  sendGeneralOptionsSummaryPage_ModeRow(F("<br/>"));
 
 
   // Night
-  sendGeneralOptionsSummaryPage_InfoRow(F("Night"), downTime, upTime);
+  sendGeneralOptionsSummaryPage_ModeRow(F("Night"), downTime, upTime);
   if (useThermometer) {
     sendGeneralOptionsSummaryPage_DataRow(
         F("Critical cold"), 0xFF, criticalTemperatueMin,
