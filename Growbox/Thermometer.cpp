@@ -9,8 +9,6 @@ ThermometerClass::ThermometerClass(OneWire* oneWirePin) :
     c_statisticsTemperatureSumm(0.0), c_statisticsTemperatureCount(0) {
 }
 
-// private :
-
 float ThermometerClass::getHardwareTemperature(boolean logOnError) {
 
   c_dallasTemperature.begin();
@@ -50,8 +48,6 @@ float ThermometerClass::getHardwareTemperature(boolean logOnError) {
   return temperature;
 }
 
-// public:
-
 boolean ThermometerClass::isPresent() {
   return !isnan(getHardwareTemperature(false));
 }
@@ -65,6 +61,9 @@ void ThermometerClass::setUseThermometer(boolean flag){
   c_lastTemperature = NAN;
   c_statisticsTemperatureSumm = 0.0;
   c_statisticsTemperatureCount = 0;
+  if (flag) {
+    updateStatistics();
+  }
 }
 boolean ThermometerClass::isUseThermometer(){
   return GB_StorageHelper.isUseThermometer();

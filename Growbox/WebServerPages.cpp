@@ -280,6 +280,9 @@ void WebServerClass::sendStatusPage() {
     rawData(F("<dd>Last check: "));
     printTemperatue(lastTemperature);
     rawData(F("</dd>"));
+    rawData(F("<dd>Current: "));
+    printTemperatue(GB_Thermometer.getHardwareTemperature());
+    rawData(F("</dd>"));
     rawData(F("<dd>Forecast: "));
     printTemperatue(statisticsTemperature);
     rawData(F(" ("));
@@ -1278,7 +1281,7 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
   rawData(F("<div class='description'>Current state [<b>"));
   printFanSpeed(GB_Controller.getFanSpeedValue());
   rawData(F("</b>], temperature [<b>"));
-  printTemperatue(GB_Thermometer.getTemperature());
+  printTemperatue(GB_Thermometer.getHardwareTemperature());
   rawData(F("</b>]</div>"));
 
   tagCheckbox(F("useHeater"), F("Use Heater"), GB_Controller.isUseHeater());
