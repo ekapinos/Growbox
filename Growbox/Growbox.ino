@@ -210,9 +210,9 @@ void updateGrowboxState() {
   // On schedule we check wet status also
   updateGrowboxState(true);
 }
-void updateGrowboxState(boolean checkWetSensors) {
+void updateGrowboxState(boolean checkHardwareState) {
 
-  if (checkWetSensors) {
+  if (checkHardwareState) {
     // Allows improve stability on WEB call
     GB_Watering.preUpdateWetSatus();
   }
@@ -235,7 +235,15 @@ void updateGrowboxState(boolean checkWetSensors) {
       fanSpeedNightColdTemperature, fanSpeedNightNormalTemperature, fanSpeedNightHotTemperature);
 
   // WARNING! May return NaN. Compare NaN with other numbers always 'false'
-  float temperature = GB_Thermometer.getTemperatureAndClearStatistics();
+  float temperature;
+  if (checkHardwareState && GB_Controller.isCurrentFanCycleFinished() ) {
+    temperature = GB_Thermometer.getTemperatureAndClearStatistics();
+  } else {
+    temperature = GB_Thermometer.getLastTemperature();
+  }
+  if (checkHardwareState) {
+    GB_Controller.setNextFanCycleStep();
+  }
 
   if (temperature > criticalTemperatueMax) {
     // Critical Hot
@@ -295,7 +303,7 @@ void updateGrowboxState(boolean checkWetSensors) {
     }
   }
 
-  if (checkWetSensors) {
+  if (checkHardwareState) {
     GB_Watering.updateWetSatus(); // log new sensors values
   }
   GB_Watering.updateWateringSchedule(); // recalculate next watering pump event

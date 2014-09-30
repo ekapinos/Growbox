@@ -10,6 +10,7 @@ class ControllerClass{
   time_t c_lastBreezeTimeStamp;
   boolean c_isDayInGrowbox; // Last updated state
 
+  byte c_fan_cycleCounter; // value holder
   boolean c_fan_isOn;
   byte c_fan_speed;
   byte c_fan_numerator;
@@ -58,6 +59,7 @@ private:
   /////////////////////////////////////////////////////////////////////
 public:
   boolean isDayInGrowbox(boolean update = false);
+
   void setUseLight(boolean flag);
   boolean isUseLight();
   void turnOnLight();
@@ -68,6 +70,7 @@ public:
   boolean isUseFan();
   boolean isFanTurnedOn();
   boolean isFanHardwareTurnedOn();
+  boolean isFanUseRatio();
 
   void getNumeratorDenominatorByIndex(byte fanSpeedValue, byte& numerator, byte& denominator);
   byte numeratorDenominatorCombinationsCount();
@@ -82,6 +85,12 @@ public:
   void turnOnFan(byte speed, byte numerator = 0, byte denominator = 0);
   void turnOffFan();
   void updateFan();
+
+
+
+  boolean isCurrentFanCycleFinished();
+  void setNextFanCycleStep();
+  byte getCurrentFanCycleStep();
 
   void setUseHeater(boolean flag);
   boolean isUseHeater();

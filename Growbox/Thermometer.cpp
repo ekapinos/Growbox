@@ -94,7 +94,7 @@ float ThermometerClass::getTemperatureAndClearStatistics() {
   }
   float freshTemperature;
   if (c_statisticsTemperatureCount == 0) {
-    // Lets try to get temperature direcly
+    // Lets try to get temperature directly
     freshTemperature = getHardwareTemperature(true);
   }
   else {

@@ -15,6 +15,7 @@ ControllerClass::ControllerClass() :
     c_isAutoCalculatedClockTimeUsed(false),
     c_lastBreezeTimeStamp(0),
     c_isDayInGrowbox(-1),
+    c_fan_cycleCounter(0),
     c_fan_isOn(false),
     c_fan_speed(RELAY_OFF),
     c_fan_numerator(0),
@@ -277,7 +278,7 @@ void ControllerClass::setRTCandClockTimeStamp(time_t newTimeStamp) {
 
 // public:
 
-// Light
+// Growbox
 
 boolean ControllerClass::isDayInGrowbox(boolean update){
 
@@ -314,6 +315,8 @@ boolean ControllerClass::isDayInGrowbox(boolean update){
   c_isDayInGrowbox = isDayInGrowbox;
   return c_isDayInGrowbox;
 }
+
+// Light
 
 void ControllerClass::setUseLight(boolean flag) {
   if (isUseLight() == flag) {
@@ -376,7 +379,9 @@ boolean ControllerClass::isFanTurnedOn() {
 boolean ControllerClass::isFanHardwareTurnedOn() {
   return (digitalRead(FAN_PIN) == RELAY_ON);
 }
-
+boolean ControllerClass::isFanUseRatio(){
+  return (c_fan_numerator != 0 && c_fan_denominator != 0);
+}
 void ControllerClass::getNumeratorDenominatorByIndex (byte index, byte& numerator, byte& denominator) {
   if (index == 0){ // full time
     numerator = 0; denominator = 0;
@@ -493,6 +498,7 @@ void ControllerClass::turnOnFan(byte speed, byte numerator, byte denominator) {
   if (c_fan_isOn && c_fan_speed == speed && numerator == c_fan_numerator && denominator == c_fan_denominator) {
     return;
   }
+
   if (numerator > B1111 || denominator > B1111 || numerator > denominator ){ // Error argument
     numerator = 0;
     denominator = 0;
@@ -501,6 +507,14 @@ void ControllerClass::turnOnFan(byte speed, byte numerator, byte denominator) {
   c_fan_speed = speed;
   c_fan_numerator = numerator;
   c_fan_denominator = denominator;
+
+  if (denominator != 0) {
+    c_fan_cycleCounter = denominator-1; // Zero for speed without ratio
+  } else {
+    c_fan_cycleCounter = 0;
+  }
+  showControllerMessage(F("turnOnFan, counter="), false);
+  Serial.println(c_fan_cycleCounter);
 
   byte logData = (c_fan_numerator << 4) | denominator;
   if (speed == FAN_SPEED_LOW) {
@@ -514,6 +528,11 @@ void ControllerClass::turnOnFan(byte speed, byte numerator, byte denominator) {
 }
 
 void ControllerClass::turnOffFan() {
+
+  c_fan_cycleCounter = 0;
+  showControllerMessage(F("turnOffFan, counter="), false);
+  Serial.println(c_fan_cycleCounter);
+
   if (!isUseFan()) {
     return;
   }
@@ -529,10 +548,8 @@ void ControllerClass::turnOffFan() {
 
 void ControllerClass::updateFan() {
   boolean isFanOnNow = c_fan_isOn;
-  if (c_fan_isOn && c_fan_numerator != 0 && c_fan_denominator != 0){
-    unsigned int secondsOnClockNow = minute() * SECS_PER_MIN + second(); // seconds now
-    secondsOnClockNow %= c_fan_denominator * UPDATE_GROWBOX_STATE_DELAY_SEC;
-    isFanOnNow = (secondsOnClockNow < (c_fan_numerator * UPDATE_GROWBOX_STATE_DELAY_SEC));
+  if (isFanTurnedOn() && isFanUseRatio()){
+    isFanOnNow = (c_fan_denominator - c_fan_cycleCounter) <= c_fan_numerator;
   }
   if (isFanOnNow){
     digitalWrite(FAN_SPEED_PIN, c_fan_speed);
@@ -543,6 +560,27 @@ void ControllerClass::updateFan() {
     digitalWrite(FAN_SPEED_PIN, RELAY_OFF);
   }
 }
+
+boolean ControllerClass::isCurrentFanCycleFinished(){
+  return c_fan_cycleCounter == 0;
+}
+
+void ControllerClass::setNextFanCycleStep(){
+  if (c_fan_cycleCounter > 0){
+    c_fan_cycleCounter--;
+  } else if (c_fan_denominator != 0) {
+    c_fan_cycleCounter = c_fan_denominator-1;
+  } else {
+    c_fan_cycleCounter = 0;
+  }
+  showControllerMessage(F("setNextFanCycleStep, counter="), false);
+  Serial.println(c_fan_cycleCounter);
+}
+
+byte ControllerClass::getCurrentFanCycleStep(){
+  return c_fan_denominator - c_fan_cycleCounter;
+}
+
 
 // Heater
 

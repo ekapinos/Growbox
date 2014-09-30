@@ -225,6 +225,10 @@ void WebServerClass::sendStatusPage() {
     if (GB_Controller.isFanTurnedOn()){
       rawData(F(" ("));
       printFanSpeed(GB_Controller.getCurrentFanSpeedValue());
+      if (GB_Controller.isFanUseRatio()) {
+        rawData(F(", step "));
+        rawData(GB_Controller.getCurrentFanCycleStep());
+      }
       rawData(F(")"));
     }
     rawData(F("</dd>"));
@@ -278,7 +282,7 @@ void WebServerClass::sendStatusPage() {
     if (!GB_Thermometer.isPresent()) {
       spanTag_RedIfTrue(F("<dd>Not connected</dd>"), true);
     }
-    rawData(F("<dd>Last check: "));
+    rawData(F("<dd>In work: "));
     printTemperatue(GB_Thermometer.getLastTemperature());
     rawData(F("</dd>"));
     rawData(F("<dd>Current: "));
