@@ -226,8 +226,11 @@ void WebServerClass::sendStatusPage() {
       rawData(F(" ("));
       printFanSpeed(GB_Controller.getCurrentFanSpeedValue());
       if (GB_Controller.isFanUseRatio()) {
-        rawData(F(", step "));
-        rawData(GB_Controller.getCurrentFanCycleStep());
+        byte step = GB_Controller.getCurrentFanCycleStep();
+        rawData(F(", "));
+        rawData((step-1) * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
+        rawData(F(".."));
+        rawData((step) * UPDATE_GROWBOX_STATE_DELAY_MINUTES);
       }
       rawData(F(")"));
     }
@@ -846,26 +849,22 @@ void WebServerClass::sendGeneralOptionsPage(const String& getParams) {
   updateDayNightPeriodJavaScript();
 }
 
-void WebServerClass::sendGeneralOptionsSummaryPage_ModeRow(const __FlashStringHelper* mode, word startTime, word stopTime){
+void WebServerClass::sendGeneralOptionsSummaryPage_ModeRow(const __FlashStringHelper* description, word startTime, word stopTime){
 
-  boolean useThermometer = GB_Thermometer.isUseThermometer();
   boolean useLight  = GB_Controller.isUseLight();
   boolean useFan    = GB_Controller.isUseFan();
   boolean useHeater = GB_Controller.isUseHeater();
 
-  rawData(F("<tr><td class='align_left'>"));
-  rawData(mode);
-  rawData(F("</td>"));
-  if (useThermometer) {
-    rawData(F("<td></td>"));
-  }
+  rawData(F("<tr><td class='align_left'><b>"));
+  rawData(description);
+  rawData(F("</b></td>"));
   rawData(F("<td>"));
   if (startTime != 0xFFFF || stopTime != 0xFFFF) {
-    rawData(F("<i>"));
+    rawData(F("<b>"));
     rawData(StringUtils::wordTimeToString(startTime));
     rawData(F(".."));
     rawData(StringUtils::wordTimeToString(stopTime));
-    rawData(F("</i>"));
+    rawData(F("</b>"));
   }
   rawData(F("</td>"));
   if (useLight) {
@@ -882,21 +881,18 @@ void WebServerClass::sendGeneralOptionsSummaryPage_ModeRow(const __FlashStringHe
 }
 
 void WebServerClass::sendGeneralOptionsSummaryPage_DataRow(
-    const __FlashStringHelper* temperatureRange,
+    const __FlashStringHelper* description,
     byte themperatureMin, word themperatureMax,
     boolean isLightOn, byte fanSpeedValue, boolean isHeaterOn){
 
-  boolean useThermometer = GB_Thermometer.isUseThermometer();
   boolean useLight  = GB_Controller.isUseLight();
   boolean useFan    = GB_Controller.isUseFan();
   boolean useHeater = GB_Controller.isUseHeater();
 
-  rawData(F("<tr><td></td>"));
-  if (useThermometer) {
-    rawData(F("<td class='align_left'>"));
-    rawData(temperatureRange);
-    rawData(F("</td>"));
-  }
+  rawData(F("<tr>"));
+  rawData(F("<td class='align_left'>"));
+  rawData(description);
+  rawData(F("</td>"));
 
   rawData(F("<td>"));
   if (themperatureMin != 0xFF || themperatureMax != 0xFF) {
@@ -960,10 +956,7 @@ void WebServerClass::sendGeneralOptionsSummaryPage() {
   rawData(F("<table class='align_center'>"));
 
   // Header
-  rawData(F("<tr><th>Mode</th>"));
-  if (useThermometer) {
-    rawData(F("<th>Temperature</th>"));
-  }
+  rawData(F("<tr><th>State</th>"));
   rawData(F("<th>Range</th>"));
   if (useLight) {
     rawData(F("<th>Light</th>"));
@@ -1278,18 +1271,11 @@ void WebServerClass::sendHardwareOptionsPage(const String& getParams) {
   tagCheckbox(F("useLight"), F("Use Light"), GB_Controller.isUseLight());
   rawData(F("<div class='description'>Current state [<b>"));
   rawData(GB_Controller.isLightTurnedOn() ? F("on") : F("off"));
-  rawData(F("</b>], mode [<b>"));
-  rawData(GB_Controller.isDayInGrowbox() ? F("day") : F("night"));
   rawData(F("</b>]</div>"));
 
   tagCheckbox(F("useFan"), F("Use Fan"), GB_Controller.isUseFan());
   rawData(F("<div class='description'>Current state [<b>"));
   rawData(GB_Controller.isFanHardwareTurnedOn() ? F("on") : F("off"));
-  if (GB_Controller.isFanTurnedOn()){
-    rawData(F(" ("));
-    printFanSpeed(GB_Controller.getCurrentFanSpeedValue());
-    rawData(F(")"));
-  }
   rawData(F("</b>], temperature [<b>"));
   printTemperatue(GB_Thermometer.getHardwareTemperature());
   rawData(F("</b>]</div>"));

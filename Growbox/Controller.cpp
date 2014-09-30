@@ -513,8 +513,10 @@ void ControllerClass::turnOnFan(byte speed, byte numerator, byte denominator) {
   } else {
     c_fan_cycleCounter = 0;
   }
-  showControllerMessage(F("turnOnFan, counter="), false);
-  Serial.println(c_fan_cycleCounter);
+  if(g_useSerialMonitor){
+    showControllerMessage(F("turnOnFan, counter="), false);
+    Serial.println(c_fan_cycleCounter);
+  }
 
   byte logData = (c_fan_numerator << 4) | denominator;
   if (speed == FAN_SPEED_LOW) {
@@ -530,8 +532,10 @@ void ControllerClass::turnOnFan(byte speed, byte numerator, byte denominator) {
 void ControllerClass::turnOffFan() {
 
   c_fan_cycleCounter = 0;
-  showControllerMessage(F("turnOffFan, counter="), false);
-  Serial.println(c_fan_cycleCounter);
+  if(g_useSerialMonitor){
+    showControllerMessage(F("turnOffFan, counter="), false);
+    Serial.println(c_fan_cycleCounter);
+  }
 
   if (!isUseFan()) {
     return;
@@ -573,8 +577,10 @@ void ControllerClass::setNextFanCycleStep(){
   } else {
     c_fan_cycleCounter = 0;
   }
-  showControllerMessage(F("setNextFanCycleStep, counter="), false);
-  Serial.println(c_fan_cycleCounter);
+  if(g_useSerialMonitor){
+    showControllerMessage(F("setNextFanCycleStep, counter="), false);
+    Serial.println(c_fan_cycleCounter);
+  }
 }
 
 byte ControllerClass::getCurrentFanCycleStep(){

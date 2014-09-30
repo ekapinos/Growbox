@@ -111,9 +111,9 @@ private:
   void sendGeneralOptionsPage_FanParameterRow(const __FlashStringHelper* mode, const __FlashStringHelper* temperature, const __FlashStringHelper* controlNamePrefix, byte fanSpeedValue);
   void sendGeneralOptionsPage(const String& getParams);
 
-  void sendGeneralOptionsSummaryPage_ModeRow(const __FlashStringHelper* mode, word startTime = 0xFFFF, word stopTime = 0xFFFF);
+  void sendGeneralOptionsSummaryPage_ModeRow(const __FlashStringHelper* description, word startTime = 0xFFFF, word stopTime = 0xFFFF);
   void sendGeneralOptionsSummaryPage_DataRow(
-      const __FlashStringHelper* temperatureState,
+      const __FlashStringHelper* description,
       byte themperatureMin, word themperatureMax,
       boolean isLightOn, byte fanSpeedValue, boolean isHeaterOn);
   void sendGeneralOptionsSummaryPage();
