@@ -29,6 +29,21 @@ public:
   float getLastTemperature();
   float getForecastTemperature();
   int getForecastMeasurementCount();
+
+  /////////////////////////////////////////////////////////////////////
+  //                              OTHER                              //
+  /////////////////////////////////////////////////////////////////////
+private:
+  template<class T>
+    void showMessage(T str, boolean newLine = true) {
+      if (g_useSerialMonitor) {
+        Serial.print(F("THERMOMETER> "));
+        Serial.print(str);
+        if (newLine) {
+          Serial.println();
+        }
+      }
+    }
 };
 
 extern ThermometerClass GB_Thermometer;

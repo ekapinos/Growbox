@@ -14,6 +14,7 @@ float ThermometerClass::getHardwareTemperature(boolean logOnError) {
   c_dallasTemperature.begin();
 
   if (c_dallasTemperature.getDeviceCount() == 0) {
+    showMessage(F("c_dallasTemperature.getDeviceCount() == 0"));
     if (logOnError) {
       GB_Logger.logError(ERROR_TERMOMETER_DISCONNECTED);
     }
@@ -23,6 +24,7 @@ float ThermometerClass::getHardwareTemperature(boolean logOnError) {
   DeviceAddress oneWireAddress;
 
   if (!c_dallasTemperature.getAddress(oneWireAddress, 0)) {
+    showMessage(F("!c_dallasTemperature.getAddress(oneWireAddress, 0)"));
     if (logOnError) {
       GB_Logger.logError(ERROR_TERMOMETER_DISCONNECTED);
     }
@@ -30,6 +32,7 @@ float ThermometerClass::getHardwareTemperature(boolean logOnError) {
   }
 
   if (!c_dallasTemperature.requestTemperaturesByAddress(oneWireAddress)) {
+    showMessage(F("!c_dallasTemperature.requestTemperaturesByAddress(oneWireAddress)"));
     if (logOnError) {
       GB_Logger.logError(ERROR_TERMOMETER_DISCONNECTED);
     }
@@ -49,7 +52,7 @@ float ThermometerClass::getHardwareTemperature(boolean logOnError) {
 }
 
 boolean ThermometerClass::isPresent() {
-  return !isnan(getHardwareTemperature(false));
+  return !isnan(getHardwareTemperature());
 }
 
 
@@ -81,10 +84,16 @@ void ThermometerClass::updateStatistics() {
   c_statisticsTemperatureSumm += freshTemperature;
   c_statisticsTemperatureCount++;
 
-  boolean forceLog = GB_Logger.stopLogError(ERROR_TERMOMETER_ZERO_VALUE) | GB_Logger.stopLogError(ERROR_TERMOMETER_DISCONNECTED);
+  boolean wasZeroError         = GB_Logger.stopLogError(ERROR_TERMOMETER_ZERO_VALUE);
+  boolean wasDisconnectedError = GB_Logger.stopLogError(ERROR_TERMOMETER_DISCONNECTED);
 
-  if (forceLog || c_statisticsTemperatureCount > 200) { // prevents overflow (3 times per minute max fan period 60 minutes)
-    getTemperatureAndClearStatistics();
+  if (wasZeroError || wasDisconnectedError) {
+    GB_Logger.logEvent(EVENT_THERMOMETER_RESTORED);
+  }
+
+  if (c_statisticsTemperatureCount > 200) { // prevents overflow (3 times per minute max fan period 60 minutes)
+    c_statisticsTemperatureSumm = c_statisticsTemperatureSumm / c_statisticsTemperatureCount;
+    c_statisticsTemperatureCount = 1;
   }
 }
 
@@ -94,14 +103,15 @@ float ThermometerClass::getTemperatureAndClearStatistics() {
   }
   float freshTemperature;
   if (c_statisticsTemperatureCount == 0) {
-    // Lets try to get temperature directly
-    freshTemperature = getHardwareTemperature(true);
+    updateStatistics();
   }
-  else {
+  if (c_statisticsTemperatureCount == 0) {
+    freshTemperature = NAN; // All updateStatistics() failed
+  } else {
     freshTemperature = c_statisticsTemperatureSumm / c_statisticsTemperatureCount;
   }
   if (!isnan(freshTemperature)) {
-    if (isnan(c_lastTemperature) || ((int)freshTemperature != (int)c_lastTemperature)) {
+    if (isnan(c_lastTemperature) || ((byte)freshTemperature != (byte)c_lastTemperature)) {
       GB_Logger.logTemperature((byte)freshTemperature);
     }
   }
@@ -117,11 +127,13 @@ float ThermometerClass::getLastTemperature() {
 }
 
 float ThermometerClass::getForecastTemperature() {
-  if (c_statisticsTemperatureCount != 0) {
-    return c_statisticsTemperatureSumm / c_statisticsTemperatureCount;
+  if (c_statisticsTemperatureCount == 0) {
+    updateStatistics();
   }
-  else {
-    return c_lastTemperature;
+  if (c_statisticsTemperatureCount == 0) {
+    return NAN; // All updateStatistics() failed
+  } else {
+    return c_statisticsTemperatureSumm / c_statisticsTemperatureCount;
   }
 }
 

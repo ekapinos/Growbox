@@ -1,57 +1,6 @@
 #include "LoggerModel.h"
 
 /////////////////////////////////////////////////////////////////////
-//                               ERROR                             //
-/////////////////////////////////////////////////////////////////////
-
-LinkedList<Error> Error::fullList = LinkedList<Error>();
-
-Error::Error() :
-    sequence(0xFF), sequenceSize(0xFF), isActive(false), isStored(false), description(NULL){
-  fullList.add(this);
-}
-
-void Error::init(byte sequence, byte sequenceSize, const __FlashStringHelper* description) {
-  this->sequence = sequence;
-  this->sequenceSize = sequenceSize;
-  this->description = description;
-}
-
-Error* Error::findByKey(byte sequence, byte sequenceSize) {
-
-  Iterator<Error> iterator = fullList.getIterator();
-  while (iterator.hasNext()) {
-    Error* currentItemPtr = iterator.getNext();
-    if (currentItemPtr->sequence == sequence && currentItemPtr->sequenceSize == sequenceSize) {
-      return currentItemPtr;
-    }
-  }
-  return NULL;
-}
-
-boolean Error::isInitialized() {
-  return (findByKey(0xFF, 0xFF) == 0);
-}
-
-void Error::notify() {
-  digitalWrite(ERROR_PIN, LOW);
-  delay(1000);
-  for (int i = sequenceSize - 1; i >= 0; i--) {
-    digitalWrite(ERROR_PIN, HIGH);
-    if (bitRead(sequence, i)) {
-      delay(ERROR_LONG_SIGNAL_MS);
-    }
-    else {
-      delay(ERROR_SHORT_SIGNAL_MS);
-    }
-    digitalWrite(ERROR_PIN, LOW);
-    delay(ERROR_DELAY_BETWEEN_SIGNALS_MS);
-  }
-  digitalWrite(ERROR_PIN, LOW);
-  delay(1000);
-}
-
-/////////////////////////////////////////////////////////////////////
 //                               EVENT                             //
 /////////////////////////////////////////////////////////////////////
 
@@ -116,19 +65,68 @@ boolean WateringEvent::isInitialized() {
   return (findByKey(0xFF) == NULL);
 }
 
-Error ERROR_CLOCK_NOT_SET, ERROR_CLOCK_NEEDS_SYNC,
-    ERROR_TERMOMETER_DISCONNECTED, ERROR_TERMOMETER_ZERO_VALUE,
-    ERROR_MEMORY_LOW,
-    ERROR_AT24C32_EEPROM_DISCONNECTED, ERROR_CLOCK_RTC_DISCONNECTED;
+/////////////////////////////////////////////////////////////////////
+//                               ERROR                             //
+/////////////////////////////////////////////////////////////////////
 
-Event EVENT_FIRST_START_UP, EVENT_RESTART, EVENT_MODE_DAY, EVENT_MODE_NIGHT,
-    EVENT_LIGHT_OFF, EVENT_LIGHT_ON, EVENT_LIGHT_ENABLED, EVENT_LIGHT_DISABLED,
-    EVENT_FAN_OFF, EVENT_FAN_ON_LOW, EVENT_FAN_ON_HIGH, EVENT_FAN_ENABLED,
-    EVENT_FAN_DISABLED, EVENT_LOGGER_ENABLED, EVENT_LOGGER_DISABLED,
-    EVENT_CLOCK_AUTO_ADJUST, EVENT_HEATER_OFF, EVENT_HEATER_ON, EVENT_HEATER_ENABLED, EVENT_HEATER_DISABLED;
+LinkedList<Error> Error::fullList = LinkedList<Error>();
 
-WateringEvent //16 elements -  max
-WATERING_EVENT_WET_SENSOR_IN_AIR, WATERING_EVENT_WET_SENSOR_VERY_DRY,
+Error::Error() :
+    sequence(0xFF), sequenceSize(0xFF), isActive(false), isStored(false), description(NULL){
+  fullList.add(this);
+}
+
+void Error::init(byte sequence, byte sequenceSize, const __FlashStringHelper* description) {
+  this->sequence = sequence;
+  this->sequenceSize = sequenceSize;
+  this->description = description;
+}
+
+Error* Error::findByKey(byte sequence, byte sequenceSize) {
+
+  Iterator<Error> iterator = fullList.getIterator();
+  while (iterator.hasNext()) {
+    Error* currentItemPtr = iterator.getNext();
+    if (currentItemPtr->sequence == sequence && currentItemPtr->sequenceSize == sequenceSize) {
+      return currentItemPtr;
+    }
+  }
+  return NULL;
+}
+
+boolean Error::isInitialized() {
+  return (findByKey(0xFF, 0xFF) == 0);
+}
+
+void Error::notify() {
+  digitalWrite(ERROR_PIN, LOW);
+  delay(1000);
+  for (int i = sequenceSize - 1; i >= 0; i--) {
+    digitalWrite(ERROR_PIN, HIGH);
+    if (bitRead(sequence, i)) {
+      delay(ERROR_LONG_SIGNAL_MS);
+    }
+    else {
+      delay(ERROR_SHORT_SIGNAL_MS);
+    }
+    digitalWrite(ERROR_PIN, LOW);
+    delay(ERROR_DELAY_BETWEEN_SIGNALS_MS);
+  }
+  digitalWrite(ERROR_PIN, LOW);
+  delay(1000);
+}
+
+
+Event EVENT_FIRST_START_UP, EVENT_RESTART, EVENT_MODE_DAY,
+    EVENT_MODE_NIGHT, EVENT_LIGHT_OFF, EVENT_LIGHT_ON, EVENT_LIGHT_ENABLED,
+    EVENT_LIGHT_DISABLED, EVENT_FAN_OFF, EVENT_FAN_ON_LOW, EVENT_FAN_ON_HIGH,
+    EVENT_FAN_ENABLED, EVENT_FAN_DISABLED,
+    EVENT_LOGGER_ENABLED, EVENT_LOGGER_DISABLED, EVENT_CLOCK_AUTO_ADJUST,
+    EVENT_HEATER_OFF, EVENT_HEATER_ON, EVENT_HEATER_ENABLED, EVENT_HEATER_DISABLED,
+    EVENT_THERMOMETER_RESTORED;
+
+//16 elements -  max
+WateringEvent WATERING_EVENT_WET_SENSOR_IN_AIR, WATERING_EVENT_WET_SENSOR_VERY_DRY,
     WATERING_EVENT_WET_SENSOR_DRY, WATERING_EVENT_WET_SENSOR_NORMAL,
     WATERING_EVENT_WET_SENSOR_WET, WATERING_EVENT_WET_SENSOR_VERY_WET,
     WATERING_EVENT_WET_SENSOR_SHORT_CIRCIT, WATERING_EVENT_WET_SENSOR_UNSTABLE,
@@ -139,16 +137,15 @@ WATERING_EVENT_WET_SENSOR_IN_AIR, WATERING_EVENT_WET_SENSOR_VERY_DRY,
     WATERING_EVENT_WATER_PUMP_ON_MANUAL_DRY,
     WATERING_EVENT_WATER_PUMP_ON_AUTO_DRY, WATERING_EVENT_WATER_PUMP_OFF;
 
+Error ERROR_CLOCK_NOT_SET, ERROR_CLOCK_NEEDS_SYNC,
+    ERROR_TERMOMETER_DISCONNECTED, ERROR_TERMOMETER_ZERO_VALUE,
+    ERROR_MEMORY_LOW,
+    ERROR_AT24C32_EEPROM_DISCONNECTED, ERROR_CLOCK_RTC_DISCONNECTED;
+
+
 void initLoggerModel() {
 
   // Use F macro to reduce requirements to memory. We can't use F macro in constructors.
-  ERROR_CLOCK_NOT_SET.init(B00, 2, F("Error: Clock not set"));
-  ERROR_CLOCK_NEEDS_SYNC.init(B01, 2, F("Error: Clock needs sync"));
-  ERROR_TERMOMETER_DISCONNECTED.init(B000, 3, F("Error: Thermometer disconnected"));
-  ERROR_TERMOMETER_ZERO_VALUE.init(B001, 3, F("Error: Thermometer returned ZERO value"));
-  ERROR_MEMORY_LOW.init(B011, 3, F("Error: Free memory less than 200 bytes"));
-  ERROR_AT24C32_EEPROM_DISCONNECTED.init(B100, 3, F("Error: External AT24C32 EEPROM disconnected"));
-  ERROR_CLOCK_RTC_DISCONNECTED.init(B101, 3, F("Error: Real-time clock disconnected"));
 
   // Zero index used for Empty Log Records, do not use it for Events
   EVENT_FIRST_START_UP.init(1, F("First startup"));
@@ -169,8 +166,9 @@ void initLoggerModel() {
   EVENT_CLOCK_AUTO_ADJUST.init(16, F("Clock auto adjust"));
   EVENT_HEATER_OFF.init(17, F("Heater off"));;
   EVENT_HEATER_ON.init(18, F("Heater on"));;
-  EVENT_HEATER_ENABLED.init(19, F("Heater enabled"));;
-  EVENT_HEATER_DISABLED.init(20, F("Heater disabled"));;
+  EVENT_HEATER_ENABLED.init(19, F("Heater enabled"));
+  EVENT_HEATER_DISABLED.init(20, F("Heater disabled"));
+  EVENT_THERMOMETER_RESTORED.init(21, F("Thermometer restored"));
 
   // 0..15 (max)
   WATERING_EVENT_WET_SENSOR_IN_AIR.init(1, F("Wet sensor [In Air]"), F("In Air"), true, false);
@@ -189,5 +187,14 @@ void initLoggerModel() {
   WATERING_EVENT_WATER_PUMP_ON_MANUAL_DRY.init(13, F("Pump on [Manual, Dry watering]"), F("Manual, Dry watering"), false, true);
   WATERING_EVENT_WATER_PUMP_ON_AUTO_DRY.init(14, F("Pump on [Dry watering]"), F("Dry watering"), false, true);
   WATERING_EVENT_WATER_PUMP_OFF.init(15, F("Pump off"), F("Stop watering"), false, false);
+
+  ERROR_CLOCK_NOT_SET.init(B00, 2, F("Error: Clock not set"));
+  ERROR_CLOCK_NEEDS_SYNC.init(B01, 2, F("Error: Clock needs sync"));
+  ERROR_TERMOMETER_DISCONNECTED.init(B000, 3, F("Error: Thermometer disconnected"));
+  ERROR_TERMOMETER_ZERO_VALUE.init(B001, 3, F("Error: Thermometer returned ZERO value"));
+  ERROR_MEMORY_LOW.init(B011, 3, F("Error: Free memory less than 200 bytes"));
+  ERROR_AT24C32_EEPROM_DISCONNECTED.init(B100, 3, F("Error: External AT24C32 EEPROM disconnected"));
+  ERROR_CLOCK_RTC_DISCONNECTED.init(B101, 3, F("Error: Real-time clock disconnected"));
+
 }
 
