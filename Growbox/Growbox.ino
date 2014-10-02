@@ -277,7 +277,7 @@ void updateGrowboxState(boolean checkHardwareState) {
         GB_Controller.turnOffHeater();
       }
       else {
-        // Normal
+        // Normal (or NAN)
         GB_Controller.turnOnOffFanBySpeedValue(fanSpeedDayNormalTemperature);
         GB_Controller.turnOffHeater();
       }
@@ -296,7 +296,7 @@ void updateGrowboxState(boolean checkHardwareState) {
         GB_Controller.turnOffHeater();
       }
       else {
-        // Normal
+        // Normal (or NAN)
         GB_Controller.turnOnOffFanBySpeedValue(fanSpeedNightNormalTemperature);
         GB_Controller.turnOffHeater();
       }

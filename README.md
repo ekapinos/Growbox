@@ -8,3 +8,4 @@ Useful referencies:
 * http://www.nongnu.org/avr-libc/user-manual/group__avr__pgmspace.html#ga652cbaf54885c73c7ebbefe73524fa22
 * https://github.com/lthonway1/arduino/blob/master/WIFI_RAK410.cpp
 * http://alexrdelp.com/?page_id=5
+* http://arduino-info.wikispaces.com/RelayIsolation

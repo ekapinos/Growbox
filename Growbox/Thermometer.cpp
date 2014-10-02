@@ -48,6 +48,12 @@ float ThermometerClass::getHardwareTemperature(boolean logOnError) {
     return NAN;
   }
 
+  boolean wasZeroError         = GB_Logger.stopLogError(ERROR_TERMOMETER_ZERO_VALUE);
+  boolean wasDisconnectedError = GB_Logger.stopLogError(ERROR_TERMOMETER_DISCONNECTED);
+  if (wasZeroError || wasDisconnectedError) {
+    GB_Logger.logEvent(EVENT_THERMOMETER_RESTORED);
+  }
+
   return temperature;
 }
 
@@ -84,14 +90,8 @@ void ThermometerClass::updateStatistics() {
   c_statisticsTemperatureSumm += freshTemperature;
   c_statisticsTemperatureCount++;
 
-  boolean wasZeroError         = GB_Logger.stopLogError(ERROR_TERMOMETER_ZERO_VALUE);
-  boolean wasDisconnectedError = GB_Logger.stopLogError(ERROR_TERMOMETER_DISCONNECTED);
-
-  if (wasZeroError || wasDisconnectedError) {
-    GB_Logger.logEvent(EVENT_THERMOMETER_RESTORED);
-  }
-
   if (c_statisticsTemperatureCount > 200) { // prevents overflow (3 times per minute max fan period 60 minutes)
+    GB_Logger.logEvent(EVENT_THERMOMETER_STATISTICS_OVERFLOW);
     c_statisticsTemperatureSumm = c_statisticsTemperatureSumm / c_statisticsTemperatureCount;
     c_statisticsTemperatureCount = 1;
   }
