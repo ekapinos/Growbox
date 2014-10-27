@@ -1,11 +1,14 @@
 // Warning! We need to include all used libraries,
 // otherwise Arduino IDE doesn't set correct build
 // parameters for gcc compiler
+#define USE_WATCH_DOG_TIMER
+#define USE_SPECIALIST_METHODS // We use free() method in TimeAlarms.h library
+
+#include <avr/wdt.h>
 #include <MemoryFree.h>
 
 #include <Time.h>
 
-#define USE_SPECIALIST_METHODS // We use free() method in TimeAlarms.h library
 #include <TimeAlarms.h>
 
 // RTC
@@ -54,6 +57,8 @@ void stopOnFatalError(const __FlashStringHelper* str) {
 
 // the setup routine runs once when you press reset:
 void setup() {
+
+  wdt_disable(); // we do not need to check CONTROLLER_USE_WATCH_DOG_TIMER. We should always try to start correctly
 
   // Initialize the info pins
   pinMode(LED_BUILTIN, OUTPUT); // Breeze
@@ -172,9 +177,14 @@ void setup() {
   GB_Watering.updateWateringSchedule(); // Run watering after init
   GB_Controller.checkFreeMemory();
 
+  if(CONTROLLER_USE_WATCH_DOG_TIMER){
+    wdt_enable(WDTO_8S);
+  }
+
   if (g_useSerialMonitor) {
     Serial.println(F("Growbox successfully started"));
   }
+
 }
 
 // the loop routine runs over and over again forever:

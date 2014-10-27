@@ -236,6 +236,7 @@ void WebServerClass::tagButton(const __FlashStringHelper* url, const __FlashStri
     rawData(F("style='text-decoration:underline;' "));
   }
   rawData(F("/>"));
+  rawData(F(" ")); // separator
 }
 
 void WebServerClass::tagRadioButton(const __FlashStringHelper* name, const __FlashStringHelper* text, const __FlashStringHelper* value, boolean isSelected) {

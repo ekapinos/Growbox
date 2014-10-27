@@ -1,5 +1,6 @@
 #include "Watering.h"
 
+#include "Controller.h"
 #include "StorageHelper.h"
 #include "Logger.h"
 
@@ -117,7 +118,13 @@ void WateringClass::updateWetSatus() {
       Serial.print(remanedDelay);
       Serial.println(F(" sec"));
     }
+
+    GB_Controller.updateBreeze();
+
     delay((unsigned long)remanedDelay * 1000);
+
+    GB_Controller.updateBreeze();
+
   }
 
   c_turnOnWetSensorsTimeStamp = 0; // clear 

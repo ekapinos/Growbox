@@ -82,6 +82,8 @@ const long WATERING_ERROR_DELTA_SEC = 5 * 60; // 6 minutes
 //                          OTHER CONSTS                           //
 /////////////////////////////////////////////////////////////////////
 
+const boolean CONTROLLER_USE_WATCH_DOG_TIMER = true;
+
 // Wi-Fi
 const byte WI_FI_RECONNECT_ATTEMPTS_BEFORE_USE_DEFAULT_PARAMS = 3;
 

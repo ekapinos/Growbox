@@ -29,8 +29,8 @@ public:
 public:
   time_t getFirstStartupTimeStamp();
   time_t getStartupTimeStamp();
-  void adjustFirstStartupTimeStamp(long delta);
-  void adjustStartupTimeStamp(long delta);
+  void setFirstStartupTimeStamp(time_t timeStamp);
+  void setStartupTimeStamp(time_t timeStamp);
 
   void resetFirmware();
   void resetStoredLog();

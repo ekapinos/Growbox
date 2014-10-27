@@ -1,5 +1,6 @@
 #include <MemoryFree.h>
 
+#include <avr/wdt.h>
 #include <Time.h>
 // RTC
 #include <Wire.h>  
@@ -31,8 +32,7 @@ void ControllerClass::rebootController() {
 
 void ControllerClass::update() {
 
-  digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
-  c_lastBreezeTimeStamp = now();
+  updateBreeze();
 
   checkInputPinsStatus();
   checkFreeMemory();
@@ -40,6 +40,17 @@ void ControllerClass::update() {
   updateFan();
 }
 
+void ControllerClass::updateBreeze() {
+
+  digitalWrite(BREEZE_PIN, !digitalRead(BREEZE_PIN));
+
+  if (CONTROLLER_USE_WATCH_DOG_TIMER) {
+    wdt_reset();
+  }
+
+  c_lastBreezeTimeStamp = now();
+
+}
 void ControllerClass::updateClockState() {
   // Check hardware
   if (!GB_StorageHelper.isUseRTC()) {
@@ -219,15 +230,24 @@ void ControllerClass::setClockTime(time_t newTimeStamp, boolean checkStartupTime
   GB_Watering.adjustLastWatringTimeOnClockSet(delta);
   // TODO what about wi-fi last active time stamp?
 
+  // Time Alarms
+  for (int alarmId = 0; alarmId < dtNBR_ALARMS; alarmId++){
+    if (Alarm.isAllocated(alarmId)){
+      Alarm.enable(alarmId); // see comment inside cpp: trigger is updated whenever  this is called, even if already enabled
+    }
+  }
+
   // If we started with clean RTC we should update time stamps
   if (!checkStartupTime) {
     return;
   }
-  if (GB_StorageHelper.getStartupTimeStamp() == 0) {
-    GB_StorageHelper.adjustStartupTimeStamp(delta);
+  time_t firstStartupTimeStamp = GB_StorageHelper.getFirstStartupTimeStamp();
+  if (firstStartupTimeStamp == 0 || firstStartupTimeStamp > newTimeStamp) {
+    GB_StorageHelper.setFirstStartupTimeStamp(newTimeStamp);
   }
-  if (GB_StorageHelper.getFirstStartupTimeStamp() == 0) {
-    GB_StorageHelper.adjustFirstStartupTimeStamp(delta);
+  time_t startupTimeStamp = GB_StorageHelper.getStartupTimeStamp();
+  if (startupTimeStamp == 0 || startupTimeStamp > newTimeStamp) {
+    GB_StorageHelper.setStartupTimeStamp(newTimeStamp);
   }
 }
 //public: 
@@ -520,7 +540,7 @@ void ControllerClass::turnOnFan(byte speed, byte numerator, byte denominator) {
 
   byte logData = (c_fan_numerator << 4) | denominator;
   if (speed == FAN_SPEED_LOW) {
-    GB_Logger.logEvent(EVENT_FAN_ON_LOW, logData);
+    GB_Logger.logEvent(EVENT_FAN_ON_LOW, logData); // TODO save as fanSpeedValue
   }
   else {
     GB_Logger.logEvent(EVENT_FAN_ON_HIGH, logData);
@@ -555,6 +575,11 @@ void ControllerClass::updateFan() {
   if (isFanTurnedOn() && isFanUseRatio()){
     isFanOnNow = (c_fan_denominator - c_fan_cycleCounter) <= c_fan_numerator;
   }
+
+  if (isFanHardwareTurnedOn() != isFanOnNow){
+    showControllerMessage(isFanOnNow ? F("hardware fan on") : F("hardware fan off"));
+  }
+
   if (isFanOnNow){
     digitalWrite(FAN_SPEED_PIN, c_fan_speed);
     digitalWrite(FAN_PIN, RELAY_ON);

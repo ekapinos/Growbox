@@ -1,5 +1,7 @@
 #include "LoggerModel.h"
 
+#include "Controller.h"
+
 /////////////////////////////////////////////////////////////////////
 //                               EVENT                             //
 /////////////////////////////////////////////////////////////////////
@@ -99,6 +101,9 @@ boolean Error::isInitialized() {
 }
 
 void Error::notify() {
+
+  GB_Controller.updateBreeze();
+
   digitalWrite(ERROR_PIN, LOW);
   delay(1000);
   for (int i = sequenceSize - 1; i >= 0; i--) {
@@ -111,9 +116,15 @@ void Error::notify() {
     }
     digitalWrite(ERROR_PIN, LOW);
     delay(ERROR_DELAY_BETWEEN_SIGNALS_MS);
+
+    GB_Controller.updateBreeze();
+
   }
   digitalWrite(ERROR_PIN, LOW);
   delay(1000);
+
+  GB_Controller.updateBreeze();
+
 }
 
 

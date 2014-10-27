@@ -9,3 +9,4 @@ Useful referencies:
 * https://github.com/lthonway1/arduino/blob/master/WIFI_RAK410.cpp
 * http://alexrdelp.com/?page_id=5
 * http://arduino-info.wikispaces.com/RelayIsolation
+* http://habrahabr.ru/post/189744/

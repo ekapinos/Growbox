@@ -22,6 +22,8 @@ public:
   void rebootController();
 
   void update();
+  void updateBreeze();
+
   void updateClockState();
   void updateAutoAdjustClockTime();
 

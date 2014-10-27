@@ -184,16 +184,12 @@ time_t StorageHelperClass::getStartupTimeStamp() {
   return EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, startupTimeStamp));
 }
 
-void StorageHelperClass::adjustFirstStartupTimeStamp(long delta) {
-  time_t time = EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, firstStartupTimeStamp));
-  time += delta;
-  EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, firstStartupTimeStamp), time);
+void StorageHelperClass::setFirstStartupTimeStamp(time_t timeStamp) {
+  EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, firstStartupTimeStamp), timeStamp);
 }
 
-void StorageHelperClass::adjustStartupTimeStamp(long delta) {
-  time_t time = EEPROM.readBlock<time_t>(OFFSETOF(BootRecord, startupTimeStamp));
-  time += delta;
-  EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, startupTimeStamp), time);
+void StorageHelperClass::setStartupTimeStamp(time_t timeStamp) {
+  EEPROM.updateBlock<time_t>(OFFSETOF(BootRecord, startupTimeStamp), timeStamp);
 }
 
 void StorageHelperClass::resetFirmware() {

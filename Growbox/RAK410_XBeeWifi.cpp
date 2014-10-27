@@ -1,5 +1,6 @@
 #include "RAK410_XBeeWifi.h"
 
+#include "Controller.h"
 #include "StorageHelper.h"
 
 /////////////////////////////////////////////////////////////////////
@@ -204,6 +205,8 @@ boolean RAK410_XBeeWifiClass::checkStartedWifi() {
 
 RAK410_XBeeWifiClass::RequestType RAK410_XBeeWifiClass::handleSerialEvent(byte &wifiPortDescriptor, String &input, String &getParams, String &postParams) {
 
+  //GB_Controller.updateBreeze(); // TODO make better.. see ArduinoPatch.cpp -> boolean Serial_timedRead(char* c)
+
   c_lastWifiActivityTimeStamp = now();
 
   wifiPortDescriptor = 0xFF;
@@ -404,10 +407,16 @@ void RAK410_XBeeWifiClass::sendFixedSizeFrameStart(const byte portDescriptor, wo
 }
 
 void RAK410_XBeeWifiClass::sendFixedSizeFrameData(const __FlashStringHelper* data) {
+
+  GB_Controller.updateBreeze();
+
   wifiExecuteCommandPrint(data);
 }
 
 void RAK410_XBeeWifiClass::sendFixedSizeFrameData(const String &data) {
+
+  GB_Controller.updateBreeze();
+
   wifiExecuteCommandPrint(data);
 }
 
@@ -434,6 +443,9 @@ boolean RAK410_XBeeWifiClass::sendAutoSizeFrameData(const byte &wifiPortDescript
 }
 
 boolean RAK410_XBeeWifiClass::sendAutoSizeFrameData(const byte &wifiPortDescriptor, const String &data) {
+
+  GB_Controller.updateBreeze();
+
   if (data.length() == 0) {
     return true;
   }
@@ -587,6 +599,8 @@ String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* co
   }
   c_isWifiPrintCommandStarted = false;
 
+  GB_Controller.updateBreeze();
+
   String input;
   input.reserve(10);
   unsigned long start = millis();
@@ -599,8 +613,12 @@ String RAK410_XBeeWifiClass::wifiExecuteRawCommand(const __FlashStringHelper* co
       //showWifiMessage(FS(S_empty), false);
       //Serial.println(input);
 
+      GB_Controller.updateBreeze();
     }
   }
+
+  GB_Controller.updateBreeze();
+
   return input;
 }
 

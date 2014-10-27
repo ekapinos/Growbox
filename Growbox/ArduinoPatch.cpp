@@ -1,5 +1,6 @@
 #include "ArduinoPatch.h"
 
+#include <avr/wdt.h>
 #include "StringUtils.h"
 
 boolean Serial_timedRead(char* c) {
@@ -11,6 +12,9 @@ boolean Serial_timedRead(char* c) {
       return true;
     }
     _currentMillis = millis();
+
+//  GB_Controller.updateBreeze();
+    wdt_reset(); //TODO make smth better
   }
   while (((_currentMillis - _startMillis) < STREAM_TIMEOUT) || (_currentMillis < _startMillis)); // Overflow check
   //while((_currentMillis - _startMillis) < Stream_timeout); 
